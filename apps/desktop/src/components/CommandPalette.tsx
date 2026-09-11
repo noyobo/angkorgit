@@ -56,6 +56,7 @@ import { currentPullRequestUrl, modKey } from '@/shared/utils';
 
 export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const branches = useRepo((s) => s.branches);
   const remotes = useRepo((s) => s.remotes);
   const recents = useRepo((s) => s.recents);

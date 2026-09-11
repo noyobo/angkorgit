@@ -53,6 +53,7 @@ const PREVIEW_COLUMNS = {
 
 export function CommitGraph() {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const refresh = useRepo((s) => s.refresh);
   const worktrees = useRepo((s) => s.worktrees);
   const branches = useRepo((s) => s.branches);

@@ -221,6 +221,7 @@ function Section({
 
 export function Sidebar() {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const branches = useRepo((s) => s.branches);
   const tags = useRepo((s) => s.tags);
   const stashes = useRepo((s) => s.stashes);

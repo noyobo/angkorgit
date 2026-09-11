@@ -1,5 +1,5 @@
-// Comprehensive audit logging to daily files for production debugging
-import { isTauri } from './ipc';
+const isTauri = (): boolean =>
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 export type LogLayer = 'ui' | 'menu' | 'ipc' | 'git' | 'rust' | 'system';
 export type LogType = 'key' | 'click' | 'cmd' | 'stdout' | 'stderr' | 'push' | 'lifecycle';

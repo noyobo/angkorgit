@@ -57,6 +57,11 @@ All notable changes to AngKorGit are documented here. The format follows
   Linux still exit when the last window closes.
 
 ### Fixed
+- **Push said it succeeded when the remote already had the tip.** A second
+  click toasted "Pushed … to origin" and still talked receive-pack to the
+  server (enough for CI to fire). Push now lists the live remote tip first,
+  like `git push`: same SHA is "already up to date" and does not send an
+  update.
 - **Arrowing through changed files only highlighted the row.** ↑/↓ in the
   working-copy file list now opens that file’s diff, the same as the commit
   file list.

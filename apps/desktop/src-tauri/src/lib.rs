@@ -33,7 +33,7 @@ pub mod test_api {
         stash_create, stash_files, stash_list, stash_pop, stash_restore_files, tag_create,
         tag_delete, tag_delete_local_and_remote, tag_list,
     };
-    pub use crate::core::remote::{checkout_remote_ref, fetch, remote_has_ref};
+    pub use crate::core::remote::{checkout_remote_ref, fetch, push, remote_has_ref};
     pub use crate::core::repo::{
         cleanup_state, discover, info as repo_info, init, ref_fingerprint, set_config, status,
     };

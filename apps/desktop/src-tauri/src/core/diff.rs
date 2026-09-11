@@ -328,7 +328,12 @@ pub fn commit_file_diff(
     })
 }
 
-pub fn range_diff(path: &str, from_oid: &str, to_oid: &str, context_lines: u32) -> AppResult<Vec<FileDiff>> {
+pub fn range_diff(
+    path: &str,
+    from_oid: &str,
+    to_oid: &str,
+    context_lines: u32,
+) -> AppResult<Vec<FileDiff>> {
     let repo = super::repo::open(path)?;
     let from_commit = repo.find_commit(git2::Oid::from_str(from_oid)?)?;
     let to_commit = repo.find_commit(git2::Oid::from_str(to_oid)?)?;
@@ -337,7 +342,7 @@ pub fn range_diff(path: &str, from_oid: &str, to_oid: &str, context_lines: u32) 
 
     let mut opts = base_opts(None, context_lines);
     let diff = repo.diff_tree_to_tree(Some(&from_tree), Some(&to_tree), Some(&mut opts))?;
-    
+
     let count = diff.deltas().len();
     let mut result = Vec::with_capacity(count);
     for i in 0..count {

@@ -487,15 +487,27 @@ fn git_ref_ok(git_ref: &str) -> bool {
     !name.is_empty() && !name.contains(':') && !name.contains('\0') && !name.contains('\n')
 }
 
+fn advertised_oid(
+    repo: &Repository,
+    remote_name: &str,
+    git_ref: &str,
+) -> AppResult<Option<git2::Oid>> {
+    let mut remote = repo.find_remote(remote_name)?;
+    let connection = remote.connect_auth(Direction::Fetch, Some(make_callbacks()), None)?;
+    Ok(connection
+        .list()?
+        .iter()
+        .find(|head| head.name() == git_ref)
+        .map(|head| head.oid()))
+}
+
 pub fn remote_has_ref(path: &str, remote_name: &str, git_ref: &str) -> AppResult<bool> {
     if !git_ref_ok(git_ref) {
         return Err(AppError::other("Invalid ref"));
     }
     let repo = super::repo::open(path)?;
     prime_account_bindings(Some(&repo));
-    let mut remote = repo.find_remote(remote_name)?;
-    let connection = remote.connect_auth(Direction::Fetch, Some(make_callbacks()), None)?;
-    Ok(connection.list()?.iter().any(|head| head.name() == git_ref))
+    Ok(advertised_oid(&repo, remote_name, git_ref)?.is_some())
 }
 
 pub fn push_delete(path: &str, remote_name: &str, git_ref: &str) -> AppResult<OpOutcome> {
@@ -533,9 +545,30 @@ pub fn push(
             .to_string(),
     };
 
-    let refspecs = push_refspecs(&branch_name, force, with_tags);
+    let local_oid = {
+        let local = repo.find_branch(&branch_name, git2::BranchType::Local)?;
+        local
+            .get()
+            .target()
+            .ok_or_else(|| AppError::other(format!("branch {branch_name} has no target")))?
+    };
 
     prime_account_bindings(Some(&repo));
+    if !with_tags {
+        let git_ref = format!("refs/heads/{branch_name}");
+        if advertised_oid(&repo, remote_name, &git_ref)? == Some(local_oid) {
+            if set_upstream {
+                let mut branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
+                branch.set_upstream(Some(&format!("{remote_name}/{branch_name}")))?;
+            }
+            return Ok(OpOutcome {
+                status: "up_to_date".into(),
+                message: format!("{branch_name} is already up to date"),
+            });
+        }
+    }
+
+    let refspecs = push_refspecs(&branch_name, force, with_tags);
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());

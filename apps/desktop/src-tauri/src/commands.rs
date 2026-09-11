@@ -217,17 +217,39 @@ pub async fn open_in_editor(path: String, editor: String) -> AppResult<()> {
             #[cfg(target_os = "macos")]
             {
                 match editor.as_str() {
-                    "cursor" => crate::proc::hidden("open").args(["-a", "Cursor", &path]).status(),
-                    "vscode" => crate::proc::hidden("open").args(["-a", "Visual Studio Code", &path]).status(),
-                    "vscode-insiders" => crate::proc::hidden("open").args(["-a", "Visual Studio Code - Insiders", &path]).status(),
-                    "vscodium" => crate::proc::hidden("open").args(["-a", "VSCodium", &path]).status(),
-                    "sublime" => crate::proc::hidden("open").args(["-a", "Sublime Text", &path]).status(),
-                    "atom" => crate::proc::hidden("open").args(["-a", "Atom", &path]).status(),
-                    "zed" => crate::proc::hidden("open").args(["-a", "Zed", &path]).status(),
-                    "fleet" => crate::proc::hidden("open").args(["-a", "Fleet", &path]).status(),
-                    "webstorm" => crate::proc::hidden("open").args(["-a", "WebStorm", &path]).status(),
-                    "phpstorm" => crate::proc::hidden("open").args(["-a", "PhpStorm", &path]).status(),
-                    "idea" => crate::proc::hidden("open").args(["-a", "IntelliJ IDEA", &path]).status(),
+                    "cursor" => crate::proc::hidden("open")
+                        .args(["-a", "Cursor", &path])
+                        .status(),
+                    "vscode" => crate::proc::hidden("open")
+                        .args(["-a", "Visual Studio Code", &path])
+                        .status(),
+                    "vscode-insiders" => crate::proc::hidden("open")
+                        .args(["-a", "Visual Studio Code - Insiders", &path])
+                        .status(),
+                    "vscodium" => crate::proc::hidden("open")
+                        .args(["-a", "VSCodium", &path])
+                        .status(),
+                    "sublime" => crate::proc::hidden("open")
+                        .args(["-a", "Sublime Text", &path])
+                        .status(),
+                    "atom" => crate::proc::hidden("open")
+                        .args(["-a", "Atom", &path])
+                        .status(),
+                    "zed" => crate::proc::hidden("open")
+                        .args(["-a", "Zed", &path])
+                        .status(),
+                    "fleet" => crate::proc::hidden("open")
+                        .args(["-a", "Fleet", &path])
+                        .status(),
+                    "webstorm" => crate::proc::hidden("open")
+                        .args(["-a", "WebStorm", &path])
+                        .status(),
+                    "phpstorm" => crate::proc::hidden("open")
+                        .args(["-a", "PhpStorm", &path])
+                        .status(),
+                    "idea" => crate::proc::hidden("open")
+                        .args(["-a", "IntelliJ IDEA", &path])
+                        .status(),
                     _ => crate::proc::hidden("open").arg(&path).status(),
                 }
             }
@@ -245,7 +267,11 @@ pub async fn open_in_editor(path: String, editor: String) -> AppResult<()> {
                     "webstorm" => "webstorm64.exe",
                     "phpstorm" => "phpstorm64.exe",
                     "idea" => "idea64.exe",
-                    _ => return crate::proc::hidden("cmd").args(["/C", "start", "", &path]).status(),
+                    _ => {
+                        return crate::proc::hidden("cmd")
+                            .args(["/C", "start", "", &path])
+                            .status()
+                    }
                 };
                 crate::proc::hidden(exe).arg(&path).status()
             }
@@ -269,7 +295,9 @@ pub async fn open_in_editor(path: String, editor: String) -> AppResult<()> {
             }
         }?;
         if !status.success() {
-            return Err(crate::error::AppError::other("could not open file in editor"));
+            return Err(crate::error::AppError::other(
+                "could not open file in editor",
+            ));
         }
         Ok(())
     })

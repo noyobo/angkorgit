@@ -628,6 +628,33 @@ fn delete_local_and_remote_removes_both_and_refuses_while_checked_out() {
 }
 
 #[test]
+fn push_is_up_to_date_when_the_remote_already_has_the_tip() {
+    let origin = TempRepo::new();
+    origin.write("a.txt", "base\n");
+    commit_all(&origin, "base");
+    let origin = TempRepo::bare_clone(&origin);
+
+    let dir = TempRepo::scratch_dir();
+    let status = Command::new("git")
+        .args(["clone", origin.path(), dir.to_str().unwrap()])
+        .status()
+        .expect("git CLI available");
+    assert!(status.success());
+    let local = TempRepo { dir };
+
+    let hook = std::path::Path::new(origin.path()).join("hooks/pre-receive");
+    std::fs::write(&hook, "#!/bin/sh\nexit 1\n").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    let outcome = core::push(local.path(), "origin", None, false, false, true).unwrap();
+    assert_eq!(outcome.status, "up_to_date");
+}
+
+#[test]
 fn list_keeps_configured_upstream_when_the_remote_ref_is_gone() {
     let repo = TempRepo::new();
     repo.write("a.txt", "base\n");
