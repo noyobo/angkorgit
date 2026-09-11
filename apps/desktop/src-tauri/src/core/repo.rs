@@ -275,3 +275,10 @@ pub fn set_config(repo_path: Option<&str>, key: &str, value: &str, global: bool)
     config.set_str(key, value)?;
     Ok(())
 }
+
+pub(crate) fn is_clean(repo: &Repository) -> AppResult<bool> {
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(false).include_ignored(false);
+    let statuses = repo.statuses(Some(&mut opts))?;
+    Ok(statuses.is_empty())
+}

@@ -441,7 +441,40 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
 }
 
 pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
-    fetch(path, remote_name, false, false)?;
+    let repo = super::repo::open(path)?;
+    
+    let config = repo.config()?;
+    let rebase = config
+        .get_bool("pull.rebase")
+        .ok()
+        .unwrap_or(false);
+    let ff_only = config
+        .get_string("pull.ff")
+        .ok()
+        .map(|v| v == "only")
+        .unwrap_or(false);
+    
+    let autostash = if rebase {
+        config.get_bool("rebase.autostash").ok().unwrap_or(false)
+    } else {
+        false
+    };
+    
+    let stashed = if autostash && !super::repo::is_clean(&repo)? {
+        let sig = repo.signature()?;
+        repo.stash_save2(&sig, Some("autostash"), Some(git2::StashFlags::DEFAULT))
+            .ok()
+            .map(|oid| oid.to_string())
+    } else {
+        None
+    };
+    
+    drop(config);
+    drop(repo);
+    
+    let fetch_tags = false;
+    let fetch_prune = false;
+    fetch(path, remote_name, fetch_tags, fetch_prune)?;
 
     let repo = super::repo::open(path)?;
     let head = repo.head()?;
@@ -461,7 +494,53 @@ pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
     drop(branch);
     drop(head);
 
-    super::branch::merge(path, &upstream_name, false)
+    let outcome = if rebase {
+        super::branch::rebase(path, &upstream_name)?
+    } else if ff_only {
+        let repo = super::repo::open(path)?;
+        let target_oid = super::branch::resolve_branch_ref(&repo, &upstream_name)?.peel_to_commit()?.id();
+        let head_oid = repo.head()?.peel_to_commit()?.id();
+        
+        if target_oid == head_oid {
+            OpOutcome {
+                status: "up_to_date".into(),
+                message: format!("Already up to date with {upstream_name}"),
+            }
+        } else if repo.graph_descendant_of(target_oid, head_oid)? {
+            drop(repo);
+            super::branch::merge(path, &upstream_name, false)?
+        } else {
+            return Err(AppError::other(format!(
+                "Cannot fast-forward to {upstream_name} — merge or rebase required"
+            )));
+        }
+    } else {
+        super::branch::merge(path, &upstream_name, false)?
+    };
+    
+    if let Some(stash_oid) = stashed {
+        let mut repo = super::repo::open(path)?;
+        if let Ok(oid) = git2::Oid::from_str(&stash_oid) {
+            if let Some(index) = find_stash_index(&mut repo, oid) {
+                let _ = repo.stash_pop(index, None);
+            }
+        }
+    }
+    
+    Ok(outcome)
+}
+
+fn find_stash_index(repo: &mut Repository, oid: git2::Oid) -> Option<usize> {
+    let mut found = None;
+    let _ = repo.stash_foreach(|index, _, stash_oid| {
+        if *stash_oid == oid {
+            found = Some(index);
+            false
+        } else {
+            true
+        }
+    });
+    found
 }
 
 pub(crate) fn push_refspecs(branch: &str, force: bool, with_tags: bool) -> Vec<String> {
