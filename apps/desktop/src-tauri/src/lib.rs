@@ -197,27 +197,25 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while running AngKorGit");
 
-    app.run(|app, event| {
-        match event {
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::Opened { urls } => {
-                for url in urls {
-                    if let Ok(path) = url.to_file_path() {
-                        cli::request_open(app, path.to_string_lossy().into_owned());
-                    }
+    app.run(|app, event| match event {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Opened { urls } => {
+            for url in urls {
+                if let Ok(path) = url.to_file_path() {
+                    cli::request_open(app, path.to_string_lossy().into_owned());
                 }
             }
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::Reopen { .. } => cli::focus_main(app),
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::WindowEvent {
-                event: tauri::WindowEvent::CloseRequested { api, .. },
-                ..
-            } => {
-                api.prevent_close();
-                cli::hide_main(app);
-            }
-            _ => {}
         }
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen { .. } => cli::focus_main(app),
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::WindowEvent {
+            event: tauri::WindowEvent::CloseRequested { api, .. },
+            ..
+        } => {
+            api.prevent_close();
+            cli::hide_main(app);
+        }
+        _ => {}
     });
 }

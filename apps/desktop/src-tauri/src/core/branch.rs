@@ -59,11 +59,7 @@ pub fn list(path: &str) -> AppResult<Vec<BranchInfo>> {
 fn configured_upstream(repo: &Repository, name: &str) -> Option<String> {
     if let Ok(buf) = repo.branch_upstream_name(&format!("refs/heads/{name}")) {
         if let Some(raw) = buf.as_str() {
-            return Some(
-                raw.strip_prefix("refs/remotes/")
-                    .unwrap_or(raw)
-                    .to_string(),
-            );
+            return Some(raw.strip_prefix("refs/remotes/").unwrap_or(raw).to_string());
         }
     }
     let config = repo.config().ok()?;
