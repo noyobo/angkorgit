@@ -15,7 +15,6 @@ import {
   GitPullRequest,
   Layers,
 } from 'lucide-react';
-import { Kbd } from '@angkorgit/design-system';
 import { PaletteShell, PaletteItem } from './PaletteShell';
 import { useUi } from '@/features/ui/store';
 import { modKey } from '@/shared/utils';
