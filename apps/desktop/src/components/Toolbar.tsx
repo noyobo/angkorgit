@@ -50,6 +50,7 @@ import { sidebarVisible, useUi } from '@/features/ui/store';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings, type IdentityProfile } from '@/features/settings/store';
 import { applyProfileToRepo, ensureRepoProfile } from '@/features/settings/profiles';
+import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { capCount, modKey } from '@/shared/utils';
 
 function RepoSwitcher() {
@@ -435,17 +436,38 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <Separator orientation="vertical" className="mx-2 h-6" />
 
-      <Hint label={`Fetch ${remote}`}>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={!!busy}
-          onClick={() => void run('Fetch', () => ipc.fetch(repo.path, remote, true, true))}
-        >
-          <RefreshCw className={busy === 'Fetch' ? 'animate-spin' : ''} />
-          Fetch
-        </Button>
-      </Hint>
+      <div className="flex items-center">
+        <Hint label={`Fetch ${remote}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-r-none"
+            disabled={!!busy}
+            onClick={() => void run('Fetch', () => ipc.fetch(repo.path, remote, true, true))}
+          >
+            <RefreshCw className={busy === 'Fetch' || busy === 'Fetch and clear' ? 'animate-spin' : ''} />
+            Fetch
+          </Button>
+        </Hint>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" className="rounded-l-none" aria-label="Fetch options" disabled={!!busy}>
+              <ChevronDown className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem
+              onClick={() => {
+                if (busy) return;
+                setBusy('Fetch and clear');
+                void fetchAndClearLocalBranches(repo.path, remote, onRefresh).finally(() => setBusy(null));
+              }}
+            >
+              Fetch and clear local branches…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <Hint label={`Pull from ${remote}${status?.behind ? ` (${status.behind} behind)` : ''}`}>
         <Button
           variant="ghost"

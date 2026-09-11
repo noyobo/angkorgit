@@ -20,6 +20,10 @@ All notable changes to AngKorGit are documented here. The format follows
   deleted locally, a hit asks once, then the local ref and the server copy both go. Regular
   Delete still only drops the local one. A failed push leaves the local ref in
   place.
+- **Fetch and clear local branches.** The Fetch split menu (and the command
+  palette) fetches as usual, then lists local branches whose upstream on that
+  remote is gone. Unpushed or checked-out ones stay visible but cannot be
+  selected. Default Fetch is unchanged.
 
 ### Changed
 - **⌘W hides the window on macOS.** The Dock icon stays; click it or run

@@ -6,6 +6,7 @@ import { Spinner, TooltipProvider } from '@angkorgit/design-system';
 import { SplashScreen } from './SplashScreen';
 import { ConfirmHost } from '@/components/confirm';
 import { ProfilePromptHost } from '@/components/profilePrompt';
+import { StaleLocalsHost } from '@/components/staleLocalsDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WelcomePage } from '@/features/repository/WelcomePage';
 
@@ -179,6 +180,7 @@ export function App() {
       </MemoryRouter>
       <ConfirmHost />
       <ProfilePromptHost />
+      <StaleLocalsHost />
       <Toaster
         position="bottom-left"
         theme={themeBase(theme)}

@@ -33,7 +33,7 @@ pub fn list(path: &str) -> AppResult<Vec<BranchInfo>> {
                     };
                     (up_name, a, b)
                 }
-                Err(_) => (None, 0, 0),
+                Err(_) => (configured_upstream(&repo, &name), 0, 0),
             }
         };
         result.push(BranchInfo {
@@ -48,6 +48,23 @@ pub fn list(path: &str) -> AppResult<Vec<BranchInfo>> {
     }
     result.sort_by(|a, b| (a.is_remote, &a.name).cmp(&(b.is_remote, &b.name)));
     Ok(result)
+}
+
+fn configured_upstream(repo: &Repository, name: &str) -> Option<String> {
+    if let Ok(buf) = repo.branch_upstream_name(&format!("refs/heads/{name}")) {
+        if let Some(raw) = buf.as_str() {
+            return Some(
+                raw.strip_prefix("refs/remotes/")
+                    .unwrap_or(raw)
+                    .to_string(),
+            );
+        }
+    }
+    let config = repo.config().ok()?;
+    let remote = config.get_string(&format!("branch.{name}.remote")).ok()?;
+    let merge = config.get_string(&format!("branch.{name}.merge")).ok()?;
+    let short = merge.strip_prefix("refs/heads/").unwrap_or(merge.as_str());
+    Some(format!("{remote}/{short}"))
 }
 
 pub fn create(path: &str, name: &str, from_oid: Option<&str>, checkout: bool) -> AppResult<()> {

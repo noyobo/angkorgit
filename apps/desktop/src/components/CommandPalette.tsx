@@ -36,6 +36,7 @@ import { ipc, openExternal, pickDirectory } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
+import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
 import { themeBase, useSettings } from '@/features/settings/store';
@@ -297,6 +298,14 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             ) : null;
           })()}
           <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
+          <PaletteItem
+            icon={<RefreshCw />}
+            label="Fetch and clear local branches…"
+            onSelect={() => {
+              close();
+              void fetchAndClearLocalBranches(path, remote, onRefresh);
+            }}
+          />
           <PaletteItem
             icon={<GitBranchPlus />}
             label="Create branch…"

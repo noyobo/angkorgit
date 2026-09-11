@@ -1189,6 +1189,23 @@ test('arrow keys walk from the graph into a commit\u2019s files and back', async
   await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
 });
 
+test('fetch and clear local branches asks with checkboxes', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Fetch options' }).click();
+  await page.getByRole('menuitem', { name: 'Fetch and clear local branches…' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Delete stale local branches?' })).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete old-feature' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'wip-old kept' })).toBeDisabled();
+  await expect(dialog.getByText('Has unpushed commits')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Delete 1' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('old-feature', { exact: true })).toBeVisible();
+});
+
 test('deleting a branch on the remote too asks first', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();

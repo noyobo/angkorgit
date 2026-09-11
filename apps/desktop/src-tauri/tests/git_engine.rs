@@ -614,6 +614,28 @@ fn delete_local_and_remote_removes_both_and_refuses_while_checked_out() {
 }
 
 #[test]
+fn list_keeps_configured_upstream_when_the_remote_ref_is_gone() {
+    let repo = TempRepo::new();
+    repo.write("a.txt", "base\n");
+    commit_all(&repo, "base");
+    core::branch_create(repo.path(), "feature", None, false).unwrap();
+    core::set_config(Some(repo.path()), "branch.feature.remote", "origin", false).unwrap();
+    core::set_config(
+        Some(repo.path()),
+        "branch.feature.merge",
+        "refs/heads/feature",
+        false,
+    )
+    .unwrap();
+    let feature = core::branches(repo.path())
+        .unwrap()
+        .into_iter()
+        .find(|b| b.name == "feature")
+        .expect("feature");
+    assert_eq!(feature.upstream.as_deref(), Some("origin/feature"));
+}
+
+#[test]
 fn delete_tag_local_and_remote_removes_both() {
     let origin = TempRepo::new();
     origin.write("a.txt", "base\n");

@@ -167,7 +167,10 @@ export const demoBranches: BranchInfo[] = [
   { name: 'develop', isHead: false, isRemote: false, upstream: 'origin/develop', ahead: 0, behind: 0, targetOid: ALL_COMMITS[20].oid },
   { name: 'feature/diff-viewer', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[7].oid },
   { name: 'fix/stash-race', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[12].oid },
+  { name: 'old-feature', isHead: false, isRemote: false, upstream: 'origin/old-feature', ahead: 0, behind: 0, targetOid: ALL_COMMITS[30].oid },
+  { name: 'wip-old', isHead: false, isRemote: false, upstream: 'origin/wip-old', ahead: 2, behind: 0, targetOid: ALL_COMMITS[32].oid },
   { name: 'origin/main', isHead: false, isRemote: true, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[2].oid },
+  { name: 'origin/develop', isHead: false, isRemote: true, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[20].oid },
 ];
 
 export const demoTags: TagInfo[] = [
