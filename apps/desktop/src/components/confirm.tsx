@@ -15,6 +15,7 @@ export interface ConfirmOptions {
   title: string;
   description: string;
   path?: string;
+  list?: string[];
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
@@ -89,6 +90,15 @@ export function ConfirmHost() {
           </DialogTitle>
           <DialogDescription>{request?.description}</DialogDescription>
           {request?.path && <PathBlock path={request.path} />}
+          {request?.list && request.list.length > 0 && (
+            <ul className="mt-1 max-h-32 overflow-y-auto rounded-md border border-border-subtle bg-surface-raised px-2 py-1.5 font-mono text-xs leading-relaxed">
+              {request.list.map((name) => (
+                <li key={name} className="truncate [overflow-wrap:anywhere]">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          )}
         </DialogHeader>
         <DialogFooter className="flex-wrap">
           {!request?.hideCancel && (

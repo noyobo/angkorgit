@@ -27,6 +27,7 @@ import {
   SquareTerminal,
   Sun,
   Tag as TagIcon,
+  Trash2,
   Undo2,
   ZoomIn,
   ZoomOut,
@@ -37,6 +38,7 @@ import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
+import { openDeleteBranches } from '@/features/repository/deleteBranches';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
 import { themeBase, useSettings } from '@/features/settings/store';
@@ -312,6 +314,14 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             onSelect={() => {
               close();
               openDialog('createBranch');
+            }}
+          />
+          <PaletteItem
+            icon={<Trash2 />}
+            label="Delete branches…"
+            onSelect={() => {
+              close();
+              void openDeleteBranches(onRefresh);
             }}
           />
           <PaletteItem

@@ -1206,6 +1206,41 @@ test('arrow keys walk from the graph into a commit\u2019s files and back', async
   await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
 });
 
+test('sidebar batch delete lists locals unchecked and age select picks old ones', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Branch actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete branches…' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Delete branches?' })).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete develop' })).not.toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'main kept' })).toBeDisabled();
+  await expect(dialog.getByText('Checked out', { exact: true })).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: 'feature/diff-viewer kept' })).toBeDisabled();
+  await expect(dialog.getByRole('combobox', { name: 'Select by age' })).toHaveText('Choose age');
+  await dialog.getByRole('combobox', { name: 'Select by age' }).click();
+  await page.getByRole('option', { name: 'Older than 3 months' }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Select by age' })).toHaveText('Older than 3 months');
+  await expect(dialog.getByRole('checkbox', { name: 'Delete develop' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete old-feature' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete wip-old' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'main kept' })).toBeDisabled();
+  await dialog.getByRole('checkbox', { name: 'Delete develop' }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Select by age' })).toHaveText('Choose age');
+  await expect(dialog.getByRole('button', { name: 'Delete 2' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Delete local and remote…' }).click();
+  const confirm = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Delete 2 on the remote too?' }) });
+  await expect(confirm).toBeVisible();
+  await expect(confirm.getByText('old-feature', { exact: true })).toBeVisible();
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirm).toBeHidden();
+  await expect(dialog.getByRole('heading', { name: 'Delete branches?' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('develop', { exact: true }).first()).toBeVisible();
+});
+
 test('fetch and clear local branches asks with checkboxes', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();

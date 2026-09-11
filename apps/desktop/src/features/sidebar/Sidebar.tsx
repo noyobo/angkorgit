@@ -66,7 +66,8 @@ import { useUndo, type UndoKind } from '@/features/history/undoStore';
 import { useForge } from '@/features/forge/store';
 import { useSettings } from '@/features/settings/store';
 import { ensureRepoProfile } from '@/features/settings/profiles';
-import { forgeNoun, pullRequestCheckoutSpec } from '@angkorgit/core';
+import { forgeNoun, pullRequestCheckoutSpec, remoteDeleteTarget } from '@angkorgit/core';
+import { openDeleteBranches } from '@/features/repository/deleteBranches';
 import type { BranchInfo, PullRequestInfo, RemoteInfo, StashInfo, SubmoduleInfo, TagInfo, WorktreeInfo } from '@angkorgit/core';
 import { capCount, isMac } from '@/shared/utils';
 import { killTerminalSession } from '@/features/terminal/sessions';
@@ -184,6 +185,7 @@ function Section({
   open,
   onToggle,
   action,
+  onContextMenu,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -192,10 +194,14 @@ function Section({
   open: boolean;
   onToggle: () => void;
   action?: React.ReactNode;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   return (
     <div className={cn('flex flex-col', open ? 'min-h-[5.5rem] shrink' : 'shrink-0')}>
-      <div className="group flex w-full shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted hover:bg-surface-raised">
+      <div
+        className="group flex w-full shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted hover:bg-surface-raised"
+        onContextMenu={onContextMenu}
+      >
         <button
           className="flex min-w-0 flex-1 items-center gap-1.5"
           aria-expanded={open}
@@ -255,6 +261,7 @@ export function Sidebar() {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [dropAction, setDropAction] = useState<{ source: string; target: string; canFf?: boolean } | null>(null);
   const [branchMenu, setBranchMenu] = useState<{ x: number; y: number; branch: BranchInfo } | null>(null);
+  const [branchSectionMenu, setBranchSectionMenu] = useState<{ x: number; y: number } | null>(null);
   const [subMenu, setSubMenu] = useState<{ x: number; y: number; sub: SubmoduleInfo } | null>(null);
   const [remoteMenu, setRemoteMenu] = useState<{ x: number; y: number; remote: RemoteInfo } | null>(null);
   const [worktreeMenu, setWorktreeMenu] = useState<{ x: number; y: number; worktree: WorktreeInfo } | null>(null);
@@ -322,17 +329,8 @@ export function Sidebar() {
     }
   };
 
-  const deleteRemoteTarget = (
-    name: string,
-    upstream: string | null,
-  ): { remote: string; remoteName: string } | null => {
-    if (upstream) {
-      const slash = upstream.indexOf('/');
-      if (slash > 0) return { remote: upstream.slice(0, slash), remoteName: upstream.slice(slash + 1) };
-    }
-    const remote = remotes[0]?.name;
-    return remote ? { remote, remoteName: name } : null;
-  };
+  const deleteRemoteFor = (name: string, upstream: string | null) =>
+    remoteDeleteTarget(name, upstream, remotes[0]?.name);
 
   const requestDeleteLocalAndRemote = async (input: {
     kind: 'branch' | 'tag';
@@ -944,12 +942,31 @@ export function Sidebar() {
           icon={<GitBranch className="size-3.5" />}
           title="Branches"
           count={locals.length}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setBranchSectionMenu({ x: e.clientX, y: e.clientY });
+          }}
           action={
-            <Hint label="New branch">
-              <Button variant="ghost" size="icon-sm" aria-label="New branch" onClick={() => openDialog('createBranch')}>
-                <Plus className="size-3.5" />
-              </Button>
-            </Hint>
+            <span className="flex items-center">
+              <Hint label="Branch actions">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Branch actions"
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setBranchSectionMenu({ x: rect.left, y: rect.bottom + 4 });
+                  }}
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </Button>
+              </Hint>
+              <Hint label="New branch">
+                <Button variant="ghost" size="icon-sm" aria-label="New branch" onClick={() => openDialog('createBranch')}>
+                  <Plus className="size-3.5" />
+                </Button>
+              </Hint>
+            </span>
           }
         >
           {repoRefreshing && locals.length === 0 && (
@@ -1585,6 +1602,22 @@ export function Sidebar() {
         </DialogContent>
       </Dialog>
 
+      {branchSectionMenu && (
+        <DropdownMenu open onOpenChange={(o) => !o && setBranchSectionMenu(null)}>
+          <DropdownMenuTrigger asChild>
+            <span style={{ position: 'fixed', left: branchSectionMenu.x, top: branchSectionMenu.y }} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom">
+            <DropdownMenuItem
+              destructive
+              onClick={() => void openDeleteBranches(refreshAll)}
+            >
+              <Trash2 /> Delete branches…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
       {branchMenu && (
         <DropdownMenu open onOpenChange={(o) => !o && setBranchMenu(null)}>
           <DropdownMenuTrigger asChild>
@@ -1681,13 +1714,13 @@ export function Sidebar() {
                 >
                   <Trash2 /> Delete
                 </DropdownMenuItem>
-                {deleteRemoteTarget(branchMenu.branch.name, branchMenu.branch.upstream) && (
+                {deleteRemoteFor(branchMenu.branch.name, branchMenu.branch.upstream) && (
                   <DropdownMenuItem
                     destructive
                     disabled={branchMenu.branch.isHead}
                     onClick={() => {
                       const branch = branchMenu.branch;
-                      const target = deleteRemoteTarget(branch.name, branch.upstream);
+                      const target = deleteRemoteFor(branch.name, branch.upstream);
                       if (!target) return;
                       void requestDeleteLocalAndRemote({
                         kind: 'branch',

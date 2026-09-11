@@ -28,6 +28,13 @@ All notable changes to AngKorGit are documented here. The format follows
   palette) fetches as usual, then lists local branches whose upstream on that
   remote is gone. Unpushed or checked-out ones stay visible but cannot be
   selected. Default Fetch is unchanged.
+- **Delete several local branches at once.** The Branches section menu (and the
+  command palette) opens a list of every local branch, none checked. A select
+  picks tips older than 3 months, 6 months, or 1 year; changing a checkbox
+  clears that choice. Delete only removes the
+  local copies; Delete local and remote asks once more, then skips a branch if
+  the push fails and reports a summary. Head and worktree-held rows stay visible
+  but cannot be selected.
 
 ### Changed
 - **⌘W hides the window on macOS.** The Dock icon stays; click it or run

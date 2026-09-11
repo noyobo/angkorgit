@@ -7,6 +7,7 @@ import { SplashScreen } from './SplashScreen';
 import { ConfirmHost } from '@/components/confirm';
 import { ProfilePromptHost } from '@/components/profilePrompt';
 import { StaleLocalsHost } from '@/components/staleLocalsDialog';
+import { DeleteBranchesHost } from '@/components/deleteBranchesDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WelcomePage } from '@/features/repository/WelcomePage';
 
@@ -181,6 +182,7 @@ export function App() {
       <ConfirmHost />
       <ProfilePromptHost />
       <StaleLocalsHost />
+      <DeleteBranchesHost />
       <Toaster
         position="bottom-left"
         theme={themeBase(theme)}
