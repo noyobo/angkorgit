@@ -80,8 +80,18 @@ if (!isTauri()) {
 }
 
 async function invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-  const { invoke } = await import('@tauri-apps/api/core');
-  return invoke<T>(command, args);
+  const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
+  const start = performance.now();
+  try {
+    const result = await tauriInvoke<T>(command, args);
+    const duration = performance.now() - start;
+    void logger.cmd(command, args, { duration: Math.round(duration), status: 'ok' });
+    return result;
+  } catch (error) {
+    const duration = performance.now() - start;
+    void logger.cmd(command, args, { duration: Math.round(duration), status: 'error', error: String(error) });
+    throw error;
+  }
 }
 
 export async function listen(event: string, handler: (payload: unknown) => void): Promise<() => void> {

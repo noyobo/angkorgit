@@ -8,6 +8,7 @@ import { killTerminalSession } from '@/features/terminal/sessions';
 import { ipc, openExternal } from '@/core/ipc';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
+import { logger } from '@/core/logger';
 
 type MenuEventId =
   | 'about'
@@ -51,6 +52,7 @@ export async function handleMenuEvent(
   event: MenuEventId,
   navigate: (path: string) => void,
 ): Promise<void> {
+  void logger.click(`menu-${event}`, 'menu-item');
   const repo = useRepo.getState().repo;
   const repoPath = repo?.path ?? null;
   const ui = useUi.getState();

@@ -51,6 +51,7 @@ import { useSettings, type IdentityProfile } from '@/features/settings/store';
 import { applyProfileToRepo, ensureRepoProfile } from '@/features/settings/profiles';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { capCount, modKey } from '@/shared/utils';
+import { logger } from '@/core/logger';
 
 function RepoSwitcher() {
   const repo = useRepo((s) => s.repo);
@@ -208,6 +209,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
   const continueRebase = () =>
     void (async () => {
+      void logger.click('continue-rebase', 'toolbar-state-menu');
       try {
         const outcome = await ipc.rebaseContinue(path);
         toastOutcome(outcome, 'Rebase continued');
@@ -219,6 +221,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
   const abortRebase = () =>
     void (async () => {
+      void logger.click('abort-rebase', 'toolbar-state-menu');
       const ok = await confirmDialog({
         title: 'Abort rebase?',
         description:
@@ -236,10 +239,14 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
       finish();
     })();
 
-  const abortMerge = () => void abortMergeFlow(path);
+  const abortMerge = () => {
+    void logger.click('abort-merge', 'toolbar-state-menu');
+    void abortMergeFlow(path);
+  };
 
   const clearState = () =>
     void (async () => {
+      void logger.click('clear-state', 'toolbar-state-menu');
       const ok = await confirmDialog({
         title: `Clear ${state} state?`,
         description:
@@ -310,6 +317,7 @@ function UndoRedoButtons({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const nextRedo = [...redoStack].reverse().find((e) => e.repoPath === path);
 
   const run = (direction: 'undo' | 'redo') => {
+    void logger.click(direction, 'toolbar-button');
     const fn = direction === 'undo' ? useUndo.getState().undo : useUndo.getState().redo;
     void fn(path).then((ok) => {
       if (ok) void onRefresh();
@@ -388,6 +396,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
   const run = async (label: string, op: () => Promise<{ status: string; message: string } | void>) => {
     if (busy) return;
+    void logger.click(label, 'toolbar-button');
     setBusy(label);
     try {
       const outcome = await op();
@@ -415,7 +424,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
   return (
     <header className="flex h-12 shrink-0 items-center gap-1 border-b border-border-subtle bg-surface px-2">
       <Hint label="Back to repositories">
-        <Button variant="ghost" size="icon" aria-label="Home" onClick={() => navigate('/welcome')}>
+        <Button variant="ghost" size="icon" aria-label="Home" onClick={() => {
+          void logger.click('home', 'toolbar-button');
+          navigate('/welcome');
+        }}>
           <Home />
         </Button>
       </Hint>
@@ -432,7 +444,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           size="icon"
           aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           className={!sidebarOpen ? 'text-primary' : undefined}
-          onClick={toggleSidebar}
+          onClick={() => {
+            void logger.click('toggle-sidebar', 'toolbar-button');
+            toggleSidebar();
+          }}
         >
           <PanelLeft />
         </Button>
@@ -559,12 +574,18 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           </span>
         }
       >
-        <Button variant="ghost" size="icon" aria-label="Create branch" onClick={() => openDialog('createBranch')}>
+        <Button variant="ghost" size="icon" aria-label="Create branch" onClick={() => {
+          void logger.click('create-branch', 'toolbar-button');
+          openDialog('createBranch');
+        }}>
           <GitBranchPlus />
         </Button>
       </Hint>
       <Hint label="Create tag">
-        <Button variant="ghost" size="icon" aria-label="Create tag" onClick={() => openDialog('createTag')}>
+        <Button variant="ghost" size="icon" aria-label="Create tag" onClick={() => {
+          void logger.click('create-tag', 'toolbar-button');
+          openDialog('createTag');
+        }}>
           <Tag />
         </Button>
       </Hint>
@@ -577,7 +598,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           </span>
         }
       >
-        <Button variant="ghost" size="icon" aria-label="Stash changes" onClick={() => openDialog('createStash')}>
+        <Button variant="ghost" size="icon" aria-label="Stash changes" onClick={() => {
+          void logger.click('stash-changes', 'toolbar-button');
+          openDialog('createStash');
+        }}>
           <Archive />
         </Button>
       </Hint>
@@ -607,7 +631,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Command palette" onClick={() => setPaletteOpen(true)}>
+          <Button variant="ghost" size="icon" aria-label="Command palette" onClick={() => {
+            void logger.click('command-palette', 'toolbar-button');
+            setPaletteOpen(true);
+          }}>
             <Command />
           </Button>
         </Hint>
@@ -619,7 +646,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Toggle terminal" onClick={toggleTerminal}>
+          <Button variant="ghost" size="icon" aria-label="Toggle terminal" onClick={() => {
+            void logger.click('toggle-terminal', 'toolbar-button');
+            toggleTerminal();
+          }}>
             <SquareTerminal />
           </Button>
         </Hint>
@@ -636,6 +666,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             size="icon"
             aria-label="Refresh"
             onClick={() => {
+              void logger.click('refresh', 'toolbar-button');
               setSpinning(true);
               void onRefresh().finally(() => setSpinning(false));
             }}
@@ -651,7 +682,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => openDialog('settings')}>
+          <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => {
+            void logger.click('settings', 'toolbar-button');
+            openDialog('settings');
+          }}>
             <Settings />
           </Button>
         </Hint>

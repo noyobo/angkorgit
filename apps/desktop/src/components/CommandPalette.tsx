@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Command, useCommandState } from 'cmdk';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
+import { logger } from '@/core/logger';
 import {
   Archive,
   ArchiveRestore,
@@ -166,6 +167,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   const close = () => setPaletteOpen(false);
 
   const run = (label: string, op: () => Promise<unknown>) => {
+    void logger.click(label, 'command-palette');
     close();
     void (async () => {
       try {
@@ -179,6 +181,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const runHistory = (direction: 'undo' | 'redo') => {
+    void logger.click(direction, 'command-palette');
     close();
     const fn = direction === 'undo' ? useUndo.getState().undo : useUndo.getState().redo;
     void fn(path).then((ok) => {
@@ -198,6 +201,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const continueRebase = () => {
+    void logger.click('continue-rebase', 'command-palette');
     close();
     void (async () => {
       try {
@@ -211,6 +215,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const abortRebase = () => {
+    void logger.click('abort-rebase', 'command-palette');
     close();
     void (async () => {
       const ok = await confirmDialog({
@@ -232,11 +237,13 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const abortMerge = () => {
+    void logger.click('abort-merge', 'command-palette');
     close();
     void abortMergeFlow(path);
   };
 
   const clearState = () => {
+    void logger.click('clear-state', 'command-palette');
     close();
     void (async () => {
       const ok = await confirmDialog({
