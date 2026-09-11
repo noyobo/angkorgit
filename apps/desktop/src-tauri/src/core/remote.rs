@@ -425,8 +425,16 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
     let repo = super::repo::open(path)?;
     prime_account_bindings(Some(&repo));
     let mut remote = repo.find_remote(remote_name)?;
+    
+    let mut received_objects = 0u32;
+    let mut callbacks = make_callbacks();
+    callbacks.transfer_progress(|stats| {
+        received_objects = stats.received_objects();
+        true
+    });
+    
     let mut opts = FetchOptions::new();
-    opts.remote_callbacks(make_callbacks());
+    opts.remote_callbacks(callbacks);
     if tags {
         opts.download_tags(AutotagOption::All);
     }
@@ -434,10 +442,18 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
         opts.prune(git2::FetchPrune::On);
     }
     remote.fetch(&[] as &[&str], Some(&mut opts), None)?;
-    Ok(OpOutcome {
-        status: "ok".into(),
-        message: format!("Fetched {remote_name}"),
-    })
+    
+    if received_objects == 0 {
+        Ok(OpOutcome {
+            status: "up_to_date".into(),
+            message: format!("Already up to date with {remote_name}"),
+        })
+    } else {
+        Ok(OpOutcome {
+            status: "ok".into(),
+            message: format!("Fetched {remote_name}"),
+        })
+    }
 }
 
 pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
