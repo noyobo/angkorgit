@@ -5,6 +5,7 @@ pub mod commit;
 pub mod conflict;
 pub mod diff;
 pub mod history;
+pub mod hooks;
 pub mod misc;
 pub mod remote;
 pub mod repo;
