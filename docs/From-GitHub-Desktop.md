@@ -45,6 +45,8 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Redo | ⌘⇧Z | ⌘⇧Z |
 | Command palette | ⌘K or ⌘⇧P | ⌘K |
 
+*Keyboard shortcuts are displayed as badges in the Command Palette (⌘K) to help you learn them.*
+
 ### Important differences
 
 - **⌘1–9 switches repository tabs**, not between Changes/History views (those panels are always visible)

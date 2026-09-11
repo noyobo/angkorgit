@@ -336,7 +336,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         {mode === 'commands' && (
         <>
         <Command.Group heading="Actions">
-          <PaletteItem icon={<History />} label="File history…" onSelect={enterFileHistory} />
+          <PaletteItem icon={<History />} label="File history…" shortcut="F" onSelect={enterFileHistory} />
           <PaletteItem icon={<ArrowDownToLine />} label="Pull" onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
           <PaletteItem icon={<ArrowUpFromLine />} label="Push" onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
           <PaletteItem
@@ -460,11 +460,12 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} shortcut="Z" onSelect={() => runHistory('undo')} />
           )}
           {nextRedo && (
-            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} onSelect={() => runHistory('redo')} />
+            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} shortcut="⇧Z" onSelect={() => runHistory('redo')} />
           )}
           <PaletteItem
             icon={<RefreshCw />}
             label="Refresh"
+            shortcut="R"
             onSelect={() => {
               close();
               void onRefresh();
@@ -500,6 +501,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<X />}
             label="Close all tabs"
+            shortcut="⇧W"
             onSelect={() => {
               close();
               const tabs = useUi.getState().repoTabs;
@@ -590,7 +592,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<PanelLeft />}
             label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            shortcut="B"
+            shortcut="L"
             onSelect={() => {
               close();
               toggleSidebar();
