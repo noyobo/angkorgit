@@ -167,8 +167,6 @@ export function PanelsDialog() {
     },
   ];
 
-  const close = () => setPanelsOpen(false);
-
   return (
     <PaletteShell
       open={panelsOpen}
