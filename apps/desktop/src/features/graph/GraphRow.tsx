@@ -380,6 +380,7 @@ interface Props {
   selected: boolean;
   laneWidth?: number;
   columns?: GraphColumns;
+  showGutter?: boolean;
   showTail?: boolean;
   worktrees?: ReadonlyMap<string, string>;
   resettableBranches?: ReadonlySet<string>;
@@ -397,6 +398,7 @@ export const CommitRow = memo(function CommitRow({
   selected,
   laneWidth = LANE_WIDTH,
   columns = DEFAULT_GRAPH_COLUMNS,
+  showGutter = true,
   showTail = true,
   worktrees,
   resettableBranches,
@@ -435,15 +437,17 @@ export const CommitRow = memo(function CommitRow({
       onContextMenu={(e) => onContextMenu(e, commit)}
     >
       {refCell}
-      <GraphGutter
-        row={row}
-        width={gutterWidth}
-        laneWidth={laneWidth}
-        author={commit.author}
-        hasRefs={columns.refs && commit.refs.length > 0}
-        isStash={isStash}
-        showTail={showTail}
-      />
+      {showGutter && (
+        <GraphGutter
+          row={row}
+          width={gutterWidth}
+          laneWidth={laneWidth}
+          author={commit.author}
+          hasRefs={columns.refs && commit.refs.length > 0}
+          isStash={isStash}
+          showTail={showTail}
+        />
+      )}
       {commit.isHead && commit.refs.length === 0 && <Badge tone="primary">HEAD</Badge>}
       {columns.message ? (
         <>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, Check, FolderTree, GitBranch, GitPullRequest, Pencil, ZoomIn } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Columns3, FolderTree, GitBranch, GitPullRequest, PanelLeft, Pencil, ZoomIn } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +44,8 @@ export function StatusBar() {
   const forgeRemote = useForge((s) => s.remote);
   const forgeAccount = useForge((s) => s.hasAccount);
   const openDialog = useUi((s) => s.openDialog);
+  const layout = useUi((s) => s.layout);
+  const setLayout = useUi((s) => s.setLayout);
   const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
   const createInApp = forgeCurrent && !!forgeRemote && forgeAccount;
   const prNoun = forgeNoun(forgeCurrent ? forgeRemote?.kind : null);
@@ -97,6 +99,37 @@ export function StatusBar() {
       )}
 
       <span className="flex-1" />
+
+      <span className="flex items-center">
+        <Hint label="Standard layout">
+          <button
+            type="button"
+            className={cn(
+              'rounded p-0.5 hover:bg-surface-raised hover:text-foreground',
+              layout === 'standard' && 'bg-surface-raised text-foreground',
+            )}
+            aria-label="Standard layout"
+            aria-pressed={layout === 'standard'}
+            onClick={() => setLayout('standard')}
+          >
+            <PanelLeft className="size-3.5" />
+          </button>
+        </Hint>
+        <Hint label="Preview layout">
+          <button
+            type="button"
+            className={cn(
+              'rounded p-0.5 hover:bg-surface-raised hover:text-foreground',
+              layout === 'preview' && 'bg-surface-raised text-foreground',
+            )}
+            aria-label="Preview layout"
+            aria-pressed={layout === 'preview'}
+            onClick={() => setLayout('preview')}
+          >
+            <Columns3 className="size-3.5" />
+          </button>
+        </Hint>
+      </span>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

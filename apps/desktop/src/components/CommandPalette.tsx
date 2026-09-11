@@ -10,6 +10,7 @@ import {
   ArrowUpFromLine,
   Check,
   ChevronsDownUp,
+  Columns3,
   Download,
   FileClock,
   FolderGit2,
@@ -60,6 +61,8 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
   const toggleTerminal = useUi((s) => s.toggleTerminal);
   const toggleSidebar = useUi((s) => s.toggleSidebar);
+  const layout = useUi((s) => s.layout);
+  const setLayout = useUi((s) => s.setLayout);
   const sidebarOpen = useUi(sidebarVisible);
   const openDialog = useUi((s) => s.openDialog);
   const theme = useSettings((s) => s.theme);
@@ -531,6 +534,14 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             onSelect={() => {
               close();
               toggleSidebar();
+            }}
+          />
+          <PaletteItem
+            icon={layout === 'preview' ? <PanelLeft /> : <Columns3 />}
+            label={layout === 'preview' ? 'Standard layout' : 'Preview layout'}
+            onSelect={() => {
+              close();
+              setLayout(layout === 'preview' ? 'standard' : 'preview');
             }}
           />
           <PaletteItem

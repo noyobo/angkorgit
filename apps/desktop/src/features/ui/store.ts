@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { sidebarToggle, workspaceView, type WorkspaceLayout } from './workspace';
+
+export type { WorkspaceLayout };
 
 export type DiffViewMode = 'inline' | 'split';
 
@@ -67,8 +70,8 @@ export type DialogContext =
   | null;
 
 interface UiState {
+  layout: WorkspaceLayout;
   sidebarOpen: boolean;
-  sidebarHiddenForDiff: boolean;
   terminalOpen: boolean;
   paletteOpen: boolean;
   dialog: DialogKind;
@@ -95,6 +98,7 @@ interface UiState {
   graphColumns: GraphColumns;
   graphTail: boolean;
 
+  setLayout: (layout: WorkspaceLayout) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   toggleTerminal: () => void;
@@ -128,7 +132,7 @@ interface UiState {
   focusGraph: () => void;
 }
 
-export const sidebarVisible = (s: UiState) => s.sidebarOpen && !s.sidebarHiddenForDiff;
+export const sidebarVisible = (s: UiState) => workspaceView(s).showSidebar;
 
 export const focusRequests = { inspectorConsumed: 0 };
 
@@ -150,8 +154,8 @@ const restoreDialogFocus = () => {
 export const useUi = create<UiState>()(
   persist(
     (set) => ({
+      layout: 'standard',
       sidebarOpen: true,
-  sidebarHiddenForDiff: false,
   terminalOpen: false,
   paletteOpen: false,
   dialog: null,
@@ -178,12 +182,8 @@ export const useUi = create<UiState>()(
   graphColumns: DEFAULT_GRAPH_COLUMNS,
   graphTail: true,
 
-  toggleSidebar: () =>
-    set((s) =>
-      s.centerDiff
-        ? { centerDiff: null, sidebarHiddenForDiff: false, sidebarOpen: true }
-        : { sidebarOpen: !s.sidebarOpen },
-    ),
+  setLayout: (layout) => set({ layout }),
+  toggleSidebar: () => set((s) => sidebarToggle(s)),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
@@ -200,12 +200,12 @@ export const useUi = create<UiState>()(
   setFullFileDiff: (fullFileDiff) => set({ fullFileDiff }),
   setWrapLines: (wrapLines) => set({ wrapLines }),
   selectFile: (selectedFile) => set({ selectedFile }),
-  openCenterDiff: (centerDiff) => set({ centerDiff, sidebarHiddenForDiff: true }),
-  closeCenterDiff: () => set({ centerDiff: null, sidebarHiddenForDiff: false }),
+  openCenterDiff: (centerDiff) => set({ centerDiff }),
+  closeCenterDiff: () => set({ centerDiff: null }),
   openEditor: (centerEditor) => set({ centerEditor }),
   closeEditor: () => set({ centerEditor: null }),
   openFileHistory: (centerFileHistory) =>
-    set({ centerFileHistory, centerDiff: null, sidebarHiddenForDiff: false }),
+    set({ centerFileHistory, centerDiff: null }),
   closeFileHistory: () => set({ centerFileHistory: null }),
   openConflict: (conflictFile) => set({ conflictFile }),
   addRepoTab: (path) =>
@@ -257,10 +257,12 @@ export const useUi = create<UiState>()(
         return {
           ...current,
           ...saved,
+          layout: saved.layout === 'preview' ? 'preview' : 'standard',
           graphColumns: { ...DEFAULT_GRAPH_COLUMNS, ...(saved.graphColumns ?? {}) },
         };
       },
       partialize: (state) => ({
+        layout: state.layout,
         sidebarOpen: state.sidebarOpen,
         diffView: state.diffView,
         wordDiff: state.wordDiff,

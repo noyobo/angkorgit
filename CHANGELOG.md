@@ -7,6 +7,11 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Preview layout keeps the graph while you read a diff.** Status bar icons
+  (and the command palette) switch Standard — today's immersive diff that
+  covers the graph — and Preview: compact commits (message + date, no graph), file list,
+  and diff side by side. Graph display columns stay a Standard preference.
+  Escape still closes the file; ⌘B leaves Preview and brings the sidebar back.
 - **Preview a color theme from the command palette.** ⌘K / ⌘P → Color theme. Arrow
   through the list (or type a name) to see it on the real UI; Enter keeps it, Esc
   puts the old one back. Settings still has the swatch grid.

@@ -1201,6 +1201,27 @@ test('the sidebar comes back after a relaunch that happened with a diff open', a
   expect(stored.state?.sidebarOpen).toBe(true);
 });
 
+test('preview layout keeps the commit list visible while a diff is open', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Preview layout' }).click();
+  await expect(page.locator('[data-workspace-layout="preview"]')).toBeVisible();
+  await expect(page.getByText('Branch / tag')).toHaveCount(0);
+  await expect(page.getByText('Graph', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Graph display options' })).toHaveCount(0);
+  await page.getByText('ipc.ts', { exact: true }).first().click();
+  await expect(page.locator('section[aria-label^="Diff for"]')).toBeVisible();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('section[aria-label^="Diff for"]')).toHaveCount(0);
+  await expect(page.getByText('Select a file to preview')).toBeVisible();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible();
+  await page.getByRole('button', { name: 'Show sidebar' }).click();
+  await expect(page.locator('[data-workspace-layout="standard"]')).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Branches and refs' })).toBeVisible();
+});
+
 test('a stash shows up in the graph with its own node and a menu to pop it', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();

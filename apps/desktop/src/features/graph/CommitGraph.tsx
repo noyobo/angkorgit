@@ -43,6 +43,14 @@ interface RefMenuState {
 
 const stashIndexOf = (ref: RefInfo) => Number(/\{(\d+)\}/.exec(ref.name)?.[1] ?? 0);
 
+const PREVIEW_COLUMNS = {
+  refs: false,
+  author: false,
+  message: true,
+  hash: false,
+  date: true,
+} as const;
+
 export function CommitGraph() {
   const repo = useRepo((s) => s.repo);
   const refresh = useRepo((s) => s.refresh);
@@ -52,8 +60,11 @@ export function CommitGraph() {
   const { rows, commits, maxLane, hasMore, loading, error, filters, find, locatedOid, selectedOid, selectedOids, pendingScrollIndex, loadMore, reload, setFilters, setFind, stepFind, select, toggleSelect, rangeSelect, clearPendingScroll } =
     useGraph();
   const openDialog = useUi((s) => s.openDialog);
-  const graphColumns = useUi((s) => s.graphColumns);
-  const graphTail = useUi((s) => s.graphTail);
+  const compact = useUi((s) => s.layout === 'preview');
+  const storedColumns = useUi((s) => s.graphColumns);
+  const storedTail = useUi((s) => s.graphTail);
+  const graphColumns = compact ? PREVIEW_COLUMNS : storedColumns;
+  const graphTail = compact ? false : storedTail;
   const setGraphTail = useUi((s) => s.setGraphTail);
   const setGraphColumn = useUi((s) => s.setGraphColumn);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -342,7 +353,7 @@ export function CommitGraph() {
 
   return (
     <section className="relative flex h-full flex-col bg-background" aria-label="Commit history">
-      <GraphTailDefs />
+      {!compact && <GraphTailDefs />}
       <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle bg-surface px-3 py-2">
         <div className="relative w-64">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
@@ -418,43 +429,45 @@ export function CommitGraph() {
             {commits.length.toLocaleString()}
             {hasMore ? '+' : ''} commit{commits.length === 1 && !hasMore ? '' : 's'}
           </span>
-          <DropdownMenu>
-            <Hint label="Graph display">
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Graph display options">
-                  <Settings2 className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-            </Hint>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Show in graph</DropdownMenuLabel>
-              {(
-                [
-                  ['refs', 'Branches and tags'],
-                  ['message', 'Commit message'],
-                  ['author', 'Author'],
-                  ['hash', 'Hash'],
-                  ['date', 'Date'],
-                ] as const
-              ).map(([key, label]) => (
+          {!compact && (
+            <DropdownMenu>
+              <Hint label="Graph display">
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="Graph display options">
+                    <Settings2 className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </Hint>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Show in graph</DropdownMenuLabel>
+                {(
+                  [
+                    ['refs', 'Branches and tags'],
+                    ['message', 'Commit message'],
+                    ['author', 'Author'],
+                    ['hash', 'Hash'],
+                    ['date', 'Date'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={graphColumns[key]}
+                    onSelect={(e) => e.preventDefault()}
+                    onCheckedChange={(checked) => setGraphColumn(key, checked === true)}
+                  >
+                    {label}
+                  </DropdownMenuCheckboxItem>
+                ))}
                 <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={graphColumns[key]}
+                  checked={graphTail}
                   onSelect={(e) => e.preventDefault()}
-                  onCheckedChange={(checked) => setGraphColumn(key, checked === true)}
+                  onCheckedChange={(checked) => setGraphTail(checked === true)}
                 >
-                  {label}
+                  Lane color band
                 </DropdownMenuCheckboxItem>
-              ))}
-              <DropdownMenuCheckboxItem
-                checked={graphTail}
-                onSelect={(e) => e.preventDefault()}
-                onCheckedChange={(checked) => setGraphTail(checked === true)}
-              >
-                Lane color band
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -470,9 +483,11 @@ export function CommitGraph() {
             Branch / tag
           </span>
         )}
-        <span className="shrink-0 truncate" style={{ width: gutterWidth, marginRight: GUTTER_GAP }}>
-          Graph
-        </span>
+        {!compact && (
+          <span className="shrink-0 truncate" style={{ width: gutterWidth, marginRight: GUTTER_GAP }}>
+            Graph
+          </span>
+        )}
         {graphColumns.message && (
           <span className="min-w-0 flex-1 truncate">
             Message
@@ -492,7 +507,7 @@ export function CommitGraph() {
         {!graphColumns.message && <span className="min-w-0 flex-1" />}
       </div>
       <div ref={scrollRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto outline-none" role="table" aria-label="Commits">
-        <WipRow gutterWidth={gutterWidth} showRefs={graphColumns.refs} />
+        <WipRow gutterWidth={gutterWidth} showRefs={graphColumns.refs} showGutter={!compact} />
         {rows.length === 0 && !loading ? (
           error ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-sm text-danger">
@@ -546,6 +561,7 @@ export function CommitGraph() {
                     selected={selectedOid === commit.oid || selectedOids.includes(commit.oid)}
                     laneWidth={laneWidth}
                     columns={graphColumns}
+                    showGutter={!compact}
                     showTail={graphTail}
                     worktrees={worktreeBranches}
                     resettableBranches={localBranchNames}
