@@ -669,6 +669,30 @@ pub fn cherry_pick_many(path: &str, oids: &[String], record_origin: bool) -> App
     })
 }
 
+pub fn list_stale_locals(path: &str) -> AppResult<Vec<String>> {
+    let repo = super::repo::open(path)?;
+    let mut stale = Vec::new();
+    
+    for entry in repo.branches(Some(BranchType::Local))? {
+        let (branch, _) = entry?;
+        let name = match branch.name()? {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        
+        if let Ok(upstream) = branch.upstream() {
+            let upstream_name = upstream.name()?.map(String::from);
+            if let Some(ref_name) = upstream_name {
+                if repo.find_reference(&ref_name).is_err() {
+                    stale.push(name);
+                }
+            }
+        }
+    }
+    
+    Ok(stale)
+}
+
 pub fn reset(path: &str, oid: &str, mode: &str) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     let obj = repo.find_object(git2::Oid::from_str(oid)?, None)?;
