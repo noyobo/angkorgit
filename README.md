@@ -144,7 +144,7 @@ The builds aren't signed with a paid certificate, so your OS asks once on first 
 If a permission dialog ever loops, reset the stale records and try again:
 
 ```sh
-tccutil reset All dev.angkorgit.app
+tccutil reset All dev.angkorgit
 ```
 
 ### Windows and Linux

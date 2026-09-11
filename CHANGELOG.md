@@ -40,6 +40,10 @@ All notable changes to AngKorGit are documented here. The format follows
   but cannot be selected.
 
 ### Changed
+- **macOS bundle identifier is `dev.angkorgit`.** It used to end in `.app`,
+  which collides with the application bundle extension. Folder-access prompts
+  may ask once more after this update; if they loop, `tccutil reset All
+  dev.angkorgit`.
 - **⌘W hides the window on macOS.** The Dock icon stays; click it or run
   `angkorgit` and the same screen comes back. ⌘Q still quits. Windows and
   Linux still exit when the last window closes.
