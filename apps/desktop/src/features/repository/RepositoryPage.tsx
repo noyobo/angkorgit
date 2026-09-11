@@ -73,6 +73,7 @@ function RepoLoadingOverlay() {
 
 export function RepositoryPage() {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const refresh = useRepo((s) => s.refresh);
   const reload = useGraph((s) => s.reload);
   const navigate = useNavigate();
@@ -300,7 +301,7 @@ export function RepositoryPage() {
       {
         combo: 'mod+p',
         handler: async () => {
-          if (!repo) return;
+          if (!repo || busy) return;
           const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
           const { ensureRepoProfile } = await import('@/features/settings/profiles');
           await ensureRepoProfile(repo.path);
@@ -317,7 +318,7 @@ export function RepositoryPage() {
       {
         combo: 'mod+shift+p',
         handler: async () => {
-          if (!repo) return;
+          if (!repo || busy) return;
           const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
           try {
             const result = await ipc.pull(repo.path, remote);
@@ -331,7 +332,7 @@ export function RepositoryPage() {
       {
         combo: 'mod+shift+t',
         handler: async () => {
-          if (!repo) return;
+          if (!repo || busy) return;
           const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
           try {
             await ipc.fetch(repo.path, remote, true, true);

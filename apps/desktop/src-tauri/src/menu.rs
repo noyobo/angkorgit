@@ -112,9 +112,12 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     builder = builder.item(&view_menu);
 
     // Repository menu
-    let push_item = MenuItem::with_id(app, "push", if IS_MACOS { "Push" } else { "P&ush" }, true, Some("CmdOrCtrl+P"))?;
-    let pull_item = MenuItem::with_id(app, "pull", if IS_MACOS { "Pull" } else { "Pu&ll" }, true, Some("CmdOrCtrl+Shift+P"))?;
-    let fetch_item = MenuItem::with_id(app, "fetch", if IS_MACOS { "Fetch" } else { "&Fetch" }, true, Some("CmdOrCtrl+Shift+T"))?;
+    // NOTE: No accelerators for Push/Pull/Fetch - frontend keyboard shortcuts handle these
+    // to avoid double-firing (native accelerator + frontend handler both triggering on the same key).
+    // This matches GitHub Desktop's approach where keyboard shortcuts are handled by a single layer.
+    let push_item = MenuItem::with_id(app, "push", if IS_MACOS { "Push" } else { "P&ush" }, true, None::<&str>)?;
+    let pull_item = MenuItem::with_id(app, "pull", if IS_MACOS { "Pull" } else { "Pu&ll" }, true, None::<&str>)?;
+    let fetch_item = MenuItem::with_id(app, "fetch", if IS_MACOS { "Fetch" } else { "&Fetch" }, true, None::<&str>)?;
     let open_terminal = MenuItem::with_id(app, "open-in-terminal", if IS_MACOS { "Open in Terminal" } else { "Open in &terminal" }, true, Some("Ctrl+`"))?;
     let open_finder = MenuItem::with_id(app, "open-in-finder", if IS_MACOS { "Show in Finder" } else { if cfg!(windows) { "Show in E&xplorer" } else { "Show in file manager" } }, true, Some("CmdOrCtrl+Shift+F"))?;
     let open_editor = MenuItem::with_id(app, "open-in-editor", if IS_MACOS { "Open in External Editor" } else { "Open in e&xternal editor" }, true, Some("CmdOrCtrl+Shift+A"))?;
