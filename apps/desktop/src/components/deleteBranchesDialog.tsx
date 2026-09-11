@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { create } from 'zustand';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Search } from 'lucide-react';
 import { namesOlderThan, type DeletableLocalRow } from '@angkorgit/core';
 import {
   Button,
@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -70,12 +71,21 @@ export function DeleteBranchesHost() {
   const confirmRef = useRef<HTMLButtonElement>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [age, setAge] = useState('');
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     if (!request) return;
     setPicked(new Set());
     setAge('');
+    setFilter('');
   }, [request]);
+
+  const filteredRows = useMemo(() => {
+    if (!request) return [];
+    if (!filter) return request.rows;
+    const lowerFilter = filter.toLowerCase();
+    return request.rows.filter((row) => row.name.toLowerCase().includes(lowerFilter));
+  }, [request, filter]);
 
   const count = picked.size;
 
@@ -99,31 +109,45 @@ export function DeleteBranchesHost() {
         </DialogHeader>
         {request && (
           <>
-            <label className="mb-4 flex flex-col gap-1.5 text-xs text-muted">
-              Select by age
-              <Select
-                key={age ? 'set' : 'idle'}
-                value={age || undefined}
-                onValueChange={(value) => {
-                  const days = Number(value);
-                  setAge(value);
-                  setPicked(new Set(namesOlderThan(request.rows, Date.now() / 1000, days)));
-                }}
-              >
-                <SelectTrigger className="h-8" aria-label="Select by age">
-                  <SelectValue placeholder="Choose age" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGE_OPTIONS.map((option) => (
-                    <SelectItem key={option.days} value={String(option.days)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
+            <div className="mb-4 flex gap-2">
+              <label className="relative flex-1 flex flex-col gap-1.5 text-xs text-muted">
+                Filter branches
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted" />
+                  <Input
+                    className="h-8 pl-8"
+                    placeholder="Type to filter…"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                  />
+                </div>
+              </label>
+              <label className="flex-1 flex flex-col gap-1.5 text-xs text-muted">
+                Select by age
+                <Select
+                  key={age ? 'set' : 'idle'}
+                  value={age || undefined}
+                  onValueChange={(value) => {
+                    const days = Number(value);
+                    setAge(value);
+                    setPicked(new Set(namesOlderThan(request.rows, Date.now() / 1000, days)));
+                  }}
+                >
+                  <SelectTrigger className="h-8" aria-label="Select by age">
+                    <SelectValue placeholder="Choose age" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.days} value={String(option.days)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+            </div>
             <BranchPickList
-              items={request.rows.map((row) => ({
+              items={filteredRows.map((row) => ({
                 name: row.name,
                 disabled: Boolean(row.skip),
                 detail: row.detail,
