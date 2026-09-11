@@ -136,7 +136,7 @@ fn check_submodule_status(
     }
     
     let pointer_changed = status.is_wd_modified();
-    let has_changes = status.is_wd_index_modified() 
+    let has_changes = status.contains(git2::SubmoduleStatus::WD_INDEX_MODIFIED)
         || status.is_wd_wd_modified() 
         || status.is_wd_untracked();
     

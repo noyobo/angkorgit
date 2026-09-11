@@ -38,7 +38,8 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Push | ⌘P | ⌘P |
 | Pull | ⌘⇧P | ⌘⇧P |
 | Fetch | ⌘⇧T (Desktop) | ⌘⇧R |
-| **Toggle sidebar** | **⌘B** | **⌘B** (renamed from "Branches") |
+| **Show branches** | **⌘B** | **⌘B** |
+| **Toggle sidebar** | **N/A** | **⌘L** |
 | Undo | ⌘Z | ⌘Z |
 | Redo | ⌘⇧Z | ⌘⇧Z |
 | Command palette | ⌘K or ⌘⇧P | ⌘K |
@@ -47,7 +48,8 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 
 - **⌘1–9 switches repository tabs**, not between Changes/History views (those panels are always visible)
 - **⌘⇧W closes all tabs** (Desktop-inspired), not "New Worktree" (use ⌘⇧T for that)
-- **⌘B toggles the sidebar** (branches, worktrees, tags, etc.), renamed from Desktop's "Branches" menu
+- **⌘B shows the branches list** (Desktop-aligned shortcut)
+- **⌘L toggles the sidebar** (branches, worktrees, tags, etc.)
 - **⌘⇧R for Fetch** (Desktop uses ⌘⇧T, but AngKorGit reserves that for New Worktree)
 
 ## Where to find common features

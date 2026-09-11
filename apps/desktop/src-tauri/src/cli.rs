@@ -196,7 +196,6 @@ pub fn on_second_instance(app: &AppHandle, argv: Vec<String>, cwd: String) {
     }
 }
 
-#[cfg(target_os = "macos")]
 // Old attach_app_menu removed - now using menu.rs module
 
 fn write_shim(dest: &Path, body: &str) -> std::io::Result<()> {
