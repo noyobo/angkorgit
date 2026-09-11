@@ -141,6 +141,7 @@ pub struct BranchInfo {
     pub ahead: usize,
     pub behind: usize,
     pub target_oid: String,
+    pub target_time: i64,
 }
 
 #[derive(Serialize, Clone)]

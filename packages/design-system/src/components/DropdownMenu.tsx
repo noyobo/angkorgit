@@ -10,7 +10,9 @@ export const DropdownMenuSub = Menu.Sub;
 
 export const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof Menu.Content>,
-  React.ComponentPropsWithoutRef<typeof Menu.Content>
+  React.ComponentPropsWithoutRef<typeof Menu.Content> & {
+    onOpenAutoFocus?: (event: Event) => void;
+  }
 >(({ className, sideOffset = 4, ...props }, ref) => (
   <Menu.Portal>
     <Menu.Content

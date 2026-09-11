@@ -52,6 +52,23 @@ test('mod+1 and mod+2 switch repository tabs', async ({ page }) => {
   await expect(hints).toBeHidden();
 });
 
+test('the status bar branch name opens a local branch switcher', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Switch branch' }).click();
+  const filter = page.getByPlaceholder('Filter branches…');
+  await expect(filter).toBeFocused();
+  await expect(page.getByRole('menuitem', { name: 'develop' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /develop/ })).toContainText(/ago|just now/);
+  await expect(page.getByRole('menuitem', { name: 'origin/main' })).toHaveCount(0);
+  await filter.fill('origin');
+  await expect(page.getByText('No branches match')).toBeVisible();
+  await filter.fill('develop');
+  await page.getByRole('menuitem', { name: 'develop' }).click();
+  await expect(page.getByText('Checkout develop done')).toBeVisible();
+});
+
 test('commit search finds matches in the full graph and steps through them', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();

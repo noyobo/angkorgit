@@ -7,6 +7,10 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Switch branch from the status bar.** Click the branch name in the bottom-left
+  for a filterable list of local branches, with each tip's age on the right. Same
+  checkout as the sidebar (uncommitted files that would be lost are refused; the
+  rest come along).
 - **Jump to a repository tab with ⌘1–9.** Same order as the tab strip (iTerm-style:
   ⌘9 is the ninth tab, not the last). Holding ⌘ (Ctrl on Windows/Linux) for a beat
   shows the number on the left of the first nine tabs.

@@ -79,6 +79,7 @@ export interface BranchInfo {
   ahead: number;
   behind: number;
   targetOid: string;
+  targetTime: number;
 }
 
 export interface TagInfo {

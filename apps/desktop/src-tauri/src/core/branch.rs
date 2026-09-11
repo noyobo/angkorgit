@@ -21,6 +21,11 @@ pub fn list(path: &str) -> AppResult<Vec<BranchInfo>> {
             Some(o) => o.to_string(),
             None => continue,
         };
+        let target_time = branch
+            .get()
+            .peel_to_commit()
+            .map(|c| c.time().seconds())
+            .unwrap_or(0);
         let (upstream, ahead, behind) = if is_remote {
             (None, 0, 0)
         } else {
@@ -44,6 +49,7 @@ pub fn list(path: &str) -> AppResult<Vec<BranchInfo>> {
             ahead,
             behind,
             target_oid,
+            target_time,
         });
     }
     result.sort_by(|a, b| (a.is_remote, &a.name).cmp(&(b.is_remote, &b.name)));
