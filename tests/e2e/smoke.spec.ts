@@ -1246,6 +1246,22 @@ test('arrow keys walk from the graph into a commit\u2019s files and back', async
   await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
 });
 
+test('arrow keys in the working copy open each file’s diff', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: /uncommitted file changes/ }).click();
+  await page.keyboard.press('ArrowRight');
+  const files = page.getByLabel('Changed files');
+  await expect(files).toBeFocused();
+  await expect(page.locator('section[aria-label="Diff for src/core/ipc.ts"]')).toBeVisible();
+
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('section[aria-label="Diff for src/data/palette-seed.sql"]')).toBeVisible();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('section[aria-label="Diff for src/core/ipc.ts"]')).toBeVisible();
+});
+
 test('sidebar batch delete lists locals unchecked and age select picks old ones', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();
