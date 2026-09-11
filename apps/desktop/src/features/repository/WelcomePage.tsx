@@ -39,6 +39,7 @@ import { SettingsDialog } from '@/features/settings/SettingsDialog';
 import { SettingEmpty } from '@/features/settings/SettingCard';
 import { RepoMark } from '@/components/RepoMark';
 import { isMac, timeAgo } from '@/shared/utils';
+import { useListFocus } from '@/shared/useListFocus';
 
 function shortenHome(path: string): string {
   return path.replace(/^(\/Users\/[^/]+|\/home\/[^/]+|[A-Z]:\\Users\\[^\\]+)(?=[/\\]|$)/, '~');
@@ -49,7 +50,6 @@ export function WelcomePage() {
   const { recents, open, opening, loadRecents } = useRepo();
   const openDialog = useUi((s) => s.openDialog);
   const [query, setQuery] = useState('');
-  const [activeIndex, setActiveIndex] = useState(0);
   const [missing, setMissing] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ x: number; y: number; repo: RecentRepository } | null>(null);
   const [version, setVersion] = useState('');
@@ -86,10 +86,6 @@ export function WelcomePage() {
     );
   }, [recents, query]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
   const openRepository = async (path: string) => {
     if (useRepo.getState().opening !== null) return;
     if (missing.has(path)) {
@@ -114,18 +110,11 @@ export function WelcomePage() {
     await loadRecents();
   };
 
-  const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((i) => Math.min(filtered.length - 1, i + 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => Math.max(0, i - 1));
-    } else if (e.key === 'Enter') {
-      const target = filtered[activeIndex];
-      if (target) void openRepository(target.path);
-    }
-  };
+  const listFocus = useListFocus({
+    items: filtered,
+    open: true,
+    onSelect: (repo) => void openRepository(repo.path),
+  });
 
   const openMenuAt = (x: number, y: number, repo: RecentRepository) => setMenu({ x, y, repo });
 
@@ -193,11 +182,12 @@ export function WelcomePage() {
               <div className="relative ml-auto w-56">
                 <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
                 <Input
+                  ref={listFocus.inputRef}
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={onSearchKey}
-                  placeholder="Search, ↑↓ to choose, ⏎ to open"
+                  onKeyDown={listFocus.handleInputKeyDown}
+                  placeholder="Search, ↑↓⇥ to choose, ⏎ to open"
                   aria-label="Search recent repositories"
                   className="h-7 pl-8 text-xs"
                 />
@@ -226,27 +216,24 @@ export function WelcomePage() {
             ) : (
               filtered.map((repo, index) => {
                 const gone = missing.has(repo.path);
-                const active = index === activeIndex;
+                const active = index === listFocus.activeIndex;
+                const itemProps = listFocus.getItemProps(index);
                 return (
                   <div
                     key={repo.path}
                     role="button"
-                    tabIndex={0}
                     aria-current={active || undefined}
                     className={cn(
                       'group flex items-center gap-3 rounded-md px-2.5 py-2 transition-colors',
                       gone ? 'cursor-default' : 'cursor-pointer hover:bg-surface-raised',
                       active && 'bg-surface-raised ring-1 ring-inset ring-primary/40',
                     )}
-                    onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => void openRepository(repo.path)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void openRepository(repo.path);
-                    }}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       openMenuAt(e.clientX, e.clientY, repo);
                     }}
+                    {...itemProps}
                   >
                     <RepoMark name={repo.name} size={32} faded={gone} />
                     <span className="flex min-w-0 flex-1 select-none flex-col leading-tight">

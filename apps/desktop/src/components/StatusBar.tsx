@@ -20,6 +20,7 @@ import { useUi } from '@/features/ui/store';
 import { capCount, currentPullRequestUrl, formatDate, timeAgo } from '@/shared/utils';
 import { toastOutcome } from '@/shared/toastOutcome';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
+import { useListFocus } from '@/shared/useListFocus';
 
 const ZOOM_LEVELS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200];
 
@@ -174,7 +175,6 @@ function BranchSwitch({ label }: { label: string }) {
   const branches = useRepo((s) => s.branches);
   const worktrees = useRepo((s) => s.worktrees);
   const branchSwitcherOpenSeq = useUi((s) => s.branchSwitcherOpenSeq);
-  const filterRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const consumedSeqRef = useRef(0);
@@ -235,6 +235,22 @@ function BranchSwitch({ label }: { label: string }) {
     })();
   };
 
+  const listFocus = useListFocus({
+    items: visible,
+    open,
+    onSelect: (branch) => {
+      setOpen(false);
+      pick(branch.name);
+    },
+    onClose: () => {
+      if (query === '') {
+        setOpen(false);
+      } else {
+        setQuery('');
+      }
+    },
+  });
+
   return (
     <DropdownMenu
       open={open}
@@ -261,7 +277,7 @@ function BranchSwitch({ label }: { label: string }) {
         onCloseAutoFocus={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => {
           e.preventDefault();
-          filterRef.current?.focus();
+          listFocus.inputRef.current?.focus();
         }}
       >
         <div
@@ -271,22 +287,28 @@ function BranchSwitch({ label }: { label: string }) {
           }}
         >
           <Input
-            ref={filterRef}
+            ref={listFocus.inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={listFocus.handleInputKeyDown}
             placeholder="Filter branches…"
             className="h-7 text-xs"
             aria-label="Filter branches"
           />
         </div>
-        <div className="max-h-64 overflow-y-auto p-1">
-          {visible.map((b) => {
+        <div ref={listFocus.listRef} className="max-h-64 overflow-y-auto p-1">
+          {visible.map((b, index) => {
             const held = heldBy.get(b.name);
+            const itemProps = listFocus.getItemProps(index);
             return (
               <DropdownMenuItem
                 key={b.name}
-                className="text-xs"
+                className={cn(
+                  'text-xs',
+                  listFocus.activeIndex === index && 'bg-surface-raised',
+                )}
                 onClick={() => pick(b.name)}
+                {...itemProps}
               >
                 <Check className={cn('size-3.5', !b.isHead && 'invisible')} />
                 <span className="min-w-0 flex-1 select-none truncate font-mono">{b.name}</span>

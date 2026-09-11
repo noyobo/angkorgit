@@ -111,6 +111,15 @@ export function RecentReposDialog() {
           void openRepository(filtered[index].path);
         }
       }
+      
+      // Tab navigation from input to items
+      if (e.key === 'Tab' && !e.shiftKey && e.target instanceof HTMLInputElement) {
+        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        if (items.length > 0 && items[0] instanceof HTMLElement) {
+          e.preventDefault();
+          items[0].focus();
+        }
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown, { capture: true });
