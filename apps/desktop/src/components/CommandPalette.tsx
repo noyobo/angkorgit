@@ -773,13 +773,11 @@ function PaletteItem({
       value={value}
       keywords={keywords}
       onSelect={onSelect}
-      className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
+      className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
     >
       {icon}
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate">{label}</span>
-        {hint && <span className="text-[11px] text-muted">{hint}</span>}
-      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {hint && <span className="shrink-0 text-[11px] text-muted/70">{hint}</span>}
       {active && <Check className="size-3.5 shrink-0 text-primary" />}
       {quickKey !== undefined && (
         <span className="flex shrink-0 items-center gap-0.5 opacity-60">
