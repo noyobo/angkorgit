@@ -2363,3 +2363,162 @@ fn git_cli_recognizes_worktrees_created_by_the_engine() {
     assert!(status.status.success());
     assert!(String::from_utf8_lossy(&status.stdout).trim().is_empty());
 }
+
+#[test]
+fn push_delete_is_up_to_date_when_ref_already_gone() {
+    let local = TempRepo::new();
+    local.write("a.txt", "local\n");
+    commit_all(&local, "local");
+    core::branch_create(local.path(), "feature", None, false).unwrap();
+    
+    let remote = TempRepo::bare_clone(&local);
+    core::remote_edit(local.path(), "origin", "origin", remote.path()).unwrap();
+    core::push(local.path(), "origin", Some("feature"), false, false, true).unwrap();
+    
+    core::branch_delete(local.path(), "feature", false, Some(false)).unwrap();
+    core::push_delete(local.path(), "origin", "refs/heads/feature").unwrap();
+    
+    let outcome = core::push_delete(local.path(), "origin", "refs/heads/feature").unwrap();
+    assert_eq!(outcome.status, "up_to_date");
+}
+
+#[test]
+fn delete_local_and_remote_succeeds_when_remote_ref_already_gone() {
+    let local = TempRepo::new();
+    local.write("a.txt", "local\n");
+    commit_all(&local, "local");
+    core::branch_create(local.path(), "feature", None, false).unwrap();
+    
+    let remote = TempRepo::bare_clone(&local);
+    core::remote_edit(local.path(), "origin", "origin", remote.path()).unwrap();
+    core::push(local.path(), "origin", Some("feature"), false, false, true).unwrap();
+    
+    core::push_delete(local.path(), "origin", "refs/heads/feature").unwrap();
+    
+    let outcome = core::delete_local_and_remote(local.path(), "feature", "origin", "feature").unwrap();
+    assert_eq!(outcome.status, "ok");
+}
+
+#[test]
+fn push_tag_is_up_to_date_when_already_on_remote() {
+    let local = TempRepo::new();
+    local.write("a.txt", "initial\n");
+    commit_all(&local, "initial");
+    core::tag_create(local.path(), "v1.0.0", None, None).unwrap();
+    
+    let remote = TempRepo::bare_clone(&local);
+    core::remote_edit(local.path(), "origin", "origin", remote.path()).unwrap();
+    
+    core::push_tag(local.path(), "origin", "v1.0.0").unwrap();
+    let outcome = core::push_tag(local.path(), "origin", "v1.0.0").unwrap();
+    assert_eq!(outcome.status, "up_to_date");
+}
+
+#[test]
+fn branch_delete_refuses_unmerged_branch_without_force() {
+    let repo = TempRepo::new();
+    repo.write("a.txt", "main\n");
+    commit_all(&repo, "main commit");
+    
+    core::branch_create(repo.path(), "feature", None, true).unwrap();
+    repo.write("b.txt", "feature\n");
+    commit_all(&repo, "feature commit");
+    
+    core::checkout_branch(repo.path(), "main").unwrap();
+    
+    let err = core::branch_delete(repo.path(), "feature", false, Some(false)).unwrap_err();
+    assert!(err.to_string().contains("not fully merged"));
+    
+    core::branch_delete(repo.path(), "feature", false, Some(true)).unwrap();
+}
+
+#[test]
+fn reset_keep_refuses_when_local_changes_would_be_lost() {
+    let repo = TempRepo::new();
+    repo.write("a.txt", "v1\n");
+    let oid1 = commit_all(&repo, "v1");
+    
+    repo.write("a.txt", "v2\n");
+    commit_all(&repo, "v2");
+    
+    repo.write("a.txt", "local edit\n");
+    
+    let err = core::reset(repo.path(), &oid1, "keep").unwrap_err();
+    assert!(err.to_string().contains("would be overwritten"));
+}
+
+#[test]
+fn reset_keep_succeeds_when_local_changes_are_safe() {
+    let repo = TempRepo::new();
+    repo.write("a.txt", "v1\n");
+    let oid1 = commit_all(&repo, "v1");
+    
+    repo.write("b.txt", "v2\n");
+    commit_all(&repo, "v2");
+    
+    repo.write("c.txt", "local\n");
+    
+    core::reset(repo.path(), &oid1, "keep").unwrap();
+    assert!(repo.read("c.txt") == "local\n");
+    assert!(!std::path::Path::new(&repo.dir.join("b.txt")).exists());
+}
+
+#[test]
+fn force_with_lease_refuses_when_remote_moved_unexpectedly() {
+    let local = TempRepo::new();
+    local.write("a.txt", "initial\n");
+    commit_all(&local, "initial");
+    
+    let remote = TempRepo::bare_clone(&local);
+    core::remote_edit(local.path(), "origin", "origin", remote.path()).unwrap();
+    core::push(local.path(), "origin", None, false, false, true).unwrap();
+    
+    let other = TempRepo::new();
+    std::fs::remove_dir_all(&other.dir).unwrap();
+    Command::new("git")
+        .args(["clone", remote.path(), other.path()])
+        .output()
+        .unwrap();
+    other.write("b.txt", "other work\n");
+    Command::new("git")
+        .args(["-C", other.path(), "add", "."])
+        .output()
+        .unwrap();
+    Command::new("git")
+        .args(["-C", other.path(), "commit", "-m", "other"])
+        .output()
+        .unwrap();
+    Command::new("git")
+        .args(["-C", other.path(), "push"])
+        .output()
+        .unwrap();
+    
+    local.write("c.txt", "local work\n");
+    commit_all(&local, "local");
+    
+    let err = core::push(local.path(), "origin", None, true, false, false).unwrap_err();
+    assert!(err.to_string().contains("moved unexpectedly"));
+}
+
+#[test]
+fn list_stale_locals_detects_branches_with_gone_upstream() {
+    let local = TempRepo::new();
+    local.write("a.txt", "initial\n");
+    commit_all(&local, "initial");
+    
+    let remote = TempRepo::bare_clone(&local);
+    core::remote_edit(local.path(), "origin", "origin", remote.path()).unwrap();
+    
+    core::branch_create(local.path(), "feature", None, false).unwrap();
+    core::checkout_branch(local.path(), "feature").unwrap();
+    local.write("b.txt", "feature\n");
+    commit_all(&local, "feature");
+    core::push(local.path(), "origin", Some("feature"), false, false, true).unwrap();
+    
+    core::checkout_branch(local.path(), "main").unwrap();
+    core::push_delete(local.path(), "origin", "refs/heads/feature").unwrap();
+    core::fetch(local.path(), "origin", false, true).unwrap();
+    
+    let stale = core::list_stale_locals(local.path()).unwrap();
+    assert!(stale.contains(&"feature".to_string()));
+}
