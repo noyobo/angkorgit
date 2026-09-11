@@ -25,7 +25,10 @@ import type {
   WorktreeAddRequest,
   WorktreeInfo,
 } from '@angkorgit/core';
+import { logger } from './logger';
+
 let demo = null as unknown as typeof import('./demo');
+let pushAttemptCounter = 0;
 
 export interface OpOutcome {
   status: 'ok' | 'conflicts' | 'up_to_date' | 'fast_forward';
@@ -428,12 +431,37 @@ export const ipc = {
     withTags: boolean,
     setUpstream: boolean,
     branch?: string,
+    source?: string,
   ): Promise<OpOutcome> {
+    const attemptId = ++pushAttemptCounter;
+    const meta = {
+      attemptId,
+      source: source ?? 'unknown',
+      path: path.split('/').pop(),
+      remote,
+      branch: branch ?? 'HEAD',
+      force,
+      withTags,
+      setUpstream,
+      timestamp: new Date().toISOString(),
+    };
+    
+    await logger.info(`Push attempt #${attemptId} started`, meta);
+    
     if (!isTauri()) {
       await delay(400);
+      await logger.info(`Push attempt #${attemptId} completed (demo)`, { ...meta, status: 'ok' });
       return { status: 'ok', message: `Pushed to ${remote} (demo)` };
     }
-    return invoke('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
+    
+    try {
+      const result = await invoke('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
+      await logger.info(`Push attempt #${attemptId} completed`, { ...meta, status: result.status });
+      return result;
+    } catch (error) {
+      await logger.error(`Push attempt #${attemptId} failed`, { ...meta, error: String(error) });
+      throw error;
+    }
   },
   async pullBranch(path: string, branch: string): Promise<OpOutcome> {
     if (!isTauri()) return { status: 'ok', message: `Pulled ${branch} (demo)` };

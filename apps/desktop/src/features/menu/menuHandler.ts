@@ -150,14 +150,25 @@ export async function handleMenuEvent(
       // Repository menu
       case 'push':
         if (!repoPath) return;
+        if (useRepo.getState().busy) {
+          toast.info('Push already in progress');
+          return;
+        }
         const pushRemote = useRepo.getState().remotes[0]?.name ?? 'origin';
-        const pushResult = await ipc.push(repoPath, pushRemote, false, false, true);
+        const { ensureRepoProfile } = await import('@/features/settings/profiles');
+        await ensureRepoProfile(repoPath);
+        const pushResult = await ipc.push(repoPath, pushRemote, false, false, true, undefined, 'menu-repository-push');
         toastOutcome(pushResult, 'Push complete');
         await useRepo.getState().refresh();
+        void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
         break;
 
       case 'pull':
         if (!repoPath) return;
+        if (useRepo.getState().busy) {
+          toast.info('Pull already in progress');
+          return;
+        }
         const pullRemote = useRepo.getState().remotes[0]?.name ?? 'origin';
         const pullResult = await ipc.pull(repoPath, pullRemote);
         toastOutcome(pullResult, 'Pull complete');
@@ -167,6 +178,10 @@ export async function handleMenuEvent(
 
       case 'fetch':
         if (!repoPath) return;
+        if (useRepo.getState().busy) {
+          toast.info('Fetch already in progress');
+          return;
+        }
         const fetchRemote = useRepo.getState().remotes[0]?.name ?? 'origin';
         await ipc.fetch(repoPath, fetchRemote, true, true);
         toast.success('Fetch complete');

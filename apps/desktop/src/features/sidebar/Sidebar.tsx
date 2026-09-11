@@ -311,6 +311,10 @@ export function Sidebar() {
     op: () => Promise<unknown>,
     undoable?: { kind: UndoKind; extra?: Record<string, string> },
   ) => {
+    if (busy) {
+      toast.info(`${label} already in progress`);
+      return;
+    }
     try {
       const result = undoable
         ? await useUndo.getState().tracked({
@@ -1683,7 +1687,7 @@ export function Sidebar() {
                 <DropdownMenuItem
                   onClick={() =>
                     void act(`Push ${branchMenu.branch.name}`, () =>
-                      ipc.push(path, remotes[0]?.name ?? 'origin', false, false, true, branchMenu.branch.name),
+                      ipc.push(path, remotes[0]?.name ?? 'origin', false, false, true, branchMenu.branch.name, 'sidebar-branch-menu'),
                     )
                   }
                 >

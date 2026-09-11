@@ -182,8 +182,11 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let mut help_menu = SubmenuBuilder::new(app, if IS_MACOS { "Help" } else { "&Help" })
         .text("show-docs", if IS_MACOS { "Documentation" } else { "&Documentation" })
         .text("show-shortcuts", if IS_MACOS { "Keyboard Shortcuts" } else { "&Keyboard shortcuts" })
-        .text("report-issue", if IS_MACOS { "Report Issue…" } else { "Report &issue…" })
-        .text("show-logs", if IS_MACOS { "Show Logs in Finder" } else { if cfg!(windows) { "Show logs in Explorer" } else { "Show logs" } });
+        .separator()
+        .text("open-today-log", if IS_MACOS { "Open Today's Log" } else { "Open today's &log" })
+        .text("open-logs-folder", if IS_MACOS { "Show Logs Folder" } else { "Show &logs folder" })
+        .separator()
+        .text("report-issue", if IS_MACOS { "Report Issue…" } else { "Report &issue…" });
 
     if !IS_MACOS {
         help_menu = help_menu
@@ -200,6 +203,16 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
     match id {
         "quit" => {
             app.exit(0);
+        }
+        "open-today-log" => {
+            if let Err(e) = crate::logger::open_today_log() {
+                eprintln!("Failed to open today's log: {}", e);
+            }
+        }
+        "open-logs-folder" => {
+            if let Err(e) = crate::logger::open_logs_folder() {
+                eprintln!("Failed to open logs folder: {}", e);
+            }
         }
         "dev-tools" => {
             #[cfg(debug_assertions)]

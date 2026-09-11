@@ -955,3 +955,19 @@ pub fn cli_install() -> AppResult<crate::cli::CliToolStatus> {
 pub fn cli_uninstall() -> AppResult<()> {
     crate::cli::uninstall()
 }
+
+// Logging
+#[tauri::command]
+pub fn log_write(entry: crate::logger::LogEntry) -> Result<(), String> {
+    crate::logger::write_log(entry)
+}
+
+#[tauri::command]
+pub fn open_logs_folder() -> Result<(), String> {
+    crate::logger::open_logs_folder()
+}
+
+#[tauri::command]
+pub fn open_today_log() -> Result<(), String> {
+    crate::logger::open_today_log()
+}
