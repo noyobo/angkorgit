@@ -385,7 +385,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               />
             ) : null;
           })()}
-          <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
+          <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" shortcut="⇧T" onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
           <PaletteItem
             icon={<RefreshCw />}
             label="Fetch and clear local branches…"
@@ -397,6 +397,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<GitBranchPlus />}
             label="Create branch…"
+            shortcut="⇧N"
             onSelect={() => {
               close();
               openDialog('createBranch');
@@ -429,6 +430,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<Archive />}
             label="Stash changes…"
+            shortcut="⇧S"
             onSelect={() => {
               close();
               openDialog('createStash');

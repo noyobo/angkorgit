@@ -29,6 +29,7 @@ import { ipc, listen, openExternal } from '@/core/ipc';
 import { Logo } from '@angkorgit/design-system';
 import { basename } from '@/shared/utils';
 import { toast } from 'sonner';
+import { toastOutcome } from '@/shared/toastOutcome';
 
 const OVERLAY_SHOW_DELAY = 250;
 const OVERLAY_MIN_VISIBLE = 450;
@@ -295,6 +296,63 @@ export function RepositoryPage() {
       // Repository actions
       { combo: 'mod+r', handler: () => void refreshAll() }, // Refresh (AngKorGit-specific)
       { combo: 'mod+enter', handler: () => commitShortcut.current?.() }, // Commit when focused
+      
+      // Repository sync operations - Desktop-aligned
+      {
+        combo: 'mod+p',
+        handler: async () => {
+          if (!repo) return;
+          const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
+          const { ensureRepoProfile } = await import('@/features/settings/profiles');
+          await ensureRepoProfile(repo.path);
+          try {
+            const result = await ipc.push(repo.path, remote, false, false, true);
+            toastOutcome(result, 'Push complete');
+            await refresh();
+            void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
+          } catch (error) {
+            toast.error(`Push failed: ${(error as { message?: string }).message ?? error}`);
+          }
+        },
+      },
+      {
+        combo: 'mod+shift+p',
+        handler: async () => {
+          if (!repo) return;
+          const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
+          try {
+            const result = await ipc.pull(repo.path, remote);
+            toastOutcome(result, 'Pull complete');
+            await refreshAll();
+          } catch (error) {
+            toast.error(`Pull failed: ${(error as { message?: string }).message ?? error}`);
+          }
+        },
+      },
+      {
+        combo: 'mod+shift+t',
+        handler: async () => {
+          if (!repo) return;
+          const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
+          try {
+            await ipc.fetch(repo.path, remote, true, true);
+            toast.success('Fetch complete');
+            await refreshAll();
+          } catch (error) {
+            toast.error(`Fetch failed: ${(error as { message?: string }).message ?? error}`);
+          }
+        },
+      },
+      
+      // Branch operations - Desktop-aligned
+      {
+        combo: 'mod+shift+n',
+        handler: () => useUi.getState().openDialog('createBranch'),
+      },
+      {
+        combo: 'mod+shift+s',
+        handler: () => useUi.getState().openDialog('createStash'),
+      },
       
       // Settings - Desktop-aligned
       {
