@@ -661,6 +661,16 @@ pub async fn diff_commit_file(
 }
 
 #[tauri::command]
+pub async fn diff_range(
+    path: String,
+    fromOid: String,
+    toOid: String,
+    contextLines: Option<u32>,
+) -> AppResult<Vec<FileDiff>> {
+    blocking(move || diff::range_diff(&path, &fromOid, &toOid, contextLines.unwrap_or(3))).await
+}
+
+#[tauri::command]
 pub async fn staged_patch(path: String) -> AppResult<String> {
     blocking(move || diff::staged_patch_text(&path)).await
 }

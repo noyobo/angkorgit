@@ -3,11 +3,12 @@ import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from
 import { cn } from '@angkorgit/design-system';
 import { CommitGraph } from '@/features/graph/CommitGraph';
 import { DiffPanel } from '@/features/diff/DiffPanel';
+import { RangeDiffPanel } from '@/features/diff/RangeDiffPanel';
 import { EditorPanel } from '@/features/editor/EditorPanel';
 import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
 import { Inspector } from '@/features/inspector/Inspector';
 import { Sidebar } from '@/features/sidebar/Sidebar';
-import { useUi, type CenterDiffTarget } from './store';
+import { useUi, type CenterDiffTarget, type RangeDiffTarget } from './store';
 import { workspaceView } from './workspace';
 
 const TerminalPanel = lazy(() =>
@@ -24,6 +25,7 @@ function GraphPane({
   covered,
   diffInCenter,
   centerDiff,
+  rangeDiff,
   centerEditor,
   centerFileHistory,
 }: {
@@ -31,6 +33,7 @@ function GraphPane({
   covered: boolean;
   diffInCenter: boolean;
   centerDiff: CenterDiffTarget | null;
+  rangeDiff: RangeDiffTarget | null;
   centerEditor: string | null;
   centerFileHistory: string | null;
 }) {
@@ -41,6 +44,8 @@ function GraphPane({
       </div>
       {centerEditor ? (
         <EditorPanel key={centerEditor} file={centerEditor} />
+      ) : rangeDiff ? (
+        <RangeDiffPanel fromOid={rangeDiff.fromOid} toOid={rangeDiff.toOid} fromLabel={rangeDiff.fromLabel} toLabel={rangeDiff.toLabel} />
       ) : diffInCenter && centerDiff ? (
         <DiffPanel target={centerDiff} />
       ) : (
@@ -74,6 +79,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
   const sidebarOpenPref = useUi((s) => s.sidebarOpen);
   const terminalOpen = useUi((s) => s.terminalOpen);
   const centerDiff = useUi((s) => s.centerDiff);
+  const rangeDiff = useUi((s) => s.rangeDiff);
   const centerEditor = useUi((s) => s.centerEditor);
   const centerFileHistory = useUi((s) => s.centerFileHistory);
   const view = workspaceView({
@@ -122,6 +128,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
       covered={view.graphCovered}
       diffInCenter={view.diffInCenter}
       centerDiff={centerDiff}
+      rangeDiff={rangeDiff}
       centerEditor={centerEditor}
       centerFileHistory={centerFileHistory}
     />

@@ -40,6 +40,15 @@ export interface CenterDiffTarget {
   staged?: boolean;
   oid?: string;
   oldPath?: string | null;
+  fromOid?: string;
+  toOid?: string;
+}
+
+export interface RangeDiffTarget {
+  fromOid: string;
+  toOid: string;
+  fromLabel?: string;
+  toLabel?: string;
 }
 
 export interface InteractiveRebasePreset {
@@ -89,6 +98,7 @@ interface UiState {
   wrapLines: boolean;
   selectedFile: { path: string; staged: boolean } | null;
   centerDiff: CenterDiffTarget | null;
+  rangeDiff: RangeDiffTarget | null;
   centerEditor: string | null;
   centerFileHistory: string | null;
   conflictFile: string | null;
@@ -120,6 +130,8 @@ interface UiState {
   selectFile: (file: { path: string; staged: boolean } | null) => void;
   openCenterDiff: (target: CenterDiffTarget) => void;
   closeCenterDiff: () => void;
+  openRangeDiff: (target: RangeDiffTarget) => void;
+  closeRangeDiff: () => void;
   openEditor: (file: string) => void;
   closeEditor: () => void;
   openFileHistory: (file: string) => void;
@@ -176,6 +188,7 @@ export const useUi = create<UiState>()(
   wrapLines: false,
   selectedFile: null,
   centerDiff: null,
+  rangeDiff: null,
   centerEditor: null,
   centerFileHistory: null,
   conflictFile: null,
@@ -211,8 +224,10 @@ export const useUi = create<UiState>()(
   setFullFileDiff: (fullFileDiff) => set({ fullFileDiff }),
   setWrapLines: (wrapLines) => set({ wrapLines }),
   selectFile: (selectedFile) => set({ selectedFile }),
-  openCenterDiff: (centerDiff) => set({ centerDiff }),
+  openCenterDiff: (centerDiff) => set({ centerDiff, rangeDiff: null }),
   closeCenterDiff: () => set({ centerDiff: null }),
+  openRangeDiff: (rangeDiff) => set({ rangeDiff, centerDiff: null }),
+  closeRangeDiff: () => set({ rangeDiff: null }),
   openEditor: (centerEditor) => set({ centerEditor }),
   closeEditor: () => set({ centerEditor: null }),
   openFileHistory: (centerFileHistory) =>

@@ -548,6 +548,15 @@ export const ipc = {
       contextLines: contextLines ?? null,
     });
   },
+  async rangeDiff(path: string, fromOid: string, toOid: string, contextLines?: number): Promise<FileDiff[]> {
+    if (!isTauri()) return demo.demoCommitDiff();
+    return invoke('diff_range', {
+      path,
+      fromOid,
+      toOid,
+      contextLines: contextLines ?? null,
+    });
+  },
   async stagedPatch(path: string): Promise<string> {
     if (!isTauri()) return '--- demo staged patch ---';
     return invoke('staged_patch', { path });

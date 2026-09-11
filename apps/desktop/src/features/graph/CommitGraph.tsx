@@ -423,6 +423,30 @@ export function CommitGraph() {
             </button>
           </span>
         )}
+        {selectedOids.length >= 2 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const sorted = selectedOids
+                .map((oid) => commits.find((c) => c.oid === oid))
+                .filter((c): c is CommitInfo => c !== undefined);
+              if (sorted.length >= 2) {
+                const oldest = sorted[sorted.length - 1];
+                const newest = sorted[0];
+                useUi.getState().openRangeDiff({
+                  fromOid: oldest.oid,
+                  toOid: newest.oid,
+                  fromLabel: oldest.shortOid,
+                  toLabel: newest.shortOid,
+                });
+              }
+            }}
+          >
+            <Combine className="size-3.5" />
+            View {selectedOids.length} commits diff
+          </Button>
+        )}
         <div className="ml-auto flex items-center gap-2 text-xs text-faint">
           {loading && <Spinner className="size-3.5" />}
           <span>

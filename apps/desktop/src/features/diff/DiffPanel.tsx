@@ -66,26 +66,55 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const { selectAllOverlay, selectSide } = useDiffSelectAll(textDiff, scrollRef);
 
   const path = repo?.path ?? '';
-  const isWorkingCopy = target.oid === undefined;
+  const isWorkingCopy = target.oid === undefined && !target.fromOid;
+  const isRange = !!(target.fromOid && target.toOid);
   const [commitFileList, setCommitFileList] = useState<CommitFileInfo[]>([]);
   const commitFiles = useMemo(() => commitFileList.map((f) => f.path), [commitFileList]);
 
   useEffect(() => {
-    if (!path || !target.oid) {
+    if (!path) {
       setCommitFileList([]);
       return;
     }
-    let cancelled = false;
-    void ipc
-      .commitFiles(path, target.oid)
-      .then((files) => {
-        if (!cancelled) setCommitFileList(files);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [path, target.oid]);
+    if (target.oid) {
+      let cancelled = false;
+      void ipc
+        .commitFiles(path, target.oid)
+        .then((files) => {
+          if (!cancelled) setCommitFileList(files);
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (isRange) {
+      let cancelled = false;
+      void ipc
+        .rangeDiff(path, target.fromOid!, target.toOid!)
+        .then((diffs) => {
+          if (!cancelled) {
+            setCommitFileList(
+              diffs.map((d) => ({
+                path: d.path,
+                oldPath: d.oldPath ?? null,
+                status: d.status as CommitFileInfo['status'],
+                additions: d.additions,
+                deletions: d.deletions,
+                isBinary: d.isBinary,
+                isImage: d.isImage,
+                sourceOid: undefined,
+              })),
+            );
+          }
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setCommitFileList([]);
+  }, [path, target.oid, isRange, target.fromOid, target.toOid]);
 
   const workingSiblings = useMemo(
     () =>
@@ -192,10 +221,22 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
     if (!path) return;
     let cancelled = false;
     const seq = ++requestSeq.current;
-    const key = `${path}|${target.path}|${target.oid ?? ''}|${target.staged ?? false}|${fullFileDiff}|${reloadToken}`;
+    const key = `${path}|${target.path}|${target.oid ?? ''}|${target.fromOid ?? ''}|${target.toOid ?? ''}|${target.staged ?? false}|${fullFileDiff}|${reloadToken}`;
     if (loadedKey.current !== key) setLoading(true);
     const context = fullFileDiff ? 10_000_000 : undefined;
     const load = async (): Promise<FileDiff | null> => {
+      if (isRange && target.fromOid && target.toOid) {
+        const diffs = await ipc.rangeDiff(path, target.fromOid, target.toOid, context);
+        const match = diffs.find((d) => d.path === target.path);
+        if (!match) return null;
+        const untouched =
+          match.hunks.length === 0 &&
+          match.additions === 0 &&
+          match.deletions === 0 &&
+          !match.isBinary &&
+          !match.isImage;
+        return untouched ? null : match;
+      }
       if (target.oid) {
         const result = await ipc.commitFileDiff(
           path,
@@ -268,7 +309,11 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
           </Button>
         </Hint>
         <span className="min-w-0 flex-1 truncate font-mono text-xs">{target.path}</span>
-        {target.oid ? (
+        {isRange ? (
+          <Badge tone="neutral" className="font-mono text-[10px]">
+            {target.fromOid!.slice(0, 7)}..{target.toOid!.slice(0, 7)}
+          </Badge>
+        ) : target.oid ? (
           <Badge tone="neutral" className="font-mono">
             {target.oid.slice(0, 8)}
           </Badge>

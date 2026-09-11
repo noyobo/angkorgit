@@ -79,6 +79,7 @@ export function RepositoryPage() {
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
   const conflictFile = useUi((s) => s.conflictFile);
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
+  const closeRangeDiff = useUi((s) => s.closeRangeDiff);
 
   const repoPath = repo?.path ?? null;
   useEffect(() => {
@@ -279,12 +280,13 @@ export function RepositoryPage() {
           const ui = useUi.getState();
           if (ui.conflictFile) return;
           if (ui.centerEditor) editorCloseShortcut.current?.();
+          else if (ui.rangeDiff) closeRangeDiff();
           else if (ui.centerDiff) closeCenterDiff();
           else if (ui.centerFileHistory) ui.closeFileHistory();
         },
       },
     ],
-    [setPaletteOpen, toggleTerminal, toggleSidebar, refreshAll, closeCenterDiff],
+    [setPaletteOpen, toggleTerminal, toggleSidebar, refreshAll, closeCenterDiff, closeRangeDiff],
   );
   useShortcuts(shortcuts);
 
