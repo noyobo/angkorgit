@@ -58,6 +58,30 @@ export const THEMES: ThemeMeta[] = [
 export const themeBase = (id: Theme): 'dark' | 'light' =>
   THEMES.find((t) => t.id === id)?.base ?? 'dark';
 
+export interface ThemePair {
+  id: string;
+  label: string;
+  light: Theme | null;
+  dark: Theme | null;
+}
+
+export const THEME_PAIRS: ThemePair[] = [
+  { id: 'angkor', label: 'AngKor', light: 'light', dark: 'dark' },
+  { id: 'angkor-era', label: 'Angkor Era', light: 'angkor-dawn', dark: 'angkor-dusk' },
+  { id: 'github', label: 'GitHub', light: 'github-light', dark: 'github-dark' },
+  { id: 'vscode', label: 'VS Code', light: 'vscode-light', dark: 'vscode-dark' },
+  { id: 'catppuccin', label: 'Catppuccin', light: 'catppuccin-latte', dark: 'catppuccin-mocha' },
+  { id: 'ayu', label: 'Ayu', light: 'ayu-light', dark: 'ayu-dark' },
+  { id: 'one-dark-pro', label: 'One Dark Pro', light: null, dark: 'one-dark-pro' },
+  { id: 'tokyo-night', label: 'Tokyo Night', light: null, dark: 'tokyo-night' },
+  { id: 'dracula', label: 'Dracula', light: null, dark: 'dracula' },
+  { id: 'nord', label: 'Nord', light: null, dark: 'nord' },
+];
+
+export function findThemePair(theme: Theme): ThemePair | null {
+  return THEME_PAIRS.find((p) => p.light === theme || p.dark === theme) ?? null;
+}
+
 export function applyTheme(theme: Theme): void {
   const el = document.documentElement;
   const base = themeBase(theme);
@@ -169,6 +193,8 @@ export function externalEditorLabel(id: ExternalEditor): string {
 
 interface SettingsState {
   theme: Theme;
+  followSystem: boolean;
+  themePairId: string | null;
   accent: AccentId;
   zoom: number;
   sshKeyPath: string;
@@ -186,6 +212,7 @@ interface SettingsState {
   aiKeysMigrated: boolean;
   aiStyle: AiStyleConfig;
   setTheme: (theme: Theme) => void;
+  setFollowSystem: (value: boolean) => void;
   setAccent: (accent: AccentId) => void;
   setZoom: (zoom: number) => void;
   zoomIn: () => void;
@@ -244,6 +271,8 @@ export const useSettings = create<SettingsState>()(
   persist(
     (set, get) => ({
       theme: 'angkor-dusk',
+      followSystem: false,
+      themePairId: null,
       accent: 'gold',
       zoom: 1,
       sshKeyPath: '',
@@ -264,7 +293,24 @@ export const useSettings = create<SettingsState>()(
       aiStyle: DEFAULT_AI_STYLE,
       setTheme: (theme) => {
         applyTheme(theme);
-        set({ theme });
+        const pair = findThemePair(theme);
+        set({ theme, themePairId: pair?.id ?? null, followSystem: false });
+      },
+      setFollowSystem: (followSystem) => {
+        if (followSystem) {
+          const s = get();
+          const pair = s.themePairId ? THEME_PAIRS.find((p) => p.id === s.themePairId) : findThemePair(s.theme);
+          if (pair) {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const targetTheme = isDark ? pair.dark : pair.light;
+            if (targetTheme) {
+              applyTheme(targetTheme);
+              set({ theme: targetTheme, themePairId: pair.id, followSystem: true });
+            }
+          }
+        } else {
+          set({ followSystem: false });
+        }
       },
       setAccent: (accent) => {
         applyAccent(accent);
@@ -376,6 +422,25 @@ export const useSettings = create<SettingsState>()(
           if (migrate) useSettings.setState({ aiKeysMigrated: true });
           if (!useSettings.getState().ai.apiKey) void loadAiKey(active);
         });
+        
+        // Set up system theme listener
+        if (typeof window !== 'undefined') {
+          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+          const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+            const s = useSettings.getState();
+            if (!s.followSystem || !s.themePairId) return;
+            const pair = THEME_PAIRS.find((p) => p.id === s.themePairId);
+            if (!pair) return;
+            const targetTheme = e.matches ? pair.dark : pair.light;
+            if (targetTheme && targetTheme !== s.theme) {
+              applyTheme(targetTheme);
+              useSettings.setState({ theme: targetTheme });
+            }
+          };
+          mediaQuery.addEventListener('change', handleChange);
+          // Apply initial system theme if followSystem is on
+          if (state.followSystem) handleChange(mediaQuery);
+        }
       },
     },
   ),

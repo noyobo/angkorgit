@@ -63,7 +63,7 @@ import { Avatar } from '@/components/Avatar';
 import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { ACCENTS, THEMES, useSettings, ZOOM_MAX, ZOOM_MIN, EXTERNAL_EDITORS, type IdentityProfile, type ExternalEditor } from './store';
+import { ACCENTS, THEMES, THEME_PAIRS, useSettings, ZOOM_MAX, ZOOM_MIN, EXTERNAL_EDITORS, type IdentityProfile, type ExternalEditor } from './store';
 import { applyProfileToRepo } from './profiles';
 import { installCliTool } from './cliTool';
 import { AccountsTab, providerIcon } from './AccountsTab';
@@ -809,55 +809,133 @@ export function SettingsDialog() {
               {section === 'appearance' && (
                 <div className="flex flex-col gap-4">
                   <SettingCard
-                    title="Theme"
+                    title="Color Theme"
                     description="Popular editor palettes — surfaces and syntax colors follow the theme."
+                    action={
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted">Follow system</span>
+                        <Switch
+                          checked={settings.followSystem}
+                          onCheckedChange={settings.setFollowSystem}
+                        />
+                      </div>
+                    }
                   >
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {THEMES.map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => settings.setTheme(t.id)}
-                          aria-label={`Theme: ${t.label}`}
-                          className={cn(
-                            'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
-                            settings.theme === t.id
-                              ? 'border-primary ring-1 ring-primary'
-                              : 'border-border hover:border-muted',
-                          )}
-                        >
-                          <span
-                            className="flex h-14 flex-col justify-center gap-1.5 px-3"
-                            style={{ backgroundColor: t.swatch.bg }}
-                          >
-                            <span className="flex items-center gap-1">
-                              {t.swatch.dots.map((dot) => (
-                                <span
-                                  key={dot}
-                                  className="size-2 rounded-full"
-                                  style={{ backgroundColor: dot }}
-                                />
-                              ))}
-                            </span>
-                            <span
-                              className="h-1.5 w-3/4 rounded-full opacity-60"
-                              style={{ backgroundColor: t.swatch.fg }}
-                            />
-                            <span
-                              className="h-1.5 w-1/2 rounded-full opacity-30"
-                              style={{ backgroundColor: t.swatch.fg }}
-                            />
-                          </span>
-                          <span
-                            className={cn(
-                              'flex items-center justify-between px-3 py-1.5 text-xs',
-                              settings.theme === t.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
-                            )}
-                          >
-                            {t.label}
-                            {t.base === 'dark' ? <Moon className="size-3" /> : <Sun className="size-3" />}
-                          </span>
-                        </button>
-                      ))}
+                    <div className="flex flex-col gap-3">
+                      {THEME_PAIRS.map((pair) => {
+                        const lightTheme = pair.light ? THEMES.find((t) => t.id === pair.light) : null;
+                        const darkTheme = pair.dark ? THEMES.find((t) => t.id === pair.dark) : null;
+                        const isPairActive = settings.themePairId === pair.id;
+                        
+                        return (
+                          <div key={pair.id} className="flex flex-col gap-1.5">
+                            <span className="text-xs font-medium text-muted">{pair.label}</span>
+                            <div className="grid grid-cols-2 gap-2">
+                              {lightTheme ? (
+                                <button
+                                  onClick={() => settings.setTheme(lightTheme.id)}
+                                  aria-label={`Theme: ${lightTheme.label}`}
+                                  className={cn(
+                                    'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
+                                    settings.theme === lightTheme.id
+                                      ? 'border-primary ring-1 ring-primary'
+                                      : isPairActive
+                                        ? 'border-primary/40'
+                                        : 'border-border hover:border-muted',
+                                  )}
+                                >
+                                  <span
+                                    className="flex h-14 flex-col justify-center gap-1.5 px-3"
+                                    style={{ backgroundColor: lightTheme.swatch.bg }}
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      {lightTheme.swatch.dots.map((dot) => (
+                                        <span
+                                          key={dot}
+                                          className="size-2 rounded-full"
+                                          style={{ backgroundColor: dot }}
+                                        />
+                                      ))}
+                                    </span>
+                                    <span
+                                      className="h-1.5 w-3/4 rounded-full opacity-60"
+                                      style={{ backgroundColor: lightTheme.swatch.fg }}
+                                    />
+                                    <span
+                                      className="h-1.5 w-1/2 rounded-full opacity-30"
+                                      style={{ backgroundColor: lightTheme.swatch.fg }}
+                                    />
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'flex items-center justify-between px-3 py-1.5 text-xs',
+                                      settings.theme === lightTheme.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
+                                    )}
+                                  >
+                                    Light
+                                    <Sun className="size-3" />
+                                  </span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-center rounded-lg border border-dashed border-border-subtle bg-surface-raised/20 p-3 text-xs text-faint">
+                                  No light variant
+                                </div>
+                              )}
+                              
+                              {darkTheme ? (
+                                <button
+                                  onClick={() => settings.setTheme(darkTheme.id)}
+                                  aria-label={`Theme: ${darkTheme.label}`}
+                                  className={cn(
+                                    'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
+                                    settings.theme === darkTheme.id
+                                      ? 'border-primary ring-1 ring-primary'
+                                      : isPairActive
+                                        ? 'border-primary/40'
+                                        : 'border-border hover:border-muted',
+                                  )}
+                                >
+                                  <span
+                                    className="flex h-14 flex-col justify-center gap-1.5 px-3"
+                                    style={{ backgroundColor: darkTheme.swatch.bg }}
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      {darkTheme.swatch.dots.map((dot) => (
+                                        <span
+                                          key={dot}
+                                          className="size-2 rounded-full"
+                                          style={{ backgroundColor: dot }}
+                                        />
+                                      ))}
+                                    </span>
+                                    <span
+                                      className="h-1.5 w-3/4 rounded-full opacity-60"
+                                      style={{ backgroundColor: darkTheme.swatch.fg }}
+                                    />
+                                    <span
+                                      className="h-1.5 w-1/2 rounded-full opacity-30"
+                                      style={{ backgroundColor: darkTheme.swatch.fg }}
+                                    />
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'flex items-center justify-between px-3 py-1.5 text-xs',
+                                      settings.theme === darkTheme.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
+                                    )}
+                                  >
+                                    Dark
+                                    <Moon className="size-3" />
+                                  </span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-center rounded-lg border border-dashed border-border-subtle bg-surface-raised/20 p-3 text-xs text-faint">
+                                  No dark variant
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </SettingCard>
 
