@@ -107,14 +107,22 @@ function RepoSwitcher() {
         >
           <RepoMark name={repo.name} size={22} />
           <span className="leading-tight">
-            <span className="flex items-center gap-1 text-sm font-semibold">
+            <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
               {repo.name}
               <ChevronDown className="size-3 text-faint" />
             </span>
-            <span className="block font-mono text-[10px] text-faint">
-              {repo.isDetached ? 'detached HEAD' : repo.headBranch ?? 'no branch'}
-              {repo.isWorktree ? ' · worktree' : ''}
-              {assignedProfile ? ` · ${assignedProfile.label}` : ''}
+            <span className="flex items-center gap-1.5 font-mono text-[10px] text-faint">
+              {repo.isWorktree && <span className="text-primary">worktree</span>}
+              {repo.isWorktree && <span>·</span>}
+              <span className={repo.isDetached ? 'text-danger' : 'text-success'}>
+                {repo.isDetached ? 'detached HEAD' : repo.headBranch ?? 'no branch'}
+              </span>
+              {assignedProfile && (
+                <>
+                  <span>·</span>
+                  <span className="text-muted">{assignedProfile.label}</span>
+                </>
+              )}
             </span>
           </span>
         </button>

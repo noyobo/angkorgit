@@ -220,6 +220,7 @@ export function WorkingCopyPanel() {
   const [stagedFold, setStagedFold] = useState<FileTreeFold>(INITIAL_FOLD);
   const [stagedFoldState, setStagedFoldState] = useState<FileTreeFoldState | null>(null);
   const commitBoxHeight = useUi((s) => s.commitBoxHeight);
+  const commitSummaryFocusSeq = useUi((s) => s.commitSummaryFocusSeq);
   const [resizing, setResizing] = useState(false);
   const startResize = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -728,6 +729,12 @@ export function WorkingCopyPanel() {
     listScrollRef.current?.focus();
     if (!useUi.getState().selectedFile && visibleOrder[0]) showDiff(visibleOrder[0].file, visibleOrder[0].staged);
   }, [inspectorFocusSeq, visibleOrder, showDiff]);
+
+  useEffect(() => {
+    if (commitSummaryFocusSeq === focusRequests.commitSummaryConsumed) return;
+    focusRequests.commitSummaryConsumed = commitSummaryFocusSeq;
+    summaryRef.current?.focus();
+  }, [commitSummaryFocusSeq]);
 
   const onListKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {

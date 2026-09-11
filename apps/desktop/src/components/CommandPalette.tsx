@@ -48,6 +48,7 @@ import { applyTheme, THEMES, useSettings, type Theme } from '@/features/settings
 import { installCliTool } from '@/features/settings/cliTool';
 import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUndo } from '@/features/history/undoStore';
+import { useCommitDraft } from '@/features/commit/draftStore';
 import { useForge } from '@/features/forge/store';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
 import { currentPullRequestUrl, modKey } from '@/shared/utils';
@@ -411,6 +412,25 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               onSelect={() => run('Pop stash', () => ipc.stashPop(path, 0))}
             />
           )}
+          <PaletteItem
+            icon={<Undo2 />}
+            label="Amend last commit"
+            onSelect={() => {
+              close();
+              const draft = useCommitDraft.getState();
+              if (draft.drafts[path] || draft.amendFor === path) return;
+              draft.setAmend(path, true);
+            }}
+          />
+          <PaletteItem
+            icon={<Archive />}
+            label="Go to commit summary"
+            shortcut="G"
+            onSelect={() => {
+              close();
+              useUi.getState().focusCommitSummary();
+            }}
+          />
           {nextUndo && (
             <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} shortcut="Z" onSelect={() => runHistory('undo')} />
           )}

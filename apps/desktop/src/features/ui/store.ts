@@ -99,6 +99,7 @@ interface UiState {
   fileFilterFocusSeq: number;
   inspectorFocusSeq: number;
   graphFocusSeq: number;
+  commitSummaryFocusSeq: number;
   sidebarSections: Record<string, boolean>;
   sidebarCollapseEpoch: number;
   commitBoxHeight: number | null;
@@ -138,11 +139,12 @@ interface UiState {
   setFileFilterOpen: (on: boolean) => void;
   focusInspector: () => void;
   focusGraph: () => void;
+  focusCommitSummary: () => void;
 }
 
 export const sidebarVisible = (s: UiState) => workspaceView(s).showSidebar;
 
-export const focusRequests = { inspectorConsumed: 0 };
+export const focusRequests = { inspectorConsumed: 0, commitSummaryConsumed: 0 };
 
 let dialogReturnFocus: HTMLElement | null = null;
 
@@ -184,6 +186,7 @@ export const useUi = create<UiState>()(
   fileFilterFocusSeq: 0,
   inspectorFocusSeq: 0,
   graphFocusSeq: 0,
+  commitSummaryFocusSeq: 0,
   sidebarSections: {},
   sidebarCollapseEpoch: 0,
   commitBoxHeight: null,
@@ -258,10 +261,10 @@ export const useUi = create<UiState>()(
     set((s) => ({ graphColumns: { ...s.graphColumns, [column]: on } })),
   setGraphTail: (graphTail) => set({ graphTail }),
   setFileTree: (fileTree) => set({ fileTree }),
+  setFileFilterOpen: (on) => set((s) => ({ fileFilterOpen: on, fileFilterFocusSeq: on ? s.fileFilterFocusSeq + 1 : s.fileFilterFocusSeq })),
   focusInspector: () => set((s) => ({ inspectorFocusSeq: s.inspectorFocusSeq + 1 })),
   focusGraph: () => set((s) => ({ graphFocusSeq: s.graphFocusSeq + 1 })),
-  setFileFilterOpen: (fileFilterOpen) =>
-    set((s) => ({ fileFilterOpen, fileFilterFocusSeq: fileFilterOpen ? s.fileFilterFocusSeq + 1 : s.fileFilterFocusSeq })),
+  focusCommitSummary: () => set((s) => ({ commitSummaryFocusSeq: s.commitSummaryFocusSeq + 1 })),
     }),
     {
       name: 'angkorgit-ui',
