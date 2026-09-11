@@ -520,7 +520,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             size="sm"
             className="rounded-r-none"
             disabled={!!busy}
-            onClick={() => runPush('Push', () => ipc.push(repo.path, remote, false, false, true))}
+            onClick={() => runPush('Push', () => ipc.push(repo.path, remote, false, false, true, undefined, 'toolbar-button'))}
           >
             <ArrowUpFromLine />
             <span className="select-none">Push</span>
@@ -534,10 +534,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => runPush('Push (force)', () => ipc.push(repo.path, remote, true, false, true))} destructive>
+            <DropdownMenuItem onClick={() => runPush('Push (force)', () => ipc.push(repo.path, remote, true, false, true, undefined, 'toolbar-menu-force'))} destructive>
               Force push
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => runPush('Push with tags', () => ipc.push(repo.path, remote, false, true, true))}>
+            <DropdownMenuItem onClick={() => runPush('Push with tags', () => ipc.push(repo.path, remote, false, true, true, undefined, 'toolbar-menu-tags'))}>
               Push with tags
             </DropdownMenuItem>
             <DropdownMenuSeparator />

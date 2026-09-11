@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { logger } from '@/core/logger';
 
 export interface Shortcut {
   combo: string;
@@ -6,6 +7,7 @@ export interface Shortcut {
   allowInInput?: boolean;
   skipInInput?: boolean;
   skipWhenOverlayOpen?: boolean;
+  label?: string; // For logging
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
@@ -54,6 +56,7 @@ export function useShortcuts(shortcuts: Shortcut[]): void {
         if (shortcut.skipInInput && inEditable(event)) continue;
         if (!hasModifier && !shortcut.allowInInput && inEditable(event)) continue;
         event.preventDefault();
+        void logger.key(shortcut.combo, shortcut.label || 'handler', { overlayOpen, inEditable: inEditable(event) });
         shortcut.handler(event);
         return;
       }

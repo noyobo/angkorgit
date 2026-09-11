@@ -163,7 +163,7 @@ export function StatusBar() {
               .finally(() => toast.dismiss('updater'));
           }}
         >
-          {version ? `v${version}` : 'AngKorGit'}
+          {version ? `v${version} · ${__GIT_HASH__}` : 'AngKorGit'}
         </button>
       </Hint>
     </footer>

@@ -414,8 +414,32 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               useUi.getState().openBranchSwitcher();
             }} />
             <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} onSelect={enterFileHistory} />
-            <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
-            <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
+            <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} onSelect={() => {
+              if (busy) {
+                toast.info('Pull already in progress');
+                return;
+              }
+              run('Pull', () => ipc.pull(path, remote));
+            }} />
+            <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} onSelect={() => {
+              if (busy) {
+                toast.info('Push already in progress');
+                return;
+              }
+              close();
+              void (async () => {
+                const { ensureRepoProfile } = await import('@/features/settings/profiles');
+                await ensureRepoProfile(path);
+                try {
+                  const result = await ipc.push(path, remote, false, false, true, undefined, 'command-palette');
+                  toastOutcome(result, 'Push done');
+                  await onRefresh();
+                  void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
+                } catch (error) {
+                  toast.error(`Push failed: ${(error as { message?: string }).message ?? error}`);
+                }
+              })();
+            }} />
             <PaletteItem
               icon={<Download />}
               label="View on remote"

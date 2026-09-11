@@ -1,6 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
+
+// Get git commit hash at build time
+const getGitHash = () => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'unknown';
+  }
+};
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,6 +29,9 @@ export default defineConfig({
   },
   clearScreen: false,
   envPrefix: ['VITE_', 'TAURI_'],
+  define: {
+    __GIT_HASH__: JSON.stringify(getGitHash()),
+  },
   build: {
     target: 'es2022',
     sourcemap: false,

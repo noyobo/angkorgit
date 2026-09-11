@@ -192,6 +192,10 @@ export function CommitGraph() {
       op: () => Promise<unknown>,
       undoable?: { kind: UndoKind; extra?: Record<string, string> },
     ) => {
+      if (busy) {
+        toast.info(`${label} already in progress`);
+        return;
+      }
       try {
         const run = undoable
           ? () =>
@@ -215,7 +219,7 @@ export function CommitGraph() {
         toast.error(`${label} failed: ${(error as { message?: string }).message ?? error}`);
       }
     },
-    [refresh, reload, path],
+    [refresh, reload, path, busy],
   );
 
   const pushRemoteFor = (branch: string): string => {
@@ -229,7 +233,7 @@ export function CommitGraph() {
 
   const pushBranch = async (branch: string) => {
     await ensureRepoProfile(path);
-    await act(`Push ${branch}`, () => ipc.push(path, pushRemoteFor(branch), false, false, true, branch));
+    await act(`Push ${branch}`, () => ipc.push(path, pushRemoteFor(branch), false, false, true, branch, 'graph-commit-menu'));
     void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
   };
 

@@ -8,6 +8,7 @@ mod core;
 mod error;
 mod forge;
 mod http;
+mod logger;
 mod menu;
 mod proc;
 mod state;
@@ -62,6 +63,7 @@ pub fn run() {
         .setup(|app| {
             use tauri::Manager;
             if let Ok(dir) = app.path().app_config_dir() {
+                logger::init_logger(dir.clone());
                 let _ = core::accounts::CONFIG_DIR.set(dir);
             }
             let args: Vec<String> = std::env::args().collect();
@@ -199,6 +201,9 @@ pub fn run() {
             commands::cli_status,
             commands::cli_install,
             commands::cli_uninstall,
+            commands::log_write,
+            commands::open_logs_folder,
+            commands::open_today_log,
         ])
         .build(tauri::generate_context!())
         .expect("error while running AngKorGit");

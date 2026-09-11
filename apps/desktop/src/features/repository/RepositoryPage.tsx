@@ -306,7 +306,7 @@ export function RepositoryPage() {
           const { ensureRepoProfile } = await import('@/features/settings/profiles');
           await ensureRepoProfile(repo.path);
           try {
-            const result = await ipc.push(repo.path, remote, false, false, true);
+          const result = await ipc.push(repo.path, remote, false, false, true, undefined, 'keyboard-shortcut');
             toastOutcome(result, 'Push complete');
             await refresh();
             void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
