@@ -7,6 +7,9 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Preview a color theme from the command palette.** ⌘K / ⌘P → Color theme. Arrow
+  through the list (or type a name) to see it on the real UI; Enter keeps it, Esc
+  puts the old one back. Settings still has the swatch grid.
 - **Switch branch from the status bar.** Click the branch name in the bottom-left
   for a filterable list of local branches, with each tip's age on the right. Same
   checkout as the sidebar (uncommitted files that would be lost are refused; the

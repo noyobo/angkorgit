@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Command } from 'cmdk';
+import { Command, useCommandState } from 'cmdk';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
 import {
@@ -20,6 +20,7 @@ import {
   History,
   Home,
   Moon,
+  Palette,
   PanelLeft,
   Redo2,
   RefreshCw,
@@ -41,7 +42,7 @@ import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { openDeleteBranches } from '@/features/repository/deleteBranches';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
-import { themeBase, useSettings } from '@/features/settings/store';
+import { applyTheme, THEMES, useSettings, type Theme } from '@/features/settings/store';
 import { useUndo } from '@/features/history/undoStore';
 import { useForge } from '@/features/forge/store';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
@@ -80,18 +81,38 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   const nextUndo = useMemo(() => [...undoStack].reverse().find((e) => e.repoPath === path), [undoStack, path]);
   const nextRedo = useMemo(() => [...redoStack].reverse().find((e) => e.repoPath === path), [redoStack, path]);
 
-  const [mode, setMode] = useState<'commands' | 'fileHistory'>('commands');
+  const [mode, setMode] = useState<'commands' | 'fileHistory' | 'theme'>('commands');
   const [search, setSearch] = useState('');
+  const themeOrigin = useRef<Theme | null>(null);
+  const themeCommitted = useRef(false);
   const [files, setFiles] = useState<string[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState(false);
   const filesRequest = useRef(0);
 
+  const abandonThemePreview = () => {
+    if (!themeCommitted.current && themeOrigin.current) applyTheme(themeOrigin.current);
+    themeCommitted.current = false;
+    themeOrigin.current = null;
+  };
+
   useEffect(() => {
-    if (!paletteOpen) return;
-    setMode('commands');
-    setSearch('');
+    if (paletteOpen) {
+      setMode('commands');
+      setSearch('');
+      return;
+    }
+    if (!themeCommitted.current && themeOrigin.current) applyTheme(themeOrigin.current);
+    themeCommitted.current = false;
+    themeOrigin.current = null;
   }, [paletteOpen]);
+
+  const enterThemeMode = () => {
+    themeOrigin.current = useSettings.getState().theme;
+    themeCommitted.current = false;
+    setMode('theme');
+    setSearch('');
+  };
 
   const enterFileHistory = () => {
     setMode('fileHistory');
@@ -129,6 +150,11 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     const matches = q ? locals.filter((b) => b.name.toLowerCase().includes(q)) : locals;
     return matches.slice(0, 100);
   }, [mode, locals, search]);
+
+  const themeChoices = useMemo(() => {
+    if (mode !== 'theme') return [];
+    return [...THEMES].sort((a, b) => Number(b.id === theme) - Number(a.id === theme));
+  }, [mode, theme]);
 
   const close = () => setPaletteOpen(false);
 
@@ -228,7 +254,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
       open={paletteOpen}
       onOpenChange={setPaletteOpen}
       label="Command palette"
-      shouldFilter={mode === 'commands'}
+      shouldFilter={mode !== 'fileHistory'}
       className="fixed left-1/2 top-24 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-overlay shadow-soft"
     >
       <Command.Input
@@ -237,16 +263,20 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         placeholder={
           mode === 'fileHistory'
             ? 'Search a file to see who changed it…'
-            : 'Type a command or branch name…'
+            : mode === 'theme'
+              ? 'Search themes…'
+              : 'Type a command or branch name…'
         }
         onKeyDown={(e) => {
-          if (mode === 'fileHistory' && e.key === 'Backspace' && search === '') {
+          if ((mode === 'fileHistory' || mode === 'theme') && e.key === 'Backspace' && search === '') {
             e.preventDefault();
+            if (mode === 'theme') abandonThemePreview();
             setMode('commands');
           }
         }}
         className="h-11 w-full border-b border-border-subtle bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-faint"
       />
+      {mode === 'theme' && <ThemePreviewSync />}
       <Command.List className="max-h-80 overflow-y-auto p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint">
         {!(mode === 'fileHistory' && (filesLoading || filesError)) && (
           <Command.Empty className="py-8 text-center text-sm text-faint">No results.</Command.Empty>
@@ -270,6 +300,26 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
                 onSelect={() => {
                   close();
                   useUi.getState().openFileHistory(file);
+                }}
+              />
+            ))}
+          </Command.Group>
+        )}
+
+        {mode === 'theme' && (
+          <Command.Group heading="Color theme">
+            {themeChoices.map((t) => (
+              <PaletteItem
+                key={t.id}
+                value={t.id}
+                keywords={[t.label]}
+                icon={t.base === 'dark' ? <Moon /> : <Sun />}
+                label={t.label}
+                active={t.id === theme}
+                onSelect={() => {
+                  themeCommitted.current = true;
+                  setTheme(t.id);
+                  close();
                 }}
               />
             ))}
@@ -510,12 +560,10 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             }}
           />
           <PaletteItem
-            icon={themeBase(theme) === 'dark' ? <Sun /> : <Moon />}
-            label={themeBase(theme) === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            onSelect={() => {
-              close();
-              setTheme(themeBase(theme) === 'dark' ? 'light' : 'dark');
-            }}
+            icon={<Palette />}
+            label="Color theme"
+            keywords={['theme', 'appearance', 'dark', 'light']}
+            onSelect={enterThemeMode}
           />
           <PaletteItem
             icon={<Settings />}
@@ -565,24 +613,41 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   );
 }
 
+function ThemePreviewSync() {
+  const value = useCommandState((s) => s.value);
+  useEffect(() => {
+    if (THEMES.some((t) => t.id === value)) applyTheme(value as Theme);
+  }, [value]);
+  return null;
+}
+
 function PaletteItem({
   icon,
   label,
   shortcut,
+  value,
+  keywords,
+  active,
   onSelect,
 }: {
   icon: React.ReactNode;
   label: string;
   shortcut?: string;
+  value?: string;
+  keywords?: string[];
+  active?: boolean;
   onSelect: () => void;
 }) {
   return (
     <Command.Item
+      value={value}
+      keywords={keywords}
       onSelect={onSelect}
       className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
     >
       {icon}
       <span className="flex-1">{label}</span>
+      {active && <Check className="size-3.5 shrink-0 text-primary" />}
       {shortcut && (
         <span className="flex items-center gap-0.5">
           <Kbd>{modKey()}</Kbd>

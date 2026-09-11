@@ -30,6 +30,46 @@ test('command palette opens with keyboard shortcut', async ({ page }) => {
   await expect(page.getByPlaceholder('Type a command or branch name…')).toBeVisible();
 });
 
+test('command palette previews a color theme and keeps it only on enter', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  const html = page.locator('html');
+  await expect(html).toHaveClass(/theme-angkor-dusk/);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('color theme');
+  await page.getByRole('option', { name: 'Color theme' }).click();
+  const search = page.getByPlaceholder('Search themes…');
+  await expect(search).toBeVisible();
+
+  await search.fill('dracula');
+  await expect(page.getByRole('option', { name: 'Dracula' })).toBeVisible();
+  await expect(html).toHaveClass(/theme-dracula/);
+  await page.keyboard.press('Escape');
+  await expect(search).toHaveCount(0);
+  await expect(html).toHaveClass(/theme-angkor-dusk/);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('color theme');
+  await page.getByRole('option', { name: 'Color theme' }).click();
+  await page.getByPlaceholder('Search themes…').fill('dracula');
+  await page.getByRole('option', { name: 'Dracula' }).click();
+  await expect(html).toHaveClass(/theme-dracula/);
+  await expect(page.getByPlaceholder('Search themes…')).toHaveCount(0);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.keyboard.press('Escape');
+  await expect(html).toHaveClass(/theme-dracula/);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('color theme');
+  await page.getByRole('option', { name: 'Color theme' }).click();
+  await page.getByPlaceholder('Search themes…').fill('angkor dusk');
+  await page.getByRole('option', { name: 'Angkor Dusk' }).click();
+  await expect(html).toHaveClass(/theme-angkor-dusk/);
+});
+
 test('mod+1 and mod+2 switch repository tabs', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();
