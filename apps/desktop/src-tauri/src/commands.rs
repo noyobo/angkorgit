@@ -687,8 +687,9 @@ pub async fn submodule_list(path: String) -> AppResult<Vec<SubmoduleInfo>> {
 }
 
 #[tauri::command]
-pub async fn submodule_update(path: String, name: String) -> AppResult<()> {
-    blocking(move || misc::submodule_update(&path, &name)).await
+pub async fn submodule_update(path: String, name: String, recursive: Option<bool>) -> AppResult<()> {
+    let recursive = recursive.unwrap_or(false);
+    blocking(move || misc::submodule_update(&path, &name, recursive)).await
 }
 
 #[tauri::command]
