@@ -25,9 +25,10 @@ import { useShortcuts } from '@/shared/useShortcuts';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings } from '@/features/settings/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
-import { ipc, listen } from '@/core/ipc';
+import { ipc, listen, openExternal } from '@/core/ipc';
 import { Logo } from '@angkorgit/design-system';
 import { basename } from '@/shared/utils';
+import { toast } from 'sonner';
 
 const OVERLAY_SHOW_DELAY = 250;
 const OVERLAY_MIN_VISIBLE = 450;
@@ -226,6 +227,31 @@ export function RepositoryPage() {
       
       // Commit flow - Desktop-aligned
       { combo: 'mod+g', handler: () => useUi.getState().focusCommitSummary() }, // Focus commit summary (Desktop: Cmd+G)
+      
+      // View on forge - git-open equivalent (Desktop: Cmd+Shift+G)
+      {
+        combo: 'mod+shift+g',
+        handler: async () => {
+          if (!repo) return;
+          const remotes = useRepo.getState().remotes;
+          if (remotes.length === 0) {
+            toast.error('No remotes configured');
+            return;
+          }
+          const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
+          const branches = useRepo.getState().branches;
+          const headBranch = branches.find((b) => b.isHead && !b.isRemote);
+          const headUpstream = headBranch?.upstream ?? null;
+          const remote = pickForgeRemote(remotes, headUpstream);
+          const currentBranch = headBranch?.name ?? null;
+          const url = buildBrowseUrl(remote?.url ?? remotes[0].url, currentBranch);
+          if (!url) {
+            toast.error('Could not parse remote URL');
+            return;
+          }
+          await openExternal(url);
+        },
+      },
       
       // Tab management - AngKorGit multi-repo feature
       // EXCEPTION: Keep Cmd+1-9 for tab switching (core AngKorGit feature)

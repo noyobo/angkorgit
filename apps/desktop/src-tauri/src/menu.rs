@@ -118,7 +118,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let open_terminal = MenuItem::with_id(app, "open-in-terminal", if IS_MACOS { "Open in Terminal" } else { "Open in &terminal" }, true, Some("Ctrl+`"))?;
     let open_finder = MenuItem::with_id(app, "open-in-finder", if IS_MACOS { "Show in Finder" } else { if cfg!(windows) { "Show in E&xplorer" } else { "Show in file manager" } }, true, Some("CmdOrCtrl+Shift+F"))?;
     let open_editor = MenuItem::with_id(app, "open-in-editor", if IS_MACOS { "Open in External Editor" } else { "Open in e&xternal editor" }, true, Some("CmdOrCtrl+Shift+A"))?;
-    let view_forge = MenuItem::with_id(app, "view-on-forge", if IS_MACOS { "View on Forge" } else { "&View on forge" }, true, Some("CmdOrCtrl+Shift+G"))?;
+    let view_forge = MenuItem::with_id(app, "view-on-forge", if IS_MACOS { "View on Remote" } else { "View on &remote" }, true, Some("CmdOrCtrl+Shift+G"))?;
     let refresh_item = MenuItem::with_id(app, "refresh", if IS_MACOS { "Refresh" } else { "&Refresh" }, true, Some("CmdOrCtrl+R"))?;
     let close_all_tabs = MenuItem::with_id(app, "close-all-tabs", if IS_MACOS { "Close All Tabs" } else { "Close all &tabs" }, true, Some("CmdOrCtrl+Shift+W"))?;
     

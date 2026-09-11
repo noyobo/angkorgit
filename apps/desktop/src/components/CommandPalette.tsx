@@ -339,6 +339,31 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem icon={<History />} label="File history…" onSelect={enterFileHistory} />
           <PaletteItem icon={<ArrowDownToLine />} label="Pull" onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
           <PaletteItem icon={<ArrowUpFromLine />} label="Push" onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
+          <PaletteItem
+            icon={<Download />}
+            label="View on remote"
+            shortcut="⇧G"
+            onSelect={async () => {
+              close();
+              const remotes = useRepo.getState().remotes;
+              if (remotes.length === 0) {
+                toast.error('No remotes configured');
+                return;
+              }
+              const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
+              const branches = useRepo.getState().branches;
+              const headBranch = branches.find((b) => b.isHead && !b.isRemote);
+              const headUpstream = headBranch?.upstream ?? null;
+              const remote = pickForgeRemote(remotes, headUpstream);
+              const currentBranch = headBranch?.name ?? null;
+              const url = buildBrowseUrl(remote?.url ?? remotes[0].url, currentBranch);
+              if (!url) {
+                toast.error('Could not parse remote URL');
+                return;
+              }
+              await openExternal(url);
+            }}
+          />
           {(() => {
             const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
             const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);

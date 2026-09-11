@@ -199,10 +199,17 @@ export async function handleMenuEvent(
           toast.error('No remotes configured');
           return;
         }
-        // Parse first remote URL to open in browser
-        const url = remotes[0].url
-          .replace(/^git@([^:]+):/, 'https://$1/')
-          .replace(/\.git$/, '');
+        const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
+        const branches = useRepo.getState().branches;
+        const headBranch = branches.find((b) => b.isHead && !b.isRemote);
+        const headUpstream = headBranch?.upstream ?? null;
+        const remote = pickForgeRemote(remotes, headUpstream);
+        const currentBranch = headBranch?.name ?? null;
+        const url = buildBrowseUrl(remote?.url ?? remotes[0].url, currentBranch);
+        if (!url) {
+          toast.error('Could not parse remote URL');
+          return;
+        }
         await openExternal(url);
         break;
       }

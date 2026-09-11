@@ -38,6 +38,7 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Push | ⌘P | ⌘P |
 | Pull | ⌘⇧P | ⌘⇧P |
 | Fetch | ⌘⇧T (Desktop) | ⌘⇧R |
+| **View on GitHub** | **⌘⇧G** | **⌘⇧G** — View on remote: opens repo/branch in browser |
 | **Show branches** | **⌘B** | **⌘B** (opens StatusBar branch switcher) |
 | **Toggle sidebar** | **N/A** | **⌘L** |
 | Undo | ⌘Z | ⌘Z |
@@ -123,10 +124,12 @@ GitHub Desktop's "Compare → choose any two commits" feature works differently 
 - Resolve each conflict block, then click "Mark resolved and continue"
 - Multi-file conflicts: header shows "File n of m" with navigation arrows
 
-### View repository on GitHub
+### View repository on remote
 
-- **Command Palette** (⌘K) → "Open repository on GitHub"
-- Or the **remote URL in Sidebar → Remotes section** → right-click → "Open in browser"
+- **Command Palette** (⌘K) → "View on remote" (⌘⇧G)
+- **Menu**: Repository → View on Remote (⌘⇧G)
+- Opens the current repository (and current branch if it exists on the remote) in your default browser
+- Supports GitHub, GitLab, Bitbucket (Cloud & Server), and Gitea-style forges
 
 ## Philosophy differences
 
