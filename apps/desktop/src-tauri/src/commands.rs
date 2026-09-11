@@ -440,8 +440,9 @@ pub async fn branch_create(
 }
 
 #[tauri::command]
-pub async fn branch_delete(path: String, name: String, remote: bool) -> AppResult<()> {
-    blocking(move || branch::delete(&path, &name, remote)).await
+pub async fn branch_delete(path: String, name: String, remote: bool, force: Option<bool>) -> AppResult<()> {
+    let force = force.unwrap_or(false);
+    blocking(move || branch::delete_with_force(&path, &name, remote, force)).await
 }
 
 #[tauri::command]
