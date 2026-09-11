@@ -1955,3 +1955,18 @@ plugin can be added), and the Homebrew cask.
 - Compare on: size (12 MB download vs ~1 GB), speed (native libgit2), focus (25 features done well).
 - Never copy GitKraken assets/layouts; we take workflow inspiration only.
 - License: MIT. Attribution to Angkor Wat heritage is part of the brand story.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `noyobo/angkorgit`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles as-is: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context: root `CONTEXT-MAP.md` points at per-package `CONTEXT.md` files. See `docs/agents/domain.md`.
+
