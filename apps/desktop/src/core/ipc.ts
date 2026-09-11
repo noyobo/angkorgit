@@ -435,31 +435,28 @@ export const ipc = {
   ): Promise<OpOutcome> {
     const attemptId = ++pushAttemptCounter;
     const meta = {
-      attemptId,
-      source: source ?? 'unknown',
       path: path.split('/').pop(),
       remote,
       branch: branch ?? 'HEAD',
       force,
       withTags,
       setUpstream,
-      timestamp: new Date().toISOString(),
     };
     
-    await logger.info(`Push attempt #${attemptId} started`, meta);
+    await logger.push(attemptId, source ?? 'unknown', meta);
     
     if (!isTauri()) {
       await delay(400);
-      await logger.info(`Push attempt #${attemptId} completed (demo)`, { ...meta, status: 'ok' });
+      await logger.push(attemptId, source ?? 'unknown', { ...meta, status: 'ok', result: 'completed-demo' });
       return { status: 'ok', message: `Pushed to ${remote} (demo)` };
     }
     
     try {
       const result = await invoke('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
-      await logger.info(`Push attempt #${attemptId} completed`, { ...meta, status: result.status });
+      await logger.push(attemptId, source ?? 'unknown', { ...meta, status: result.status, result: 'completed' });
       return result;
     } catch (error) {
-      await logger.error(`Push attempt #${attemptId} failed`, { ...meta, error: String(error) });
+      await logger.push(attemptId, source ?? 'unknown', { ...meta, error: String(error), result: 'failed' });
       throw error;
     }
   },

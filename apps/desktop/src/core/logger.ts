@@ -1,12 +1,14 @@
 // Comprehensive audit logging to daily files for production debugging
 import { isTauri } from './ipc';
 
-export type LogCategory = 'key' | 'click' | 'cmd' | 'stdout' | 'stderr' | 'lifecycle' | 'error';
+export type LogLayer = 'ui' | 'menu' | 'ipc' | 'git' | 'rust' | 'system';
+export type LogType = 'key' | 'click' | 'cmd' | 'stdout' | 'stderr' | 'push' | 'lifecycle';
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
-  timestamp: string;
-  level: 'INFO' | 'WARN' | 'ERROR';
-  category: LogCategory;
+  layer: LogLayer;
+  type: LogType;
+  level: LogLevel;
   message: string;
   meta?: Record<string, unknown>;
 }
@@ -33,6 +35,13 @@ function sanitizeMeta(meta?: Record<string, unknown>): Record<string, unknown> |
   return sanitized;
 }
 
+function formatMetaAsKV(meta?: Record<string, unknown>): string {
+  if (!meta) return '';
+  return ' ' + Object.entries(meta)
+    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    .join(' ');
+}
+
 async function initLogger() {
   if (!isTauri()) return;
   const { invoke } = await import('@tauri-apps/api/core');
@@ -43,11 +52,11 @@ if (isTauri()) {
   loggerReady = initLogger();
 }
 
-async function writeLog(level: LogEntry['level'], category: LogCategory, message: string, meta?: Record<string, unknown>) {
+async function writeLog(layer: LogLayer, type: LogType, level: LogLevel, message: string, meta?: Record<string, unknown>) {
   const entry: LogEntry = {
-    timestamp: new Date().toISOString(),
+    layer,
+    type,
     level,
-    category,
     message,
     meta: sanitizeMeta(meta),
   };
@@ -56,57 +65,63 @@ async function writeLog(level: LogEntry['level'], category: LogCategory, message
   await logCommand?.(entry);
   
   if (!isTauri()) {
-    const formatted = `[${entry.timestamp}] ${level} ${category} ${message}`;
-    if (level === 'ERROR') console.error(formatted, entry.meta);
-    else if (level === 'WARN') console.warn(formatted, entry.meta);
-    else console.log(formatted, entry.meta);
+    // Browser console format: [layer] [type] [level] message key=value
+    const formatted = `[${layer}] [${type}] [${level}] ${message}${formatMetaAsKV(entry.meta)}`;
+    if (level === 'error') console.error(formatted);
+    else if (level === 'warn') console.warn(formatted);
+    else console.log(formatted);
   }
 }
 
 export const logger = {
   // Keyboard shortcuts and accelerators
   async key(combo: string, handler: string, meta?: Record<string, unknown>) {
-    await writeLog('INFO', 'key', `Shortcut ${combo} → ${handler}`, meta);
+    await writeLog('ui', 'key', 'info', `shortcut=${combo} handler=${handler}`, meta);
   },
 
   // UI clicks on primary actions
   async click(action: string, target: string, meta?: Record<string, unknown>) {
-    await writeLog('INFO', 'click', `${action} @ ${target}`, meta);
+    await writeLog('ui', 'click', 'info', `action=${action} target=${target}`, meta);
   },
 
   // Command execution (IPC, git, tauri)
   async cmd(command: string, args?: Record<string, unknown>, result?: { duration?: number; status?: string }) {
-    await writeLog('INFO', 'cmd', `${command}`, { args, ...result });
+    await writeLog('ipc', 'cmd', 'info', `command=${command}`, { args, ...result });
+  },
+
+  // Push operations (special tracking for issue #4)
+  async push(attemptId: number, source: string, meta: Record<string, unknown>) {
+    await writeLog('git', 'push', 'info', `attemptId=${attemptId} source=${source}`, meta);
   },
 
   // Process stdout
   async stdout(source: string, output: string) {
-    await writeLog('INFO', 'stdout', `${source}`, { output: output.slice(0, 10000) }); // cap at 10KB per entry
+    await writeLog('git', 'stdout', 'info', `source=${source}`, { output: output.slice(0, 10000) });
   },
 
   // Process stderr
   async stderr(source: string, output: string) {
-    await writeLog('WARN', 'stderr', `${source}`, { output: output.slice(0, 10000) });
+    await writeLog('git', 'stderr', 'warn', `source=${source}`, { output: output.slice(0, 10000) });
   },
 
   // Lifecycle events
   async lifecycle(event: string, meta?: Record<string, unknown>) {
-    await writeLog('INFO', 'lifecycle', event, meta);
+    await writeLog('system', 'lifecycle', 'info', event, meta);
   },
 
   // General info
   async info(message: string, meta?: Record<string, unknown>) {
-    await writeLog('INFO', 'lifecycle', message, meta);
+    await writeLog('system', 'lifecycle', 'info', message, meta);
   },
 
   // Warnings
   async warn(message: string, meta?: Record<string, unknown>) {
-    await writeLog('WARN', 'error', message, meta);
+    await writeLog('system', 'lifecycle', 'warn', message, meta);
   },
 
   // Errors
   async error(message: string, meta?: Record<string, unknown>) {
-    await writeLog('ERROR', 'error', message, meta);
+    await writeLog('system', 'lifecycle', 'error', message, meta);
   },
 };
 

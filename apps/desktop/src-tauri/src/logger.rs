@@ -1,9 +1,9 @@
 // Comprehensive audit logging to daily files
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use chrono::{Local, Datelike};
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use once_cell::sync::Lazy;
 
@@ -11,9 +11,10 @@ static LOG_DIR: Lazy<Mutex<Option<PathBuf>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LogEntry {
-    pub timestamp: String,
-    pub level: String,
-    pub category: String,
+    pub layer: String,      // ui|menu|ipc|git|rust|system
+    #[serde(rename = "type")]
+    pub log_type: String,   // key|click|cmd|stdout|stderr|push|lifecycle
+    pub level: String,      // debug|info|warn|error
     pub message: String,
     pub meta: Option<serde_json::Value>,
 }
@@ -34,8 +35,34 @@ fn today_log_path() -> Option<PathBuf> {
     Some(dir.join(format!("{}.log", today)))
 }
 
+fn format_meta_as_kv(meta: &Option<serde_json::Value>) -> String {
+    match meta {
+        None => String::new(),
+        Some(serde_json::Value::Object(map)) => {
+            let pairs: Vec<String> = map
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect();
+            if pairs.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", pairs.join(" "))
+            }
+        }
+        _ => String::new(),
+    }
+}
+
 pub fn write_log(entry: LogEntry) -> Result<(), String> {
     let path = today_log_path().ok_or("Logger not initialized")?;
+    
+    // Format: [timestamp] [layer] [type] [level] message key=value…
+    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f");
+    let kv = format_meta_as_kv(&entry.meta);
+    let line = format!(
+        "[{}] [{}] [{}] [{}] {}{}",
+        timestamp, entry.layer, entry.log_type, entry.level, entry.message, kv
+    );
     
     let mut file = OpenOptions::new()
         .create(true)
@@ -43,10 +70,7 @@ pub fn write_log(entry: LogEntry) -> Result<(), String> {
         .open(&path)
         .map_err(|e| format!("Failed to open log file: {}", e))?;
     
-    let json = serde_json::to_string(&entry)
-        .map_err(|e| format!("Failed to serialize log entry: {}", e))?;
-    
-    writeln!(file, "{}", json)
+    writeln!(file, "{}", line)
         .map_err(|e| format!("Failed to write log entry: {}", e))?;
     
     Ok(())
