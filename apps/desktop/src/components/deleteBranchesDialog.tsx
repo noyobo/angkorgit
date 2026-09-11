@@ -99,7 +99,7 @@ export function DeleteBranchesHost() {
         </DialogHeader>
         {request && (
           <>
-            <label className="flex flex-col gap-1.5 text-xs text-muted">
+            <label className="mb-4 flex flex-col gap-1.5 text-xs text-muted">
               Select by age
               <Select
                 key={age ? 'set' : 'idle'}
