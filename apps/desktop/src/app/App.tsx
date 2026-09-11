@@ -19,11 +19,21 @@ import { applyTheme, themeBase, useSettings } from '@/features/settings/store';
 import { useUi, type ClonePreset } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { ipc, listen, type CliRequest } from '@/core/ipc';
+import { handleMenuEvent } from '@/features/menu/menuHandler';
 
 function Shell() {
   const [splash, setSplash] = useState(true);
   const loadRecents = useRepo((s) => s.loadRecents);
   const navigate = useNavigate();
+
+  // Menu event listener
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void listen('menu-event', (eventId) => {
+      void handleMenuEvent(eventId as any, navigate);
+    }).then((fn) => (unlisten = fn));
+    return () => unlisten?.();
+  }, [navigate]);
 
   const zoomShortcuts = useMemo(
     () => [

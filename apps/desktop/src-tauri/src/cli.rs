@@ -197,30 +197,7 @@ pub fn on_second_instance(app: &AppHandle, argv: Vec<String>, cwd: String) {
 }
 
 #[cfg(target_os = "macos")]
-pub fn attach_app_menu(app: &tauri::App) -> tauri::Result<()> {
-    use tauri::menu::{Menu, MenuItem};
-
-    let menu = Menu::default(app.handle())?;
-    if let Some(app_menu) = menu.items()?.first().and_then(|item| item.as_submenu()) {
-        let last = app_menu.items()?.len().saturating_sub(1);
-        app_menu.remove_at(last)?;
-        let quit = MenuItem::with_id(
-            app.handle(),
-            "quit",
-            "Quit AngKorGit",
-            true,
-            Some("CmdOrCtrl+Q"),
-        )?;
-        app_menu.insert(&quit, app_menu.items()?.len())?;
-    }
-    app.set_menu(menu)?;
-    app.on_menu_event(|app, event| {
-        if event.id() == "quit" {
-            app.exit(0);
-        }
-    });
-    Ok(())
-}
+// Old attach_app_menu removed - now using menu.rs module
 
 fn write_shim(dest: &Path, body: &str) -> std::io::Result<()> {
     std::fs::write(dest, body)?;

@@ -215,10 +215,17 @@ export function RepositoryPage() {
 
   const shortcuts = useMemo(
     () => [
+      // Command palette - Desktop uses Cmd+K style
       { combo: 'mod+k', handler: () => setPaletteOpen(true) },
-      { combo: 'mod+p', handler: () => setPaletteOpen(true) },
-      { combo: 'mod+`', handler: () => toggleTerminal() },
-      { combo: 'mod+b', handler: () => toggleSidebar() },
+      
+      // View toggles - Desktop-aligned shortcuts
+      { combo: 'mod+b', handler: () => useUi.getState().setSidebarOpen(true) }, // Desktop: Cmd+B shows branches (sidebar)
+      { combo: 'mod+`', handler: () => toggleTerminal() }, // Terminal (Desktop: Ctrl+`)
+      { combo: 'mod+l', handler: () => toggleSidebar() }, // REMAPPED: Sidebar toggle from Cmd+B to Cmd+L
+      
+      // Tab management - AngKorGit multi-repo feature
+      // EXCEPTION: Keep Cmd+1-9 for tab switching (core AngKorGit feature)
+      // EXCEPTION: Close All Tabs stays on Cmd+Shift+W (explicit product decision)
       {
         combo: 'mod+shift+w',
         handler: () => {
@@ -229,6 +236,8 @@ export function RepositoryPage() {
           navigate('/welcome');
         },
       },
+      
+      // Undo/Redo - Desktop-aligned
       {
         combo: 'mod+z',
         skipInInput: true,
@@ -249,12 +258,18 @@ export function RepositoryPage() {
             });
         },
       },
-      { combo: 'mod+r', handler: () => void refreshAll() },
-      { combo: 'mod+enter', handler: () => commitShortcut.current?.() },
+      
+      // Repository actions
+      { combo: 'mod+r', handler: () => void refreshAll() }, // Refresh (AngKorGit-specific)
+      { combo: 'mod+enter', handler: () => commitShortcut.current?.() }, // Commit when focused
+      
+      // Settings - Desktop-aligned
       {
         combo: 'mod+,',
         handler: () => useUi.getState().openDialog('settings'),
       },
+      
+      // Escape - close overlays
       {
         combo: 'escape',
         handler: () => {

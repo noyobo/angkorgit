@@ -8,6 +8,7 @@ mod core;
 mod error;
 mod forge;
 mod http;
+mod menu;
 mod proc;
 mod state;
 mod terminal;
@@ -67,8 +68,11 @@ pub fn run() {
             if let Some(request) = cli::parse_args(&args, None) {
                 cli::queue(request);
             }
-            #[cfg(target_os = "macos")]
-            cli::attach_app_menu(app)?;
+            let menu = menu::build_menu(app.handle())?;
+            app.set_menu(menu)?;
+            app.on_menu_event(|app, event| {
+                menu::handle_menu_event(app, event.id().as_ref());
+            });
             Ok(())
         })
         .manage(terminal::TerminalState::default())
