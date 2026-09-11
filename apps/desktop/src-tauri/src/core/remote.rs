@@ -601,6 +601,14 @@ pub fn push(
     }
 
     let refspecs = push_refspecs(&branch_name, force, with_tags);
+    
+    let remote_url = repo
+        .find_remote(remote_name)?
+        .url()
+        .unwrap_or("")
+        .to_string();
+    super::hooks::run_pre_push(&repo, remote_name, &remote_url, &refspecs)?;
+    
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());

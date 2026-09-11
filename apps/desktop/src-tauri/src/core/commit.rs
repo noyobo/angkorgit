@@ -14,6 +14,13 @@ pub fn commit(path: &str, message: &str) -> AppResult<String> {
     let mut repo = super::repo::open(path)?;
     let sig = default_signature(&repo)?;
 
+    super::hooks::run_pre_commit(&repo)?;
+    
+    let message_file = repo.path().join("COMMIT_EDITMSG");
+    std::fs::write(&message_file, message)?;
+    super::hooks::run_commit_msg(&repo, &message_file)?;
+    let message = std::fs::read_to_string(&message_file)?;
+
     let is_merge = repo.state() == git2::RepositoryState::Merge;
     let mut merge_oids: Vec<git2::Oid> = Vec::new();
     if is_merge {
@@ -46,7 +53,7 @@ pub fn commit(path: &str, message: &str) -> AppResult<String> {
             Some("HEAD"),
             &sig,
             &sig,
-            message,
+            &message,
             &tree,
             &parent_refs,
         )?
@@ -116,20 +123,30 @@ pub fn revert(path: &str, oid: &str) -> AppResult<OpOutcome> {
 
 pub fn amend(path: &str, message: Option<&str>) -> AppResult<String> {
     let repo = super::repo::open(path)?;
+    
+    super::hooks::run_pre_commit(&repo)?;
+    
     let head = repo
         .head()
         .map_err(|_| AppError::other("nothing to amend: repository has no commits"))?;
     let commit = head.peel_to_commit()?;
+    
+    let message = message
+        .map(str::to_string)
+        .unwrap_or_else(|| String::from_utf8_lossy(commit.message_bytes()).into_owned());
+    
+    let message_file = repo.path().join("COMMIT_EDITMSG");
+    std::fs::write(&message_file, &message)?;
+    super::hooks::run_commit_msg(&repo, &message_file)?;
+    let message = std::fs::read_to_string(&message_file)?;
+    
     let mut index = repo.index()?;
     let tree_oid = index.write_tree()?;
     let tree = repo.find_tree(tree_oid)?;
     if super::sign::signing_config(&repo)?.is_none() {
-        let oid = commit.amend(Some("HEAD"), None, None, None, message, Some(&tree))?;
+        let oid = commit.amend(Some("HEAD"), None, None, None, Some(&message), Some(&tree))?;
         return Ok(oid.to_string());
     }
-    let message = message
-        .map(str::to_string)
-        .unwrap_or_else(|| String::from_utf8_lossy(commit.message_bytes()).into_owned());
     let author = commit.author();
     let committer = commit.committer();
     let parents: Vec<git2::Commit> = commit.parents().collect();
