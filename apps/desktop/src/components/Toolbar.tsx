@@ -445,7 +445,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
       <Separator orientation="vertical" className="mx-2 h-6" />
 
       <div className="flex items-center">
-        <Hint label={`Fetch ${remote}`}>
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Fetch {remote} <Kbd>{modKey()}</Kbd>
+              <Kbd>⇧</Kbd>
+              <Kbd>T</Kbd>
+            </span>
+          }
+        >
           <Button
             variant="ghost"
             size="sm"
@@ -476,7 +484,16 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <Hint label={`Pull from ${remote}${status?.behind ? ` (${status.behind} behind)` : ''}`}>
+      <Hint
+        label={
+          <span className="flex items-center gap-1">
+            Pull from {remote}
+            {status?.behind ? ` (${status.behind} behind)` : ''} <Kbd>{modKey()}</Kbd>
+            <Kbd>⇧</Kbd>
+            <Kbd>P</Kbd>
+          </span>
+        }
+      >
         <Button
           variant="ghost"
           size="sm"
@@ -489,7 +506,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         </Button>
       </Hint>
       <div className="flex items-center">
-        <Hint label={`Push to ${remote}${status?.ahead ? ` (${status.ahead} ahead)` : ''}`}>
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Push to {remote}
+              {status?.ahead ? ` (${status.ahead} ahead)` : ''} <Kbd>{modKey()}</Kbd>
+              <Kbd>P</Kbd>
+            </span>
+          }
+        >
           <Button
             variant="ghost"
             size="sm"
@@ -525,7 +550,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <Separator orientation="vertical" className="mx-2 h-6" />
 
-      <Hint label="Create branch">
+      <Hint
+        label={
+          <span className="flex items-center gap-1">
+            Create branch <Kbd>{modKey()}</Kbd>
+            <Kbd>⇧</Kbd>
+            <Kbd>N</Kbd>
+          </span>
+        }
+      >
         <Button variant="ghost" size="icon" aria-label="Create branch" onClick={() => openDialog('createBranch')}>
           <GitBranchPlus />
         </Button>
@@ -535,7 +568,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           <Tag />
         </Button>
       </Hint>
-      <Hint label="Stash changes">
+      <Hint
+        label={
+          <span className="flex items-center gap-1">
+            Stash changes <Kbd>{modKey()}</Kbd>
+            <Kbd>⇧</Kbd>
+            <Kbd>S</Kbd>
+          </span>
+        }
+      >
         <Button variant="ghost" size="icon" aria-label="Stash changes" onClick={() => openDialog('createStash')}>
           <Archive />
         </Button>
@@ -582,7 +623,14 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             <SquareTerminal />
           </Button>
         </Hint>
-        <Hint label="Refresh">
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Refresh <Kbd>{modKey()}</Kbd>
+              <Kbd>R</Kbd>
+            </span>
+          }
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -595,7 +643,14 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             <RefreshCw className={spinning ? 'animate-spin' : ''} />
           </Button>
         </Hint>
-        <Hint label="Settings">
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Settings <Kbd>{modKey()}</Kbd>
+              <Kbd>,</Kbd>
+            </span>
+          }
+        >
           <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => openDialog('settings')}>
             <Settings />
           </Button>
