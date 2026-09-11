@@ -182,6 +182,24 @@ export function PanelsDialog() {
     }
   };
 
+  useEffect(() => {
+    if (!panelsOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = parseInt(e.key) - 1;
+        if (index < panels.length) {
+          panels[index].action();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [panelsOpen, panels]);
+
   return (
     <PaletteShell
       open={panelsOpen}
@@ -196,19 +214,13 @@ export function PanelsDialog() {
     >
       <Command.Empty className="py-8 text-center text-sm text-faint">No panels match.</Command.Empty>
       <Command.Group heading="Panels &amp; Dialogs">
-        {panels.map((panel) => (
+        {panels.map((panel, index) => (
           <PaletteItem
             key={panel.id}
             icon={panel.icon}
             label={panel.label}
-            shortcut={
-              panel.shortcut ? (
-                <span className="flex items-center gap-0.5">
-                  <Kbd>{modKey()}</Kbd>
-                  <Kbd>{panel.shortcut}</Kbd>
-                </span>
-              ) : undefined
-            }
+            hint={panel.shortcut ? `${modKey()}${panel.shortcut}` : undefined}
+            quickKey={index < 9 ? index + 1 : undefined}
             onSelect={panel.action}
           />
         ))}

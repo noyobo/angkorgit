@@ -72,6 +72,8 @@ export function PaletteShell({
 interface PaletteItemProps {
   icon: ReactNode;
   label: string;
+  hint?: string;
+  quickKey?: number;
   shortcut?: string | ReactNode;
   value?: string;
   keywords?: string[];
@@ -82,10 +84,13 @@ interface PaletteItemProps {
 
 /**
  * Shared palette item with icon, label, and optional kbd badge.
+ * Supports Alfred-style quickKey (⌘1-9) or legacy shortcut display.
  */
 export function PaletteItem({
   icon,
   label,
+  hint,
+  quickKey,
   shortcut,
   value,
   keywords,
@@ -102,13 +107,26 @@ export function PaletteItem({
       className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground data-[disabled]:cursor-not-allowed data-[disabled]:text-muted data-[disabled]:data-[selected=true]:bg-surface-raised/50 data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
     >
       {icon}
-      <span className="flex-1">{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate">{label}</span>
+        {hint && <span className="text-[11px] text-muted">{hint}</span>}
+      </span>
       {active && (
         <svg className="size-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       )}
-      {shortcut && <span className="shrink-0 text-muted">{shortcut}</span>}
+      {quickKey !== undefined && (
+        <span className="flex shrink-0 items-center gap-0.5 opacity-60">
+          <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-border-subtle bg-surface-raised px-1 text-[10px] font-medium text-foreground">
+            {typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl'}
+          </span>
+          <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border border-border-subtle bg-surface-raised px-1 text-[10px] font-medium text-foreground">
+            {quickKey}
+          </span>
+        </span>
+      )}
+      {!quickKey && shortcut && <span className="shrink-0 text-muted">{shortcut}</span>}
     </Command.Item>
   );
 }

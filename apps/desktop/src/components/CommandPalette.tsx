@@ -256,6 +256,24 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     })();
   };
 
+  useEffect(() => {
+    if (!paletteOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = parseInt(e.key) - 1;
+        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const item = items[index];
+        if (item instanceof HTMLElement) item.click();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [paletteOpen]);
+
   return (
     <Command.Dialog
       open={paletteOpen}
@@ -349,21 +367,22 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         {mode === 'commands' && (
         <>
         <Command.Group heading="Actions">
-          <PaletteItem icon={<Palette />} label="Go to Panel…" shortcut="⇧?" onSelect={() => {
+          <PaletteItem icon={<Palette />} label="Go to Panel…" hint={`${modKey()}⇧?`} quickKey={1} onSelect={() => {
             close();
             useUi.getState().setPanelsOpen(true);
           }} />
-          <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" shortcut="B" onSelect={() => {
+          <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" hint={`${modKey()}B`} quickKey={2} onSelect={() => {
             close();
             useUi.getState().openBranchSwitcher();
           }} />
-          <PaletteItem icon={<History />} label="File history…" shortcut="F" onSelect={enterFileHistory} />
-          <PaletteItem icon={<ArrowDownToLine />} label="Pull" shortcut="⇧P" onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
-          <PaletteItem icon={<ArrowUpFromLine />} label="Push" shortcut="P" onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
+          <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} quickKey={3} onSelect={enterFileHistory} />
+          <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} quickKey={4} onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
+          <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} quickKey={5} onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
           <PaletteItem
             icon={<Download />}
             label="View on remote"
-            shortcut="⇧G"
+            hint={`${modKey()}⇧G`}
+            quickKey={6}
             onSelect={async () => {
               close();
               const repo = useRepo.getState().repo;
@@ -403,10 +422,11 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               />
             ) : null;
           })()}
-          <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" shortcut="⇧T" onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
+          <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} quickKey={7} onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
           <PaletteItem
             icon={<RefreshCw />}
             label="Fetch and clear local branches…"
+            quickKey={8}
             onSelect={() => {
               close();
               void fetchAndClearLocalBranches(path, remote, onRefresh);
@@ -415,7 +435,8 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<GitBranchPlus />}
             label="Create branch…"
-            shortcut="⇧N"
+            hint={`${modKey()}⇧N`}
+            quickKey={9}
             onSelect={() => {
               close();
               openDialog('createBranch');
@@ -448,7 +469,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<Archive />}
             label="Stash changes…"
-            shortcut="⇧S"
+            hint={`${modKey()}⇧S`}
             onSelect={() => {
               close();
               openDialog('createStash');
@@ -474,22 +495,22 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<Archive />}
             label="Go to commit summary"
-            shortcut="G"
+            hint={`${modKey()}G`}
             onSelect={() => {
               close();
               useUi.getState().focusCommitSummary();
             }}
           />
           {nextUndo && (
-            <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} shortcut="Z" onSelect={() => runHistory('undo')} />
+            <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} hint={`${modKey()}Z`} onSelect={() => runHistory('undo')} />
           )}
           {nextRedo && (
-            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} shortcut="⇧Z" onSelect={() => runHistory('redo')} />
+            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} hint={`${modKey()}⇧Z`} onSelect={() => runHistory('redo')} />
           )}
           <PaletteItem
             icon={<RefreshCw />}
             label="Refresh"
-            shortcut="R"
+            hint={`${modKey()}R`}
             onSelect={() => {
               close();
               void onRefresh();
@@ -525,7 +546,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<X />}
             label="Close all tabs"
-            shortcut="⇧W"
+            hint={`${modKey()}⇧W`}
             onSelect={() => {
               close();
               const tabs = useUi.getState().repoTabs;
@@ -607,7 +628,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<SquareTerminal />}
             label="Toggle terminal"
-            shortcut="`"
+            hint={`${modKey()}\``}
             onSelect={() => {
               close();
               toggleTerminal();
@@ -616,7 +637,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<PanelLeft />}
             label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            shortcut="L"
+            hint={`${modKey()}L`}
             onSelect={() => {
               close();
               toggleSidebar();
@@ -641,7 +662,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<ZoomIn />}
             label="Zoom in"
-            shortcut="+"
+            hint={`${modKey()}+`}
             onSelect={() => {
               close();
               zoomIn();
@@ -650,7 +671,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<ZoomOut />}
             label="Zoom out"
-            shortcut="-"
+            hint={`${modKey()}-`}
             onSelect={() => {
               close();
               zoomOut();
@@ -665,7 +686,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<Settings />}
             label="Settings"
-            shortcut=","
+            hint={`${modKey()},`}
             onSelect={() => {
               close();
               openDialog('settings');
@@ -731,7 +752,8 @@ function ThemePreviewSync() {
 function PaletteItem({
   icon,
   label,
-  shortcut,
+  hint,
+  quickKey,
   value,
   keywords,
   active,
@@ -739,7 +761,8 @@ function PaletteItem({
 }: {
   icon: React.ReactNode;
   label: string;
-  shortcut?: string;
+  hint?: string;
+  quickKey?: number;
   value?: string;
   keywords?: string[];
   active?: boolean;
@@ -753,12 +776,15 @@ function PaletteItem({
       className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
     >
       {icon}
-      <span className="flex-1">{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate">{label}</span>
+        {hint && <span className="text-[11px] text-muted">{hint}</span>}
+      </span>
       {active && <Check className="size-3.5 shrink-0 text-primary" />}
-      {shortcut && (
-        <span className="flex items-center gap-0.5">
-          <Kbd>{modKey()}</Kbd>
-          <Kbd>{shortcut}</Kbd>
+      {quickKey !== undefined && (
+        <span className="flex shrink-0 items-center gap-0.5 opacity-60">
+          <Kbd className="text-[10px]">{modKey()}</Kbd>
+          <Kbd className="text-[10px]">{quickKey}</Kbd>
         </span>
       )}
     </Command.Item>
