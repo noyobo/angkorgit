@@ -304,6 +304,21 @@ export const ipc = {
     if (!isTauri()) return;
     return invoke('branch_delete', { path, name, remote });
   },
+  async deleteBranchLocalAndRemote(
+    path: string,
+    name: string,
+    remote: string,
+    remoteBranch: string,
+  ): Promise<OpOutcome> {
+    if (!isTauri()) return { status: 'ok', message: `Deleted ${name} and ${remote}/${remoteBranch} (demo)` };
+    return invoke('branch_delete_local_and_remote', { path, name, remote, remoteBranch });
+  },
+  async remoteHasRef(path: string, remote: string, gitRef: string): Promise<boolean> {
+    if (!isTauri()) {
+      return gitRef === 'refs/heads/develop' || gitRef === 'refs/heads/main' || gitRef === 'refs/tags/v0.4.0';
+    }
+    return invoke('remote_has_ref', { path, remote, gitRef });
+  },
   async renameBranch(path: string, oldName: string, newName: string): Promise<void> {
     if (!isTauri()) return;
     return invoke('branch_rename', { path, oldName, newName });
@@ -471,6 +486,10 @@ export const ipc = {
   async tagDelete(path: string, name: string): Promise<void> {
     if (!isTauri()) return;
     return invoke('tag_delete', { path, name });
+  },
+  async deleteTagLocalAndRemote(path: string, name: string, remote: string): Promise<OpOutcome> {
+    if (!isTauri()) return { status: 'ok', message: `Deleted ${name} and ${remote}/${name} (demo)` };
+    return invoke('tag_delete_local_and_remote', { path, name, remote });
   },
 
   async submodules(path: string): Promise<SubmoduleInfo[]> {

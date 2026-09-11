@@ -158,7 +158,7 @@ export const demoStatus: StatusSummary = {
 
 export const demoBranches: BranchInfo[] = [
   { name: 'main', isHead: true, isRemote: false, upstream: 'origin/main', ahead: 2, behind: 0, targetOid: ALL_COMMITS[0].oid },
-  { name: 'develop', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[20].oid },
+  { name: 'develop', isHead: false, isRemote: false, upstream: 'origin/develop', ahead: 0, behind: 0, targetOid: ALL_COMMITS[20].oid },
   { name: 'feature/diff-viewer', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[7].oid },
   { name: 'fix/stash-race', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[12].oid },
   { name: 'origin/main', isHead: false, isRemote: true, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[2].oid },

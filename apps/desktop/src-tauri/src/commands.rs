@@ -351,6 +351,16 @@ pub async fn branch_delete(path: String, name: String, remote: bool) -> AppResul
 }
 
 #[tauri::command]
+pub async fn branch_delete_local_and_remote(
+    path: String,
+    name: String,
+    remote: String,
+    remoteBranch: String,
+) -> AppResult<OpOutcome> {
+    blocking(move || branch::delete_local_and_remote(&path, &name, &remote, &remoteBranch)).await
+}
+
+#[tauri::command]
 pub async fn branch_rename(path: String, oldName: String, newName: String) -> AppResult<()> {
     blocking(move || branch::rename(&path, &oldName, &newName)).await
 }
@@ -560,6 +570,20 @@ pub async fn tag_create(
 #[tauri::command]
 pub async fn tag_delete(path: String, name: String) -> AppResult<()> {
     blocking(move || misc::tag_delete(&path, &name)).await
+}
+
+#[tauri::command]
+pub async fn tag_delete_local_and_remote(
+    path: String,
+    name: String,
+    remote: String,
+) -> AppResult<OpOutcome> {
+    blocking(move || misc::tag_delete_local_and_remote(&path, &name, &remote)).await
+}
+
+#[tauri::command]
+pub async fn remote_has_ref(path: String, remote: String, gitRef: String) -> AppResult<bool> {
+    blocking(move || remote::remote_has_ref(&path, &remote, &gitRef)).await
 }
 
 #[tauri::command]

@@ -16,7 +16,9 @@ export interface ConfirmOptions {
   description: string;
   path?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
   destructive?: boolean;
+  hideCancel?: boolean;
 }
 
 interface ConfirmState {
@@ -89,9 +91,11 @@ export function ConfirmHost() {
           {request?.path && <PathBlock path={request.path} />}
         </DialogHeader>
         <DialogFooter className="flex-wrap">
-          <Button variant="ghost" onClick={() => settle(false)}>
-            Cancel
-          </Button>
+          {!request?.hideCancel && (
+            <Button variant="ghost" onClick={() => settle(false)}>
+              {request?.cancelLabel ?? 'Cancel'}
+            </Button>
+          )}
           <Button
             ref={confirmRef}
             variant={request?.destructive ? 'danger' : 'default'}

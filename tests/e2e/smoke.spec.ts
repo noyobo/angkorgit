@@ -1167,6 +1167,35 @@ test('arrow keys walk from the graph into a commit\u2019s files and back', async
   await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
 });
 
+test('deleting a branch on the remote too asks first', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'develop actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete local and remote…' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Delete this branch on the remote too?' })).toBeVisible();
+  await expect(dialog.getByText('develop', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('develop', { exact: true })).toBeVisible();
+});
+
+test('deleting a tag that is not on the remote only says so', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: /^Tags/ }).click();
+  await page.getByRole('button', { name: 'v0.3.0 actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete local and remote…' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'This tag is not on the remote' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Delete locally' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close' }).first().click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('v0.3.0', { exact: true })).toBeVisible();
+});
+
 test('settings can install the command line tool', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Recent repositories')).toBeVisible({ timeout: 10_000 });

@@ -8,9 +8,9 @@ struct TempRepo {
 }
 
 impl TempRepo {
-    fn new() -> Self {
+    fn scratch_dir() -> PathBuf {
         static SEQ: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-        let dir = std::env::temp_dir().join(format!(
+        std::env::temp_dir().join(format!(
             "angkorgit-test-{}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
@@ -18,13 +18,27 @@ impl TempRepo {
                 .unwrap()
                 .as_nanos(),
             SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        ));
+        ))
+    }
+
+    fn new() -> Self {
+        let dir = Self::scratch_dir();
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.to_str().unwrap();
         core::init(path).unwrap();
         core::set_config(Some(path), "user.name", "Test User", false).unwrap();
         core::set_config(Some(path), "user.email", "test@angkorgit.dev", false).unwrap();
         core::set_config(Some(path), "core.autocrlf", "false", false).unwrap();
+        Self { dir }
+    }
+
+    fn bare_clone(src: &TempRepo) -> Self {
+        let dir = Self::scratch_dir();
+        let status = Command::new("git")
+            .args(["clone", "--bare", src.path(), dir.to_str().unwrap()])
+            .status()
+            .expect("git CLI available");
+        assert!(status.success());
         Self { dir }
     }
 
@@ -557,6 +571,78 @@ fn checkout_remote_branch_keeps_a_diverged_local_branch() {
     let info = core::repo_info(local.path()).unwrap();
     assert_eq!(info.head_oid.as_deref(), Some(mine.as_str()));
     assert_eq!(local.read("f.txt"), "one\n");
+}
+
+#[test]
+fn delete_local_and_remote_removes_both_and_refuses_while_checked_out() {
+    let origin = TempRepo::new();
+    origin.write("a.txt", "base\n");
+    commit_all(&origin, "base");
+    core::branch_create(origin.path(), "feature", None, false).unwrap();
+    let origin = TempRepo::bare_clone(&origin);
+
+    let local = TempRepo::new();
+    local.write("readme.md", "local\n");
+    commit_all(&local, "local base");
+    add_origin(&local, &origin);
+    core::fetch(local.path(), "origin", false, false).unwrap();
+    core::checkout_branch(local.path(), "origin/feature").unwrap();
+
+    let err = core::branch_delete_local_and_remote(local.path(), "feature", "origin", "feature")
+        .err()
+        .expect("deleting the checked-out branch must fail");
+    assert!(err.to_string().contains("checked out"));
+    assert!(core::branches(origin.path())
+        .unwrap()
+        .iter()
+        .any(|b| b.name == "feature" && !b.is_remote));
+
+    core::checkout_branch(local.path(), "master").unwrap();
+    assert!(core::remote_has_ref(local.path(), "origin", "refs/heads/feature").unwrap());
+    assert!(!core::remote_has_ref(local.path(), "origin", "refs/heads/missing").unwrap());
+    core::branch_delete_local_and_remote(local.path(), "feature", "origin", "feature").unwrap();
+
+    assert!(!core::branches(origin.path())
+        .unwrap()
+        .iter()
+        .any(|b| b.name == "feature" && !b.is_remote));
+    assert!(!core::branches(local.path())
+        .unwrap()
+        .iter()
+        .any(|b| b.name == "feature" || b.name == "origin/feature"));
+    assert!(!core::remote_has_ref(local.path(), "origin", "refs/heads/feature").unwrap());
+}
+
+#[test]
+fn delete_tag_local_and_remote_removes_both() {
+    let origin = TempRepo::new();
+    origin.write("a.txt", "base\n");
+    commit_all(&origin, "base");
+    core::tag_create(origin.path(), "v1.0.0", None, None).unwrap();
+    let origin = TempRepo::bare_clone(&origin);
+
+    let local = TempRepo::new();
+    local.write("readme.md", "local\n");
+    commit_all(&local, "local base");
+    add_origin(&local, &origin);
+    core::fetch(local.path(), "origin", true, false).unwrap();
+    assert!(core::tag_list(local.path())
+        .unwrap()
+        .iter()
+        .any(|t| t.name == "v1.0.0"));
+    assert!(core::remote_has_ref(local.path(), "origin", "refs/tags/v1.0.0").unwrap());
+    assert!(!core::remote_has_ref(local.path(), "origin", "refs/tags/missing").unwrap());
+
+    core::tag_delete_local_and_remote(local.path(), "v1.0.0", "origin").unwrap();
+
+    assert!(!core::tag_list(origin.path())
+        .unwrap()
+        .iter()
+        .any(|t| t.name == "v1.0.0"));
+    assert!(!core::tag_list(local.path())
+        .unwrap()
+        .iter()
+        .any(|t| t.name == "v1.0.0"));
 }
 
 #[test]

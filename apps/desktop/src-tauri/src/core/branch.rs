@@ -78,6 +78,36 @@ pub fn delete(path: &str, name: &str, remote: bool) -> AppResult<()> {
     Ok(())
 }
 
+pub fn delete_local_and_remote(
+    path: &str,
+    name: &str,
+    remote: &str,
+    remote_branch: &str,
+) -> AppResult<OpOutcome> {
+    if name.is_empty() || name.contains(':') {
+        return Err(AppError::other("Invalid branch name"));
+    }
+    let repo = super::repo::open(path)?;
+    repo.find_branch(name, BranchType::Local)?;
+    repo.find_remote(remote)?;
+    if repo.head()?.shorthand() == Some(name) {
+        return Err(AppError::other(format!(
+            "Cannot delete '{name}' while it is checked out"
+        )));
+    }
+    refuse_if_checked_out_elsewhere(&repo, name)?;
+    drop(repo);
+
+    super::remote::push_delete(path, remote, &format!("refs/heads/{remote_branch}"))?;
+    let tracking = format!("{remote}/{remote_branch}");
+    let _ = delete(path, &tracking, true);
+    delete(path, name, false)?;
+    Ok(OpOutcome {
+        status: "ok".into(),
+        message: format!("Deleted {name} and {remote}/{remote_branch}"),
+    })
+}
+
 pub fn rename(path: &str, old_name: &str, new_name: &str) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     let mut branch = repo.find_branch(old_name, BranchType::Local)?;

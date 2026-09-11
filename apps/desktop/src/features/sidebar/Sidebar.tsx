@@ -26,6 +26,7 @@ import {
   ListRestart,
   Lock,
   MoreHorizontal,
+  GitBranchMinus,
   GitBranchPlus,
   Pencil,
   Play,
@@ -64,6 +65,7 @@ import { useUi } from '@/features/ui/store';
 import { useUndo, type UndoKind } from '@/features/history/undoStore';
 import { useForge } from '@/features/forge/store';
 import { useSettings } from '@/features/settings/store';
+import { ensureRepoProfile } from '@/features/settings/profiles';
 import { forgeNoun, pullRequestCheckoutSpec } from '@angkorgit/core';
 import type { BranchInfo, PullRequestInfo, RemoteInfo, StashInfo, SubmoduleInfo, TagInfo, WorktreeInfo } from '@angkorgit/core';
 import { capCount, isMac } from '@/shared/utils';
@@ -318,6 +320,85 @@ export function Sidebar() {
     } catch (error) {
       toast.error(`${label} failed: ${(error as { message?: string }).message ?? error}`);
     }
+  };
+
+  const deleteRemoteTarget = (
+    name: string,
+    upstream: string | null,
+  ): { remote: string; remoteName: string } | null => {
+    if (upstream) {
+      const slash = upstream.indexOf('/');
+      if (slash > 0) return { remote: upstream.slice(0, slash), remoteName: upstream.slice(slash + 1) };
+    }
+    const remote = remotes[0]?.name;
+    return remote ? { remote, remoteName: name } : null;
+  };
+
+  const requestDeleteLocalAndRemote = async (input: {
+    kind: 'branch' | 'tag';
+    name: string;
+    remote: string;
+    remoteName: string;
+    oid?: string;
+    heldPath?: string;
+  }) => {
+    if (input.heldPath) {
+      toast.error(
+        `'${input.name}' is already checked out in the worktree at ${input.heldPath}. Switch to that worktree to work on it, or check out a different branch here.`,
+      );
+      return;
+    }
+    const gitRef =
+      input.kind === 'branch' ? `refs/heads/${input.remoteName}` : `refs/tags/${input.remoteName}`;
+    const checking = toast.loading('Checking the remote…');
+    let exists: boolean;
+    try {
+      exists = await ipc.remoteHasRef(path, input.remote, gitRef);
+    } catch (error) {
+      toast.error(
+        `Could not reach ${input.remote}: ${(error as { message?: string }).message ?? error}`,
+        { id: checking },
+      );
+      return;
+    }
+    toast.dismiss(checking);
+    if (!exists) {
+      const onlyLocal = await confirmDialog({
+        title: `This ${input.kind} is not on the remote`,
+        path: input.name,
+        description: `${input.remote} has no ${input.remoteName}. You can still remove the local ${input.kind}.`,
+        confirmLabel: 'Delete locally',
+        cancelLabel: 'Close',
+        destructive: true,
+      });
+      if (!onlyLocal) return;
+      if (input.kind === 'branch') {
+        await act(`Delete branch ${input.name}`, () => ipc.deleteBranch(path, input.name, false), {
+          kind: 'branchDelete',
+          extra: { branch: input.name, ...(input.oid ? { oid: input.oid } : {}) },
+        });
+        return;
+      }
+      await act(`Delete tag ${input.name}`, () => ipc.tagDelete(path, input.name));
+      return;
+    }
+    const ok = await confirmDialog({
+      title: `Delete this ${input.kind} on the remote too?`,
+      path: input.name,
+      description: `Removes the local ${input.kind} and ${input.remote}/${input.remoteName}. This cannot be undone from AngKorGit.`,
+      confirmLabel: 'Delete both',
+      destructive: true,
+    });
+    if (!ok) return;
+    await ensureRepoProfile(path);
+    const label = `Delete ${input.name} and ${input.remote}/${input.remoteName}`;
+    if (input.kind === 'branch') {
+      await act(label, () =>
+        ipc.deleteBranchLocalAndRemote(path, input.name, input.remote, input.remoteName),
+      );
+      return;
+    }
+    await act(label, () => ipc.deleteTagLocalAndRemote(path, input.name, input.remote));
   };
 
   const removeWorktree = async (wt: WorktreeInfo) => {
@@ -1306,6 +1387,25 @@ export function Sidebar() {
             >
               <Trash2 /> Delete
             </DropdownMenuItem>
+            {remotes[0] && (
+              <DropdownMenuItem
+                destructive
+                onClick={() => {
+                  const tag = tagMenu.tag;
+                  const remote = remotes[0]?.name;
+                  if (!remote) return;
+                  void requestDeleteLocalAndRemote({
+                    kind: 'tag',
+                    name: tag.name,
+                    remote,
+                    remoteName: tag.name,
+                    oid: tag.targetOid,
+                  });
+                }}
+              >
+                <GitBranchMinus /> Delete local and remote…
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -1581,6 +1681,27 @@ export function Sidebar() {
                 >
                   <Trash2 /> Delete
                 </DropdownMenuItem>
+                {deleteRemoteTarget(branchMenu.branch.name, branchMenu.branch.upstream) && (
+                  <DropdownMenuItem
+                    destructive
+                    disabled={branchMenu.branch.isHead}
+                    onClick={() => {
+                      const branch = branchMenu.branch;
+                      const target = deleteRemoteTarget(branch.name, branch.upstream);
+                      if (!target) return;
+                      void requestDeleteLocalAndRemote({
+                        kind: 'branch',
+                        name: branch.name,
+                        remote: target.remote,
+                        remoteName: target.remoteName,
+                        oid: branch.targetOid,
+                        heldPath: heldBy.get(branch.name)?.path,
+                      });
+                    }}
+                  >
+                    <GitBranchMinus /> Delete local and remote…
+                  </DropdownMenuItem>
+                )}
               </>
             )}
           </DropdownMenuContent>

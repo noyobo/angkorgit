@@ -4,7 +4,7 @@ use git2::{Oid, Repository, StashApplyOptions, StashFlags, Tree};
 
 use crate::error::{AppError, AppResult};
 
-use super::types::{CommitFileInfo, StashInfo, SubmoduleInfo, TagInfo};
+use super::types::{CommitFileInfo, OpOutcome, StashInfo, SubmoduleInfo, TagInfo};
 
 pub fn stash_list(path: &str) -> AppResult<Vec<StashInfo>> {
     let mut repo = super::repo::open(path)?;
@@ -463,6 +463,22 @@ pub fn tag_delete(path: &str, name: &str) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     repo.tag_delete(name)?;
     Ok(())
+}
+
+pub fn tag_delete_local_and_remote(path: &str, name: &str, remote: &str) -> AppResult<OpOutcome> {
+    if name.is_empty() || name.contains(':') {
+        return Err(AppError::other("Invalid tag name"));
+    }
+    let repo = super::repo::open(path)?;
+    repo.find_reference(&format!("refs/tags/{name}"))?;
+    repo.find_remote(remote)?;
+    drop(repo);
+    super::remote::push_delete(path, remote, &format!("refs/tags/{name}"))?;
+    tag_delete(path, name)?;
+    Ok(OpOutcome {
+        status: "ok".into(),
+        message: format!("Deleted {name} and {remote}/{name}"),
+    })
 }
 
 pub fn submodule_list(path: &str) -> AppResult<Vec<SubmoduleInfo>> {

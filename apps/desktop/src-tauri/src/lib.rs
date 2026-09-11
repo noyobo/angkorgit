@@ -16,7 +16,8 @@ mod watcher;
 pub mod test_api {
     pub use crate::core::branch::{
         can_fast_forward, checkout_branch, cherry_pick, cherry_pick_many, create as branch_create,
-        list as branches, merge, rebase, rebase_commits, rebase_interactive, reset,
+        delete_local_and_remote as branch_delete_local_and_remote, list as branches, merge, rebase,
+        rebase_commits, rebase_interactive, reset,
     };
     pub use crate::core::commit::{amend, commit, merge_message, revert};
     pub use crate::core::conflict::{
@@ -28,9 +29,9 @@ pub mod test_api {
     };
     pub use crate::core::misc::{
         stash_create, stash_files, stash_list, stash_pop, stash_restore_files, tag_create,
-        tag_delete, tag_list,
+        tag_delete, tag_delete_local_and_remote, tag_list,
     };
-    pub use crate::core::remote::{checkout_remote_ref, fetch};
+    pub use crate::core::remote::{checkout_remote_ref, fetch, remote_has_ref};
     pub use crate::core::repo::{
         cleanup_state, info as repo_info, init, ref_fingerprint, set_config, status,
     };
@@ -117,6 +118,7 @@ pub fn run() {
             commands::branch_list,
             commands::branch_create,
             commands::branch_delete,
+            commands::branch_delete_local_and_remote,
             commands::branch_rename,
             commands::branch_checkout,
             commands::checkout_detached,
@@ -138,6 +140,7 @@ pub fn run() {
             commands::remote_pull_branch,
             commands::remote_push,
             commands::remote_push_tag,
+            commands::remote_has_ref,
             commands::stash_list,
             commands::stash_create,
             commands::stash_apply,
@@ -148,6 +151,7 @@ pub fn run() {
             commands::tag_list,
             commands::tag_create,
             commands::tag_delete,
+            commands::tag_delete_local_and_remote,
             commands::submodule_list,
             commands::submodule_update,
             commands::worktree_list,

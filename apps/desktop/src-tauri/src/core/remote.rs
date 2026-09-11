@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Mutex, OnceLock, RwLock};
 
 use git2::{
-    build::CheckoutBuilder, AutotagOption, Cred, CredentialType, FetchOptions, PushOptions,
-    RemoteCallbacks, Repository,
+    build::CheckoutBuilder, AutotagOption, Cred, CredentialType, Direction, FetchOptions,
+    PushOptions, RemoteCallbacks, Repository,
 };
 
 use crate::error::{AppError, AppResult};
@@ -473,6 +473,48 @@ pub(crate) fn push_refspecs(branch: &str, force: bool, with_tags: bool) -> Vec<S
     refspecs
 }
 
+pub(crate) fn delete_push_refspec(git_ref: &str) -> String {
+    format!(":{git_ref}")
+}
+
+fn git_ref_ok(git_ref: &str) -> bool {
+    let Some(name) = git_ref
+        .strip_prefix("refs/heads/")
+        .or_else(|| git_ref.strip_prefix("refs/tags/"))
+    else {
+        return false;
+    };
+    !name.is_empty() && !name.contains(':') && !name.contains('\0') && !name.contains('\n')
+}
+
+pub fn remote_has_ref(path: &str, remote_name: &str, git_ref: &str) -> AppResult<bool> {
+    if !git_ref_ok(git_ref) {
+        return Err(AppError::other("Invalid ref"));
+    }
+    let repo = super::repo::open(path)?;
+    prime_account_bindings(Some(&repo));
+    let mut remote = repo.find_remote(remote_name)?;
+    let connection = remote.connect_auth(Direction::Fetch, Some(make_callbacks()), None)?;
+    Ok(connection.list()?.iter().any(|head| head.name() == git_ref))
+}
+
+pub fn push_delete(path: &str, remote_name: &str, git_ref: &str) -> AppResult<OpOutcome> {
+    if !git_ref_ok(git_ref) {
+        return Err(AppError::other("Invalid ref"));
+    }
+    let repo = super::repo::open(path)?;
+    prime_account_bindings(Some(&repo));
+    let mut remote = repo.find_remote(remote_name)?;
+    let mut opts = PushOptions::new();
+    opts.remote_callbacks(make_callbacks());
+    let spec = delete_push_refspec(git_ref);
+    remote.push(&[&spec], Some(&mut opts))?;
+    Ok(OpOutcome {
+        status: "ok".into(),
+        message: format!("Deleted {git_ref} from {remote_name}"),
+    })
+}
+
 pub fn push(
     path: &str,
     remote_name: &str,
@@ -877,5 +919,14 @@ mod tests {
             push_refspecs("feature/x", true, false),
             vec!["+refs/heads/feature/x:refs/heads/feature/x".to_string()]
         );
+    }
+
+    #[test]
+    fn delete_push_refspec_is_a_destination_only_delete() {
+        assert_eq!(
+            delete_push_refspec("refs/heads/feature/x"),
+            ":refs/heads/feature/x"
+        );
+        assert_eq!(delete_push_refspec("refs/tags/v1.2.3"), ":refs/tags/v1.2.3");
     }
 }
