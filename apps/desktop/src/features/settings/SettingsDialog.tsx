@@ -825,12 +825,15 @@ export function SettingsDialog() {
                       {THEME_PAIRS.map((pair) => {
                         const lightTheme = pair.light ? THEMES.find((t) => t.id === pair.light) : null;
                         const darkTheme = pair.dark ? THEMES.find((t) => t.id === pair.dark) : null;
-                        const isPairActive = settings.themePairId === pair.id;
+                        const isPairActive = settings.followSystem && settings.themePairId === pair.id;
                         
                         return (
                           <div key={pair.id} className="flex flex-col gap-1.5">
                             <span className="text-xs font-medium text-muted">{pair.label}</span>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className={cn(
+                              "grid grid-cols-2 gap-2 rounded-lg p-1.5 transition-colors",
+                              isPairActive && "bg-primary/5 ring-1 ring-primary/30"
+                            )}>
                               {lightTheme ? (
                                 <button
                                   onClick={() => settings.setTheme(lightTheme.id)}
@@ -839,9 +842,7 @@ export function SettingsDialog() {
                                     'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
                                     settings.theme === lightTheme.id
                                       ? 'border-primary ring-1 ring-primary'
-                                      : isPairActive
-                                        ? 'border-primary/40'
-                                        : 'border-border hover:border-muted',
+                                      : 'border-border hover:border-muted',
                                   )}
                                 >
                                   <span
@@ -890,9 +891,7 @@ export function SettingsDialog() {
                                     'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
                                     settings.theme === darkTheme.id
                                       ? 'border-primary ring-1 ring-primary'
-                                      : isPairActive
-                                        ? 'border-primary/40'
-                                        : 'border-border hover:border-muted',
+                                      : 'border-border hover:border-muted',
                                   )}
                                 >
                                   <span
