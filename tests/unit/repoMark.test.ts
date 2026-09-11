@@ -28,4 +28,11 @@ describe('repo mark', () => {
     expect(a.color).toBeLessThan(10);
     expect(c.color).not.toBe(a.color);
   });
+
+  it('spreads names that used to collapse onto one lane', () => {
+    const colors = new Set(
+      ['mothra-framework-v1', 'mothra-framework', 'angkorgit'].map((n) => repoMark(n).color),
+    );
+    expect(colors.size).toBe(3);
+  });
 });

@@ -13,5 +13,6 @@ export function repoMark(name: string): { letters: string; color: number } {
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) | 0;
   }
+  hash ^= hash >>> 16;
   return { letters, color: Math.abs(hash) % 10 };
 }
