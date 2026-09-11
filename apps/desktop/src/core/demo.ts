@@ -95,6 +95,12 @@ export const demoRepo: RepositoryInfo = {
   mainPath: null,
 };
 
+export function demoRepoAt(path: string): RepositoryInfo {
+  if (path === demoRepo.path) return demoRepo;
+  const name = path.split(/[\\/]/).filter(Boolean).pop() ?? demoRepo.name;
+  return { ...demoRepo, path, name };
+}
+
 export const demoRecents: RecentRepository[] = [
   { path: '/Users/demo/projects/angkorgit', name: 'angkorgit', lastOpenedAt: 1754200000 },
   { path: '/Users/demo/projects/temple-ui', name: 'temple-ui', lastOpenedAt: 1754100000 },

@@ -30,6 +30,28 @@ test('command palette opens with keyboard shortcut', async ({ page }) => {
   await expect(page.getByPlaceholder('Type a command or branch name…')).toBeVisible();
 });
 
+test('mod+1 and mod+2 switch repository tabs', async ({ page }) => {
+  await page.goto('/');
+  await page.getByText('angkorgit', { exact: true }).first().click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('temple-ui');
+  await page.keyboard.press('Enter');
+  const angkor = page.locator('[data-tab-path$="/angkorgit"]');
+  const temple = page.locator('[data-tab-path$="/temple-ui"]');
+  await expect(temple).toHaveAttribute('aria-selected', 'true', { timeout: 10_000 });
+  await page.keyboard.press('ControlOrMeta+1');
+  await expect(angkor).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('ControlOrMeta+2');
+  await expect(temple).toHaveAttribute('aria-selected', 'true');
+  const hints = page.locator('[data-tab-hints]');
+  await page.keyboard.down('ControlOrMeta');
+  await expect(hints).toBeHidden();
+  await expect(hints).toBeVisible({ timeout: 600 });
+  await page.keyboard.up('ControlOrMeta');
+  await expect(hints).toBeHidden();
+});
+
 test('commit search finds matches in the full graph and steps through them', async ({ page }) => {
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();

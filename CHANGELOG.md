@@ -7,6 +7,9 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Jump to a repository tab with ⌘1–9.** Same order as the tab strip (iTerm-style:
+  ⌘9 is the ninth tab, not the last). Holding ⌘ (Ctrl on Windows/Linux) for a beat
+  shows the number on the left of the first nine tabs.
 - **Open or clone a repository from the terminal.** Settings → Git (or the command
   palette) installs an `angkorgit` command. `angkorgit` and `angkorgit open [path]`
   open a local folder; `angkorgit clone [-b branch] <url>` clones by URL or
@@ -22,6 +25,10 @@ All notable changes to AngKorGit are documented here. The format follows
 - **⌘W hides the window on macOS.** The Dock icon stays; click it or run
   `angkorgit` and the same screen comes back. ⌘Q still quits. Windows and
   Linux still exit when the last window closes.
+
+### Fixed
+- **Deleting or renaming the filtered branch left the filter chip behind.** The
+  graph now drops a branch filter when that ref is gone, and follows a rename.
 
 ## [0.12.0] — 2026-09-10
 
