@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
-import { AlertTriangle, Archive, Copy, ExternalLink, FolderOpen, History, Maximize2, Minus, Pencil, Plus, SearchCheck, Sparkles, Trash2, Undo2, X } from 'lucide-react';
+import { AlertTriangle, Archive, Copy, ExternalLink, FolderGit2, FolderOpen, History, Maximize2, Minus, Pencil, Plus, SearchCheck, Sparkles, Trash2, Undo2, X } from 'lucide-react';
 import type { FileStatus } from '@angkorgit/core';
 import { aiCapabilities, buildStagedReviewSignature, filterFiles, hashText, PROJECT_REVIEW_FILE, joinCommitMessage, splitCommitMessage } from '@angkorgit/core';
 import {
@@ -100,6 +100,25 @@ const FileRow = memo(function FileRow({
         {statusBadge(conflicted && !staged ? 'conflicted' : kind)}
         <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
           <span className="max-w-full shrink-0 truncate text-foreground">{basename(file.path)}</span>
+          {file.isSubmodule && (
+            <Hint
+              label={
+                file.submodulePointerChanged && file.submoduleHasChanges
+                  ? 'Submodule: commit pointer changed and has uncommitted changes inside'
+                  : file.submodulePointerChanged
+                    ? 'Submodule: commit pointer changed'
+                    : file.submoduleHasChanges
+                      ? 'Submodule: has uncommitted changes inside'
+                      : 'Submodule'
+              }
+              side="top"
+            >
+              <FolderGit2 className={cn(
+                'size-3.5 shrink-0',
+                file.submoduleHasChanges ? 'text-warning' : 'text-info'
+              )} />
+            </Hint>
+          )}
           {!treeMode && dirname(file.path) && (
             <span className="min-w-0 flex-1 truncate text-faint">{dirname(file.path)}</span>
           )}
@@ -1040,6 +1059,19 @@ export function WorkingCopyPanel() {
             ) : (
             <>
             <DropdownMenuLabel className="max-w-64 truncate font-mono">{fileMenu.file.path}</DropdownMenuLabel>
+            {fileMenu.file.isSubmodule && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const subPath = `${path}/${fileMenu.file.path}`;
+                    useRepo.getState().open(subPath);
+                  }}
+                >
+                  <FolderGit2 /> Open submodule
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             {fileMenu.staged ? (
               <>
                 <DropdownMenuItem

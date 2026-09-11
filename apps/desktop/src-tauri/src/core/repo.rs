@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use git2::{Repository, RepositoryState, StatusOptions};
+use git2::{Repository, RepositoryState, StatusOptions, SubmoduleIgnore};
 
 use crate::error::{AppError, AppResult};
 
@@ -122,6 +122,27 @@ fn status_kind(status: git2::Status, staged: bool) -> Option<String> {
     Some(kind.to_string())
 }
 
+fn check_submodule_status(
+    repo: &Repository,
+    path: &str,
+) -> Option<(bool, bool, bool)> {
+    let status = repo
+        .submodule_status(path, SubmoduleIgnore::Unspecified)
+        .ok()?;
+    
+    let is_submodule = status.is_in_config() || status.is_in_head() || status.is_in_index();
+    if !is_submodule {
+        return None;
+    }
+    
+    let pointer_changed = status.is_wd_modified();
+    let has_changes = status.is_wd_index_modified() 
+        || status.is_wd_wd_modified() 
+        || status.is_wd_untracked();
+    
+    Some((true, pointer_changed, has_changes))
+}
+
 pub fn status(path: &str) -> AppResult<StatusSummary> {
     let repo = open(path)?;
     let mut opts = StatusOptions::new();
@@ -145,11 +166,20 @@ pub fn status(path: &str) -> AppResult<StatusSummary> {
             .and_then(|d| d.old_file().path())
             .map(|p| p.to_string_lossy().to_string())
             .filter(|old| *old != path);
+        
+        let (is_submodule, submodule_pointer_changed, submodule_has_changes) = 
+            check_submodule_status(&repo, &path)
+                .map(|(is_sub, ptr, changes)| (Some(is_sub), Some(ptr), Some(changes)))
+                .unwrap_or((None, None, None));
+        
         files.push(FileStatus {
             path,
             orig_path,
             staged: status_kind(s, true),
             unstaged: status_kind(s, false),
+            is_submodule,
+            submodule_pointer_changed,
+            submodule_has_changes,
         });
     }
 
