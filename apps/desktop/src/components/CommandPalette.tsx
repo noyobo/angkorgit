@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Command, useCommandState } from 'cmdk';
 import { toast } from 'sonner';
@@ -404,81 +404,80 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         {mode === 'commands' && (
         <>
         <Command.Group heading="Actions">
-          <PaletteItem icon={<Palette />} label="Go to Panel…" hint={`${modKey()}⇧?`} quickKey={1} onSelect={() => {
-            close();
-            useUi.getState().setPanelsOpen(true);
-          }} />
-          <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" hint={`${modKey()}B`} quickKey={2} onSelect={() => {
-            close();
-            useUi.getState().openBranchSwitcher();
-          }} />
-          <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} quickKey={3} onSelect={enterFileHistory} />
-          <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} quickKey={4} onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
-          <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} quickKey={5} onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
-          <PaletteItem
-            icon={<Download />}
-            label="View on remote"
-            hint={`${modKey()}⇧G`}
-            quickKey={6}
-            onSelect={async () => {
+          <QuickKeyItems>
+            <PaletteItem icon={<Palette />} label="Go to Panel…" hint={`${modKey()}⇧?`} onSelect={() => {
               close();
-              const repo = useRepo.getState().repo;
-              if (!repo) return;
-              const remotes = useRepo.getState().remotes;
-              if (remotes.length === 0) {
-                toast.error('No remotes configured');
-                return;
-              }
-              const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
-              const branches = useRepo.getState().branches;
-              const headBranch = branches.find((b) => b.isHead && !b.isRemote);
-              const headUpstream = headBranch?.upstream ?? null;
-              const remote = pickForgeRemote(remotes, headUpstream);
-              const url = buildBrowseUrl(remote?.url ?? remotes[0].url, repo.headBranch);
-              if (!url) {
-                toast.error('Could not parse remote URL');
-                return;
-              }
-              await openExternal(url);
-            }}
-          />
-          {(() => {
-            const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
-            const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);
-            const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
-            const inApp = forgeCurrent && forgeKind !== null && forgeAccount;
-            return prUrl ? (
-              <PaletteItem
-                icon={<GitPullRequest />}
-                label={`Create ${forgeNoun(forgeCurrent ? forgeKind : null)}`}
-                onSelect={() => {
-                  close();
-                  if (inApp) openDialog('createPullRequest');
-                  else void openExternal(prUrl);
-                }}
-              />
-            ) : null;
-          })()}
-          <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} quickKey={7} onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
-          <PaletteItem
-            icon={<RefreshCw />}
-            label="Fetch and clear local branches…"
-            quickKey={8}
-            onSelect={() => {
+              useUi.getState().setPanelsOpen(true);
+            }} />
+            <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" hint={`${modKey()}B`} onSelect={() => {
               close();
-              void fetchAndClearLocalBranches(path, remote, onRefresh);
-            }}
-          />
-          <PaletteItem
-            icon={<GitBranchPlus />}
-            label="Create branch…"
-            hint={`${modKey()}⇧N`}
-            quickKey={9}
-            onSelect={() => {
-              close();
-              openDialog('createBranch');
-            }}
-          />
+              useUi.getState().openBranchSwitcher();
+            }} />
+            <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} onSelect={enterFileHistory} />
+            <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
+            <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
+            <PaletteItem
+              icon={<Download />}
+              label="View on remote"
+              hint={`${modKey()}⇧G`}
+              onSelect={async () => {
+                close();
+                const repo = useRepo.getState().repo;
+                if (!repo) return;
+                const remotes = useRepo.getState().remotes;
+                if (remotes.length === 0) {
+                  toast.error('No remotes configured');
+                  return;
+                }
+                const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
+                const branches = useRepo.getState().branches;
+                const headBranch = branches.find((b) => b.isHead && !b.isRemote);
+                const headUpstream = headBranch?.upstream ?? null;
+                const remote = pickForgeRemote(remotes, headUpstream);
+                const url = buildBrowseUrl(remote?.url ?? remotes[0].url, repo.headBranch);
+                if (!url) {
+                  toast.error('Could not parse remote URL');
+                  return;
+                }
+                await openExternal(url);
+              }}
+            />
+            {(() => {
+              const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
+              const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);
+              const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
+              const inApp = forgeCurrent && forgeKind !== null && forgeAccount;
+              return prUrl ? (
+                <PaletteItem
+                  icon={<GitPullRequest />}
+                  label={`Create ${forgeNoun(forgeCurrent ? forgeKind : null)}`}
+                  onSelect={() => {
+                    close();
+                    if (inApp) openDialog('createPullRequest');
+                    else void openExternal(prUrl);
+                  }}
+                />
+              ) : null;
+            })()}
+            <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
+            <PaletteItem
+              icon={<RefreshCw />}
+              label="Fetch and clear local branches…"
+              onSelect={() => {
+                close();
+                void fetchAndClearLocalBranches(path, remote, onRefresh);
+              }}
+            />
+            <PaletteItem
+              icon={<GitBranchPlus />}
+              label="Create branch…"
+              hint={`${modKey()}⇧N`}
+              onSelect={() => {
+                close();
+                openDialog('createBranch');
+              }}
+            />
+          </QuickKeyItems>
           <PaletteItem
             icon={<Trash2 />}
             label="Delete branches…"
@@ -786,6 +785,44 @@ function ThemePreviewSync() {
   return null;
 }
 
+function QuickKeyItems({ children }: { children: React.ReactNode }) {
+  const [quickKeys, setQuickKeys] = React.useState<Map<number, number>>(new Map());
+
+  React.useEffect(() => {
+    const updateQuickKeys = () => {
+      const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+      const newQuickKeys = new Map<number, number>();
+      items.forEach((item, index) => {
+        if (index < 9 && item instanceof HTMLElement) {
+          const itemIndex = parseInt(item.getAttribute('data-item-index') ?? '-1');
+          if (itemIndex >= 0) {
+            newQuickKeys.set(itemIndex, index + 1);
+          }
+        }
+      });
+      setQuickKeys(newQuickKeys);
+    };
+
+    const timer = setTimeout(updateQuickKeys, 0);
+    return () => clearTimeout(timer);
+  });
+
+  let itemIndex = 0;
+  return (
+    <>
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return child;
+        const currentIndex = itemIndex++;
+        const quickKey = quickKeys.get(currentIndex);
+        return React.cloneElement(child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>, {
+          quickKey,
+          'data-item-index': currentIndex,
+        });
+      })}
+    </>
+  );
+}
+
 function PaletteItem({
   icon,
   label,
@@ -795,6 +832,7 @@ function PaletteItem({
   keywords,
   active,
   onSelect,
+  ...rest
 }: {
   icon: React.ReactNode;
   label: string;
@@ -804,6 +842,7 @@ function PaletteItem({
   keywords?: string[];
   active?: boolean;
   onSelect: () => void;
+  'data-item-index'?: number;
 }) {
   return (
     <Command.Item
@@ -811,6 +850,7 @@ function PaletteItem({
       keywords={keywords}
       onSelect={onSelect}
       className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
+      {...rest}
     >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>

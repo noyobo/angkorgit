@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Command } from 'cmdk';
 import {
   Palette,
@@ -189,9 +189,9 @@ export function PanelsDialog() {
         e.preventDefault();
         e.stopPropagation();
         const index = parseInt(e.key) - 1;
-        if (index < panels.length) {
-          panels[index].action();
-        }
+        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const item = items[index];
+        if (item instanceof HTMLElement) item.click();
       }
       
       // Tab navigation: input to first item, or between items
@@ -234,7 +234,7 @@ export function PanelsDialog() {
 
     document.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
-  }, [panelsOpen, panels]);
+  }, [panelsOpen]);
 
   return (
     <PaletteShell
@@ -250,17 +250,56 @@ export function PanelsDialog() {
     >
       <Command.Empty className="py-8 text-center text-sm text-faint">No panels match.</Command.Empty>
       <Command.Group heading="Panels &amp; Dialogs">
-        {panels.map((panel, index) => (
-          <PaletteItem
-            key={panel.id}
-            icon={panel.icon}
-            label={panel.label}
-            hint={panel.shortcut ? `${modKey()}${panel.shortcut}` : undefined}
-            quickKey={index < 9 ? index + 1 : undefined}
-            onSelect={panel.action}
-          />
-        ))}
+        <QuickKeyItems>
+          {panels.map((panel) => (
+            <PaletteItem
+              key={panel.id}
+              icon={panel.icon}
+              label={panel.label}
+              hint={panel.shortcut ? `${modKey()}${panel.shortcut}` : undefined}
+              onSelect={panel.action}
+            />
+          ))}
+        </QuickKeyItems>
       </Command.Group>
     </PaletteShell>
+  );
+}
+
+function QuickKeyItems({ children }: { children: React.ReactNode }) {
+  const [quickKeys, setQuickKeys] = React.useState<Map<number, number>>(new Map());
+
+  React.useEffect(() => {
+    const updateQuickKeys = () => {
+      const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+      const newQuickKeys = new Map<number, number>();
+      items.forEach((item, index) => {
+        if (index < 9 && item instanceof HTMLElement) {
+          const itemIndex = parseInt(item.getAttribute('data-item-index') ?? '-1');
+          if (itemIndex >= 0) {
+            newQuickKeys.set(itemIndex, index + 1);
+          }
+        }
+      });
+      setQuickKeys(newQuickKeys);
+    };
+
+    const timer = setTimeout(updateQuickKeys, 0);
+    return () => clearTimeout(timer);
+  });
+
+  let itemIndex = 0;
+  return (
+    <>
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return child;
+        const currentIndex = itemIndex++;
+        const quickKey = quickKeys.get(currentIndex);
+        return React.cloneElement(child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>, {
+          quickKey,
+          'data-item-index': currentIndex,
+        });
+      })}
+    </>
   );
 }

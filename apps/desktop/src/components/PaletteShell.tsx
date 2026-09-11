@@ -97,7 +97,8 @@ export function PaletteItem({
   active,
   disabled,
   onSelect,
-}: PaletteItemProps) {
+  ...rest
+}: PaletteItemProps & { 'data-item-index'?: number }) {
   return (
     <Command.Item
       value={value}
@@ -105,6 +106,7 @@ export function PaletteItem({
       disabled={disabled}
       onSelect={onSelect}
       className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground data-[disabled]:cursor-not-allowed data-[disabled]:text-muted data-[disabled]:data-[selected=true]:bg-surface-raised/50 data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
+      {...rest}
     >
       {icon}
       <span className="min-w-0 flex-1 truncate">{label}</span>
