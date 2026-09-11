@@ -349,6 +349,8 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             shortcut="⇧G"
             onSelect={async () => {
               close();
+              const repo = useRepo.getState().repo;
+              if (!repo) return;
               const remotes = useRepo.getState().remotes;
               if (remotes.length === 0) {
                 toast.error('No remotes configured');
@@ -359,8 +361,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               const headBranch = branches.find((b) => b.isHead && !b.isRemote);
               const headUpstream = headBranch?.upstream ?? null;
               const remote = pickForgeRemote(remotes, headUpstream);
-              const currentBranch = headBranch?.name ?? null;
-              const url = buildBrowseUrl(remote?.url ?? remotes[0].url, currentBranch);
+              const url = buildBrowseUrl(remote?.url ?? remotes[0].url, repo.headBranch);
               if (!url) {
                 toast.error('Could not parse remote URL');
                 return;
