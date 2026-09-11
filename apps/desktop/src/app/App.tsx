@@ -192,13 +192,13 @@ export function App() {
             <Shell />
           </ErrorBoundary>
         </div>
+        <ConfirmHost />
+        <ProfilePromptHost />
+        <StaleLocalsHost />
+        <DeleteBranchesHost />
+        <RecentReposDialog />
+        <PanelsDialog />
       </MemoryRouter>
-      <ConfirmHost />
-      <ProfilePromptHost />
-      <StaleLocalsHost />
-      <DeleteBranchesHost />
-      <RecentReposDialog />
-      <PanelsDialog />
       <Toaster
         position="bottom-left"
         theme={themeBase(theme)}
