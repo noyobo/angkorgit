@@ -31,6 +31,7 @@ import {
   Tag as TagIcon,
   Trash2,
   Undo2,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ import { sidebarVisible, useUi } from '@/features/ui/store';
 import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
 import { applyTheme, THEMES, useSettings, type Theme } from '@/features/settings/store';
 import { installCliTool } from '@/features/settings/cliTool';
+import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUndo } from '@/features/history/undoStore';
 import { useForge } from '@/features/forge/store';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
@@ -448,6 +450,18 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             onSelect={() => {
               close();
               openDialog('clone');
+            }}
+          />
+          <PaletteItem
+            icon={<X />}
+            label="Close all tabs"
+            onSelect={() => {
+              close();
+              const tabs = useUi.getState().repoTabs;
+              tabs.forEach((path) => killTerminalSession(path));
+              useUi.getState().closeAllTabs();
+              useRepo.getState().close();
+              navigate('/welcome');
             }}
           />
           <PaletteItem

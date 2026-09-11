@@ -126,6 +126,7 @@ interface UiState {
   openConflict: (file: string | null) => void;
   addRepoTab: (path: string) => void;
   closeRepoTab: (path: string) => void;
+  closeAllTabs: () => void;
   moveRepoTab: (from: string, to: string) => void;
   markWorktreeTab: (path: string, isWorktree: boolean) => void;
   setSidebarSection: (id: string, open: boolean) => void;
@@ -222,6 +223,11 @@ export const useUi = create<UiState>()(
       repoTabs: s.repoTabs.filter((t) => t !== path),
       worktreeTabs: s.worktreeTabs.filter((t) => t !== path),
     })),
+  closeAllTabs: () =>
+    set({
+      repoTabs: [],
+      worktreeTabs: [],
+    }),
   moveRepoTab: (from, to) =>
     set((s) => {
       const fromIdx = s.repoTabs.indexOf(from);

@@ -24,6 +24,7 @@ import { useForge } from '@/features/forge/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings } from '@/features/settings/store';
+import { killTerminalSession } from '@/features/terminal/sessions';
 import { ipc, listen } from '@/core/ipc';
 import { Logo } from '@angkorgit/design-system';
 import { basename } from '@/shared/utils';
@@ -218,6 +219,16 @@ export function RepositoryPage() {
       { combo: 'mod+p', handler: () => setPaletteOpen(true) },
       { combo: 'mod+`', handler: () => toggleTerminal() },
       { combo: 'mod+b', handler: () => toggleSidebar() },
+      {
+        combo: 'mod+shift+w',
+        handler: () => {
+          const tabs = useUi.getState().repoTabs;
+          tabs.forEach((path) => killTerminalSession(path));
+          useUi.getState().closeAllTabs();
+          useRepo.getState().close();
+          navigate('/welcome');
+        },
+      },
       {
         combo: 'mod+z',
         skipInInput: true,
