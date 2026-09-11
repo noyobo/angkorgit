@@ -676,6 +676,32 @@ pub fn reset(path: &str, oid: &str, mode: &str) -> AppResult<()> {
         "soft" => ResetType::Soft,
         "mixed" => ResetType::Mixed,
         "hard" => ResetType::Hard,
+        "keep" => {
+            let head = repo.head()?.peel_to_commit()?;
+            let target = obj.peel_to_commit()?;
+            
+            let mut opts = git2::StatusOptions::new();
+            opts.include_untracked(false).include_ignored(false);
+            let statuses = repo.statuses(Some(&mut opts))?;
+            
+            for entry in statuses.iter() {
+                let status = entry.status();
+                if status.is_wt_modified() || status.is_wt_deleted() {
+                    let path = entry.path().unwrap_or("");
+                    let head_entry = head.tree()?.get_path(std::path::Path::new(path)).ok();
+                    let target_entry = target.tree()?.get_path(std::path::Path::new(path)).ok();
+                    
+                    if head_entry.map(|e| e.id()) != target_entry.map(|e| e.id()) {
+                        return Err(AppError::other(format!(
+                            "Cannot reset --keep: local changes to '{}' would be overwritten",
+                            path
+                        )));
+                    }
+                }
+            }
+            
+            ResetType::Mixed
+        }
         _ => return Err(AppError::other(format!("unknown reset mode: {mode}"))),
     };
     repo.reset(&obj, kind, None)?;
