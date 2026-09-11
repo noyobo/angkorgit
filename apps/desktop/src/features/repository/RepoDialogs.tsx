@@ -137,14 +137,19 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
   };
 
   const submitRename = () => {
-    if (!name.trim() || name.trim() === dialogContext) return;
+    const from = dialogContext ?? '';
+    const to = name.trim();
+    if (!to || to === from) return;
     void submit('Rename branch', () =>
       useUndo.getState().tracked({
         path,
         kind: 'branchRename',
-        label: `rename ${dialogContext} → ${name.trim()}`,
-        extra: { from: dialogContext ?? '', to: name.trim() },
-        action: () => ipc.renameBranch(path, dialogContext ?? '', name.trim()),
+        label: `rename ${from} → ${to}`,
+        extra: { from, to },
+        action: async () => {
+          await ipc.renameBranch(path, from, to);
+          useGraph.getState().retargetBranchFilter(from, to);
+        },
       }),
     );
   };

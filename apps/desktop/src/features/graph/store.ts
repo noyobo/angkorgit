@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CommitInfo, HistoryPage, HistoryPosition } from '@angkorgit/core';
 import { GraphLayout, type GraphRow } from '@angkorgit/core';
 import { ipc } from '@/core/ipc';
+import { useRepo } from '@/features/repository/store';
 
 const PAGE_SIZE = 200;
 
@@ -40,6 +41,7 @@ interface GraphState {
   reload: (path: string) => Promise<void>;
   loadMore: (path: string) => Promise<void>;
   setFilters: (path: string, filters: Partial<GraphFilters>) => void;
+  retargetBranchFilter: (from: string, to: string) => void;
   setFind: (path: string, query: FindQuery) => Promise<string | null>;
   goToMatch: (path: string, index: number) => Promise<string | null>;
   stepFind: (path: string, direction: 1 | -1) => Promise<string | null>;
@@ -117,6 +119,12 @@ export const useGraph = create<GraphState>((set, get) => {
 
     reload: async (path: string) => {
       const samePath = get().lastPath === path;
+      if (samePath) {
+        const name = get().filters.branch;
+        if (name && !useRepo.getState().branches.some((b) => b.name === name)) {
+          set({ filters: { branch: '' } });
+        }
+      }
       if (!samePath) {
         findSeq += 1;
         set({
@@ -166,6 +174,11 @@ export const useGraph = create<GraphState>((set, get) => {
       const { hasMore, loading } = get();
       if (!hasMore || loading) return;
       await fetchMore(path, PAGE_SIZE);
+    },
+
+    retargetBranchFilter: (from, to) => {
+      if (!from || from === to || get().filters.branch !== from) return;
+      set({ filters: { branch: to } });
     },
 
     setFilters: (path, partial) => {

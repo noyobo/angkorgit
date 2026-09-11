@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import { ipc } from '@/core/ipc';
+import { useGraph } from '@/features/graph/store';
 
 export type UndoKind =
   | 'commit'
@@ -109,8 +110,13 @@ async function applyTransition(
       return;
     }
     case 'branchRename': {
-      if (direction === 'undo') await ipc.renameBranch(path, entry.extra.to, entry.extra.from);
-      else await ipc.renameBranch(path, entry.extra.from, entry.extra.to);
+      if (direction === 'undo') {
+        await ipc.renameBranch(path, entry.extra.to, entry.extra.from);
+        useGraph.getState().retargetBranchFilter(entry.extra.to, entry.extra.from);
+      } else {
+        await ipc.renameBranch(path, entry.extra.from, entry.extra.to);
+        useGraph.getState().retargetBranchFilter(entry.extra.from, entry.extra.to);
+      }
       return;
     }
   }
