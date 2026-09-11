@@ -269,12 +269,40 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         if (item instanceof HTMLElement) item.click();
       }
       
-      // Tab navigation from input to items
-      if (e.key === 'Tab' && !e.shiftKey && e.target instanceof HTMLInputElement) {
+      // Tab navigation: input to first item, or between items
+      if (e.key === 'Tab') {
         const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
-        if (items.length > 0 && items[0] instanceof HTMLElement) {
+        if (items.length === 0) return;
+        
+        if (e.target instanceof HTMLInputElement) {
+          // From input to first item
+          if (!e.shiftKey && items[0] instanceof HTMLElement) {
+            e.preventDefault();
+            items[0].focus();
+          }
+        } else if (e.target instanceof HTMLElement && e.target.hasAttribute('cmdk-item')) {
+          // Between items
           e.preventDefault();
-          items[0].focus();
+          const currentIndex = items.indexOf(e.target);
+          if (currentIndex === -1) return;
+          
+          if (e.shiftKey) {
+            // Shift+Tab: move backward
+            if (currentIndex > 0) {
+              const prev = items[currentIndex - 1];
+              if (prev instanceof HTMLElement) prev.focus();
+            } else {
+              // Back to input
+              const input = document.querySelector('[cmdk-input]') as HTMLInputElement | null;
+              input?.focus();
+            }
+          } else {
+            // Tab: move forward
+            if (currentIndex < items.length - 1) {
+              const next = items[currentIndex + 1];
+              if (next instanceof HTMLElement) next.focus();
+            }
+          }
         }
       }
     };
