@@ -123,9 +123,7 @@ export async function handleMenuEvent(
         break;
 
       case 'show-branches':
-        // Desktop-aligned: Cmd+B shows branches list (sidebar)
-        ui.setSidebarOpen(true);
-        // Focus is naturally on branches section in sidebar
+        ui.openBranchSwitcher();
         break;
 
       case 'show-worktrees':

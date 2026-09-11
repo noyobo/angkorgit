@@ -38,7 +38,7 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Push | ⌘P | ⌘P |
 | Pull | ⌘⇧P | ⌘⇧P |
 | Fetch | ⌘⇧T (Desktop) | ⌘⇧R |
-| **Show branches** | **⌘B** | **⌘B** |
+| **Show branches** | **⌘B** | **⌘B** (opens StatusBar branch switcher) |
 | **Toggle sidebar** | **N/A** | **⌘L** |
 | Undo | ⌘Z | ⌘Z |
 | Redo | ⌘⇧Z | ⌘⇧Z |
@@ -48,7 +48,7 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 
 - **⌘1–9 switches repository tabs**, not between Changes/History views (those panels are always visible)
 - **⌘⇧W closes all tabs** (Desktop-inspired), not "New Worktree" (use ⌘⇧T for that)
-- **⌘B shows the branches list** (Desktop-aligned shortcut)
+- **⌘B opens the branch switcher** (bottom-left StatusBar dropdown, Desktop-aligned shortcut)
 - **⌘L toggles the sidebar** (branches, worktrees, tags, etc.)
 - **⌘⇧R for Fetch** (Desktop uses ⌘⇧T, but AngKorGit reserves that for New Worktree)
 
@@ -156,7 +156,7 @@ AngKorGit has first-class support for **Git worktrees** (multiple working direct
 
 ## Tips for transitioning
 
-1. **Embrace the multi-pane layout**: You don't need to switch views; everything is visible at once. Use the sidebar toggle (⌘B) if you need more space.
+1. **Embrace the multi-pane layout**: You don't need to switch views; everything is visible at once. Use the sidebar toggle (⌘L) if you need more space.
 
 2. **Learn the keyboard flow**: ↑/↓ in the graph, → to open Inspector files, ←/→ to navigate files in a diff, ← to return to the graph. See Settings → Shortcuts for the full list.
 

@@ -110,6 +110,7 @@ interface UiState {
   inspectorFocusSeq: number;
   graphFocusSeq: number;
   commitSummaryFocusSeq: number;
+  branchSwitcherOpenSeq: number;
   sidebarSections: Record<string, boolean>;
   sidebarCollapseEpoch: number;
   commitBoxHeight: number | null;
@@ -121,6 +122,7 @@ interface UiState {
   setSidebarOpen: (open: boolean) => void;
   toggleTerminal: () => void;
   setPaletteOpen: (open: boolean) => void;
+  openBranchSwitcher: () => void;
   openDialog: (dialog: DialogKind, context?: DialogContext) => void;
   closeDialog: () => void;
   setDiffView: (mode: DiffViewMode) => void;
@@ -195,11 +197,12 @@ export const useUi = create<UiState>()(
   repoTabs: [],
   worktreeTabs: [],
   fileTree: false,
-  fileFilterOpen: false,
+      fileFilterOpen: false,
   fileFilterFocusSeq: 0,
   inspectorFocusSeq: 0,
   graphFocusSeq: 0,
   commitSummaryFocusSeq: 0,
+  branchSwitcherOpenSeq: 0,
   sidebarSections: {},
   sidebarCollapseEpoch: 0,
   commitBoxHeight: null,
@@ -211,6 +214,7 @@ export const useUi = create<UiState>()(
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  openBranchSwitcher: () => set((s) => ({ branchSwitcherOpenSeq: s.branchSwitcherOpenSeq + 1 })),
   openDialog: (dialog, context = null) => {
     captureDialogFocus();
     set({ dialog, dialogContext: context });

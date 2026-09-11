@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, Check, Columns3, FolderTree, GitBranch, GitPullRequest, PanelLeft, Pencil, ZoomIn } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ChevronUp, Columns3, FolderTree, GitBranch, GitPullRequest, PanelLeft, Pencil, ZoomIn } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -173,9 +173,18 @@ function BranchSwitch({ label }: { label: string }) {
   const repo = useRepo((s) => s.repo);
   const branches = useRepo((s) => s.branches);
   const worktrees = useRepo((s) => s.worktrees);
+  const branchSwitcherOpenSeq = useUi((s) => s.branchSwitcherOpenSeq);
   const filterRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const consumedSeqRef = useRef(0);
+
+  useEffect(() => {
+    if (branchSwitcherOpenSeq > consumedSeqRef.current) {
+      consumedSeqRef.current = branchSwitcherOpenSeq;
+      setOpen((prev) => !prev);
+    }
+  }, [branchSwitcherOpenSeq]);
 
   const heldBy = useMemo(() => {
     const map = new Map<string, (typeof worktrees)[number]>();
@@ -242,6 +251,7 @@ function BranchSwitch({ label }: { label: string }) {
         >
           <GitBranch className="size-3 shrink-0" />
           <span className="truncate font-mono">{label}</span>
+          <ChevronUp className={cn('size-3 shrink-0 transition-transform', open && 'rotate-180')} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
