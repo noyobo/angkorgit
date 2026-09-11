@@ -117,7 +117,10 @@ pub fn delete_local_and_remote(
     refuse_if_checked_out_elsewhere(&repo, name)?;
     drop(repo);
 
-    super::remote::push_delete(path, remote, &format!("refs/heads/{remote_branch}"))?;
+    let git_ref = format!("refs/heads/{remote_branch}");
+    if super::remote::remote_has_ref(path, remote, &git_ref)? {
+        super::remote::push_delete(path, remote, &git_ref)?;
+    }
     let tracking = format!("{remote}/{remote_branch}");
     let _ = delete(path, &tracking, true);
     delete(path, name, false)?;

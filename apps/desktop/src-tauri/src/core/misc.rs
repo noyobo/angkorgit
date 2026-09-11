@@ -473,7 +473,11 @@ pub fn tag_delete_local_and_remote(path: &str, name: &str, remote: &str) -> AppR
     repo.find_reference(&format!("refs/tags/{name}"))?;
     repo.find_remote(remote)?;
     drop(repo);
-    super::remote::push_delete(path, remote, &format!("refs/tags/{name}"))?;
+    
+    let git_ref = format!("refs/tags/{name}");
+    if super::remote::remote_has_ref(path, remote, &git_ref)? {
+        super::remote::push_delete(path, remote, &git_ref)?;
+    }
     tag_delete(path, name)?;
     Ok(OpOutcome {
         status: "ok".into(),

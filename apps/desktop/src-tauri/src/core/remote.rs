@@ -516,6 +516,14 @@ pub fn push_delete(path: &str, remote_name: &str, git_ref: &str) -> AppResult<Op
     }
     let repo = super::repo::open(path)?;
     prime_account_bindings(Some(&repo));
+    
+    if advertised_oid(&repo, remote_name, git_ref)?.is_none() {
+        return Ok(OpOutcome {
+            status: "up_to_date".into(),
+            message: format!("{git_ref} is already absent from {remote_name}"),
+        });
+    }
+    
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());
@@ -554,17 +562,41 @@ pub fn push(
     };
 
     prime_account_bindings(Some(&repo));
+    let git_ref = format!("refs/heads/{branch_name}");
+    
     if !with_tags {
-        let git_ref = format!("refs/heads/{branch_name}");
-        if advertised_oid(&repo, remote_name, &git_ref)? == Some(local_oid) {
-            if set_upstream {
-                let mut branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
-                branch.set_upstream(Some(&format!("{remote_name}/{branch_name}")))?;
+        if let Some(remote_oid) = advertised_oid(&repo, remote_name, &git_ref)? {
+            if remote_oid == local_oid {
+                if set_upstream {
+                    let mut branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
+                    branch.set_upstream(Some(&format!("{remote_name}/{branch_name}")))?;
+                }
+                return Ok(OpOutcome {
+                    status: "up_to_date".into(),
+                    message: format!("{branch_name} is already up to date"),
+                });
             }
-            return Ok(OpOutcome {
-                status: "up_to_date".into(),
-                message: format!("{branch_name} is already up to date"),
-            });
+            
+            if force {
+                let expected_remote = {
+                    let branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
+                    branch
+                        .upstream()
+                        .ok()
+                        .and_then(|up| up.get().target())
+                };
+                
+                if let Some(expected) = expected_remote {
+                    if remote_oid != expected {
+                        return Err(AppError::other(format!(
+                            "Remote branch {branch_name} has moved unexpectedly \
+                             (expected {}, found {}) — fetch first or use a fresh push",
+                            &expected.to_string()[..8],
+                            &remote_oid.to_string()[..8]
+                        )));
+                    }
+                }
+            }
         }
     }
 
@@ -746,7 +778,24 @@ fn point_branch_and_checkout(
 
 pub fn push_tag(path: &str, remote_name: &str, tag: &str) -> AppResult<OpOutcome> {
     let repo = super::repo::open(path)?;
+    let local_tag = repo.find_reference(&format!("refs/tags/{tag}"))?;
+    let local_oid = local_tag
+        .peel_to_commit()
+        .ok()
+        .map(|c| c.id())
+        .or_else(|| local_tag.target());
+    
     prime_account_bindings(Some(&repo));
+    let git_ref = format!("refs/tags/{tag}");
+    if let Some(local) = local_oid {
+        if advertised_oid(&repo, remote_name, &git_ref)? == Some(local) {
+            return Ok(OpOutcome {
+                status: "up_to_date".into(),
+                message: format!("Tag {tag} is already up to date on {remote_name}"),
+            });
+        }
+    }
+    
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());
