@@ -234,7 +234,7 @@ export function RangeDiffPanel({ fromOid, toOid, fromLabel, toLabel }: RangeDiff
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border-subtle bg-surface px-3">
-        <span className="flex-1 truncate text-sm font-medium">
+        <span className="flex-1 select-none truncate text-sm font-medium">
           {fromLabel ?? fromCommit?.shortOid ?? fromOid.slice(0, 8)}
           {' → '}
           {toLabel ?? toCommit?.shortOid ?? toOid.slice(0, 8)}

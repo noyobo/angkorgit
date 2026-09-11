@@ -106,7 +106,7 @@ function RepoSwitcher() {
           aria-label="Switch repository"
         >
           <RepoMark name={repo.name} size={22} />
-          <span className="leading-tight">
+          <span className="select-none leading-tight">
             <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
               {repo.name}
               <ChevronDown className="size-3 text-faint" />
@@ -138,7 +138,7 @@ function RepoSwitcher() {
             return (
               <DropdownMenuItem key={recent.path} onClick={() => void switchTo(recent.path)}>
                 <RepoMark name={recent.name} size={20} />
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 select-none">
                   <span className={cn('block truncate', isCurrent && 'text-primary')}>{recent.name}</span>
                   <span className="block truncate font-mono text-[10px] text-faint">{recent.path}</span>
                 </span>
@@ -174,7 +174,7 @@ function RepoSwitcher() {
                   return (
                     <DropdownMenuItem key={profile.id} onClick={() => void assignProfile(profile)}>
                       {active ? <Check className="text-primary" /> : <UserRound />}
-                      <span className="min-w-0 flex-1">
+                      <span className="min-w-0 flex-1 select-none">
                         <span className="block">{profile.label}</span>
                         <span className="block truncate text-[10px] text-faint">{profile.email}</span>
                       </span>
@@ -269,7 +269,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
             )}
             aria-label={`${state} in progress — actions`}
           >
-            {state}
+            <span className="select-none">{state}</span>
             <ChevronDown className="size-3" />
           </button>
         </DropdownMenuTrigger>
@@ -462,7 +462,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             onClick={() => void run('Fetch', () => ipc.fetch(repo.path, remote, true, true))}
           >
             <RefreshCw className={busy === 'Fetch' || busy === 'Fetch and clear' ? 'animate-spin' : ''} />
-            Fetch
+            <span className="select-none">Fetch</span>
           </Button>
         </Hint>
         <DropdownMenu>
@@ -497,11 +497,11 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <Button
           variant="ghost"
           size="sm"
-          disabled={!!busy}
+            disabled={!!busy}
           onClick={() => void run('Pull', () => ipc.pull(repo.path, remote))}
         >
           <ArrowDownToLine />
-          Pull
+          <span className="select-none">Pull</span>
           {status && status.behind > 0 && <Badge tone="info">{capCount(status.behind)}</Badge>}
         </Button>
       </Hint>
@@ -523,7 +523,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             onClick={() => runPush('Push', () => ipc.push(repo.path, remote, false, false, true))}
           >
             <ArrowUpFromLine />
-            Push
+            <span className="select-none">Push</span>
             {status && status.ahead > 0 && <Badge tone="primary">{capCount(status.ahead)}</Badge>}
           </Button>
         </Hint>
@@ -595,7 +595,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <div className="ml-auto flex items-center gap-1">
         {busy && (
-          <span className="mr-1 flex items-center gap-2 text-xs text-muted">
+          <span className="mr-1 flex select-none items-center gap-2 text-xs text-muted">
             <Spinner /> {busy}…
           </span>
         )}

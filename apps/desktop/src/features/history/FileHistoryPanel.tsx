@@ -207,7 +207,7 @@ export function FileHistoryPanel({ file }: { file: string }) {
           </Button>
         </Hint>
         <History className="size-4 shrink-0 text-muted" />
-        <span className="min-w-0 flex-1 truncate font-mono text-xs">{file}</span>
+        <span className="min-w-0 flex-1 select-none truncate font-mono text-xs">{file}</span>
         {diff && !diff.isBinary && !diff.isImage && (
           <span className="shrink-0 text-xs">
             <span className="text-success">+{diff.additions}</span>{' '}

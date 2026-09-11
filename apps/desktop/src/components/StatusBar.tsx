@@ -54,7 +54,7 @@ export function StatusBar() {
     <footer className="flex h-6 shrink-0 items-center gap-3 border-t border-border-subtle bg-surface px-3 text-[11px] text-muted">
       <BranchSwitch label={branch ?? '—'} />
       {status && (status.ahead > 0 || status.behind > 0) && (
-        <span className="flex items-center gap-1.5">
+        <span className="flex select-none items-center gap-1.5">
           {status.ahead > 0 && (
             <Hint label={`${status.ahead} commit${status.ahead === 1 ? '' : 's'} to push`}>
               <span className="flex items-center gap-0.5 text-success">
@@ -73,7 +73,7 @@ export function StatusBar() {
           )}
         </span>
       )}
-      <span className={cn('flex items-center gap-1.5', changes > 0 && 'text-primary')}>
+      <span className={cn('flex select-none items-center gap-1.5', changes > 0 && 'text-primary')}>
         {changes > 0 ? <Pencil className="size-3" /> : <Check className="size-3 text-success" />}
         {changes > 0 ? `${changes} change${changes === 1 ? '' : 's'}` : 'Clean'}
       </span>
@@ -87,7 +87,7 @@ export function StatusBar() {
         >
           <button
             type="button"
-            className="flex items-center gap-1 rounded px-1 hover:bg-surface-raised hover:text-foreground"
+            className="flex select-none items-center gap-1 rounded px-1 hover:bg-surface-raised hover:text-foreground"
             onClick={() =>
               createInApp ? openDialog('createPullRequest') : void openExternal(prUrl)
             }
@@ -135,7 +135,7 @@ export function StatusBar() {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-1 rounded px-1 hover:bg-surface-raised hover:text-foreground"
+            className="flex select-none items-center gap-1 rounded px-1 hover:bg-surface-raised hover:text-foreground"
             aria-label="UI zoom"
           >
             <ZoomIn className="size-3" />
@@ -154,7 +154,7 @@ export function StatusBar() {
       <Hint label="Check for updates">
         <button
           type="button"
-          className="rounded px-1 hover:bg-surface-raised hover:text-foreground"
+          className="select-none rounded px-1 hover:bg-surface-raised hover:text-foreground"
           onClick={() => {
             toast.loading('Checking for updates…', { id: 'updater' });
             void import('@/features/updater/check')
@@ -250,7 +250,7 @@ function BranchSwitch({ label }: { label: string }) {
           aria-label="Switch branch"
         >
           <GitBranch className="size-3 shrink-0" />
-          <span className="truncate font-mono">{label}</span>
+          <span className="select-none truncate font-mono">{label}</span>
           <ChevronUp className={cn('size-3 shrink-0 transition-transform', open && 'rotate-180')} />
         </button>
       </DropdownMenuTrigger>
@@ -289,7 +289,7 @@ function BranchSwitch({ label }: { label: string }) {
                 onClick={() => pick(b.name)}
               >
                 <Check className={cn('size-3.5', !b.isHead && 'invisible')} />
-                <span className="min-w-0 flex-1 truncate font-mono">{b.name}</span>
+                <span className="min-w-0 flex-1 select-none truncate font-mono">{b.name}</span>
                 {held && (
                   <FolderTree
                     className="size-3 shrink-0 text-faint"

@@ -308,7 +308,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             <X className="size-4" />
           </Button>
         </Hint>
-        <span className="min-w-0 flex-1 truncate font-mono text-xs">{target.path}</span>
+        <span className="min-w-0 flex-1 select-none truncate font-mono text-xs">{target.path}</span>
         {isRange ? (
           <Badge tone="neutral" className="font-mono text-[10px]">
             {target.fromOid!.slice(0, 7)}..{target.toOid!.slice(0, 7)}

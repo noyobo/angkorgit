@@ -203,7 +203,7 @@ function Section({
         onContextMenu={onContextMenu}
       >
         <button
-          className="flex min-w-0 flex-1 items-center gap-1.5"
+          className="flex min-w-0 flex-1 select-none items-center gap-1.5"
           aria-expanded={open}
           onClick={onToggle}
         >

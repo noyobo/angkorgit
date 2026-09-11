@@ -201,7 +201,7 @@ export function RepoTabs() {
                   aria-label="Worktree"
                 />
               )}
-              <span className="min-w-0 truncate">{label(path)}</span>
+              <span className="min-w-0 select-none truncate">{label(path)}</span>
               <button
                 type="button"
                 aria-label={`Close ${label(path)}`}

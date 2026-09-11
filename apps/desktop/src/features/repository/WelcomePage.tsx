@@ -249,7 +249,7 @@ export function WelcomePage() {
                     }}
                   >
                     <RepoMark name={repo.name} size={32} faded={gone} />
-                    <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                    <span className="flex min-w-0 flex-1 select-none flex-col leading-tight">
                       <span className="flex items-center gap-2">
                         <span className={cn('truncate text-sm font-medium', gone ? 'text-muted' : 'text-foreground')}>
                           {repo.name}
