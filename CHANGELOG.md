@@ -35,6 +35,8 @@ All notable changes to AngKorGit are documented here. The format follows
   Linux still exit when the last window closes.
 
 ### Fixed
+- **The Dock icon sat larger than neighboring apps.** The mark now uses the same
+  ~10% inset as system icons.
 - **Deleting or renaming the filtered branch left the filter chip behind.** The
   graph now drops a branch filter when that ref is gone, and follows a rename.
 

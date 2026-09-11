@@ -137,7 +137,7 @@ angkorgit/
 ├── tests/
 │   ├── unit/                  ← vitest: graphLayout, wordDiff, conflicts (pure core logic)
 │   └── e2e/                   ← Playwright vs browser DEMO MODE (no native build needed)
-├── scripts/generate-icons.mjs ← zero-dependency PNG icon generator
+├── scripts/generate-icons.mjs ← zero-dependency PNG icon generator (mark at 80% of the canvas so the Dock matches system icons)
 └── .github/workflows/         ← ci.yml (typecheck/test/e2e + rust matrix), release.yml (tauri-action on v* tags)
 ```
 
@@ -1396,7 +1396,9 @@ update CLAUDE.md or docs/ — never the code.
   `WORD_DIFF_MAX_CELLS` (500k LCS cells) — its O(m×n) table on two long INSERT lines
   would otherwise allocate 100MB+ and freeze scrolling.
 - **G12 — first icon build**: `pnpm icons` then `pnpm --filter @angkorgit/desktop exec
-  tauri icon src-tauri/icons/icon.png` (release workflow does this).
+  tauri icon src-tauri/icons/icon.png` (release workflow does this). The generator
+  insets the mark to 80% of the canvas (Apple's ~10% Dock margin); a full-bleed
+  1024² sits larger than neighboring apps.
 - **G13 — files without a trailing newline**: libgit2 diffs contain `\ No newline at end
   of file` marker lines (origins `<`, `>`, `=`) whose content lacks its own `\n`. Any
   hand-built patch text must re-emit those markers (and terminate the unterminated line

@@ -110,7 +110,10 @@ function sample(u, v, cornerRadius) {
   return bg;
 }
 
-const SS = 4; // 4×4 supersampling
+const SS = 4;
+const CANVAS_SCALE = 0.8;
+const CANVAS_PAD = (1 - CANVAS_SCALE) / 2;
+
 function pixel(x, y, size) {
   const cornerRadius = 0.223;
   let r = 0,
@@ -119,8 +122,9 @@ function pixel(x, y, size) {
     a = 0;
   for (let sy = 0; sy < SS; sy++) {
     for (let sx = 0; sx < SS; sx++) {
-      const u = (x + (sx + 0.5) / SS) / size;
-      const v = (y + (sy + 0.5) / SS) / size;
+      const u = ((x + (sx + 0.5) / SS) / size - CANVAS_PAD) / CANVAS_SCALE;
+      const v = ((y + (sy + 0.5) / SS) / size - CANVAS_PAD) / CANVAS_SCALE;
+      if (u < 0 || u > 1 || v < 0 || v > 1) continue;
       const c = sample(u, v, cornerRadius);
       if (c) {
         r += c[0];
