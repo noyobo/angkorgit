@@ -11,6 +11,7 @@ interface PaletteShellProps {
   shouldFilter?: boolean;
   onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   headerIcon?: ReactNode;
+  dataAttribute?: string;
   children: ReactNode;
 }
 
@@ -28,8 +29,10 @@ export function PaletteShell({
   shouldFilter = true,
   onSearchKeyDown,
   headerIcon,
+  dataAttribute,
   children,
 }: PaletteShellProps) {
+  const dataAttrs = dataAttribute && open ? { [dataAttribute]: true } : {};
   return (
     <Command.Dialog
       open={open}
@@ -37,6 +40,7 @@ export function PaletteShell({
       label={label}
       shouldFilter={shouldFilter}
       className="fixed left-1/2 top-24 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-overlay shadow-soft"
+      {...dataAttrs}
     >
       {search !== undefined && onSearchChange !== undefined ? (
         <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">

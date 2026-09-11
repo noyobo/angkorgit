@@ -263,6 +263,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
       label="Command palette"
       shouldFilter={mode !== 'fileHistory'}
       className="fixed left-1/2 top-24 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-overlay shadow-soft"
+      data-command-palette-open={paletteOpen || undefined}
     >
       <Command.Input
         value={search}
@@ -279,6 +280,18 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             e.preventDefault();
             if (mode === 'theme') abandonThemePreview();
             setMode('commands');
+          }
+          if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            e.currentTarget.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+            );
+          }
+          if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            e.currentTarget.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+            );
           }
         }}
         className="h-11 w-full border-b border-border-subtle bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-faint"

@@ -117,6 +117,21 @@ export function RecentReposDialog() {
     return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [recentReposOpen, filtered]);
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      e.currentTarget.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+      );
+    }
+    if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      e.currentTarget.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+      );
+    }
+  };
+
   return (
     <PaletteShell
       open={recentReposOpen}
@@ -127,6 +142,8 @@ export function RecentReposDialog() {
       searchPlaceholder="Filter recent repositories…"
       shouldFilter={false}
       headerIcon={<Clock />}
+      dataAttribute="data-recent-repos-open"
+      onSearchKeyDown={handleSearchKeyDown}
     >
       {filtered.length === 0 && recents.length === 0 ? (
           <div className="py-8 text-center text-sm text-faint">

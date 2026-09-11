@@ -167,6 +167,21 @@ export function PanelsDialog() {
     },
   ];
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      e.currentTarget.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+      );
+    }
+    if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      e.currentTarget.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+      );
+    }
+  };
+
   return (
     <PaletteShell
       open={panelsOpen}
@@ -176,6 +191,8 @@ export function PanelsDialog() {
       onSearchChange={setSearch}
       searchPlaceholder="Find a panel or dialog…"
       headerIcon={<Layers />}
+      dataAttribute="data-panels-open"
+      onSearchKeyDown={handleSearchKeyDown}
     >
       <Command.Empty className="py-8 text-center text-sm text-faint">No panels match.</Command.Empty>
       <Command.Group heading="Panels &amp; Dialogs">

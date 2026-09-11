@@ -362,6 +362,7 @@ export function RepositoryPage() {
       // Escape - close overlays
       {
         combo: 'escape',
+        skipWhenOverlayOpen: false,
         handler: () => {
           const ui = useUi.getState();
           if (ui.conflictFile) return;
