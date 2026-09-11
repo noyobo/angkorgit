@@ -129,6 +129,44 @@ function defaultProfile(provider: AiProviderKind): AiProfile {
   return { apiKey: '', model: AI_PROVIDER_PRESETS[provider].defaultModel, baseUrl: '' };
 }
 
+export type ExternalEditor =
+  | 'cursor'
+  | 'vscode'
+  | 'vscode-insiders'
+  | 'vscodium'
+  | 'sublime'
+  | 'atom'
+  | 'zed'
+  | 'fleet'
+  | 'webstorm'
+  | 'phpstorm'
+  | 'idea'
+  | 'none';
+
+export interface ExternalEditorInfo {
+  id: ExternalEditor;
+  label: string;
+}
+
+export const EXTERNAL_EDITORS: ExternalEditorInfo[] = [
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'vscode', label: 'Visual Studio Code' },
+  { id: 'vscode-insiders', label: 'Visual Studio Code Insiders' },
+  { id: 'vscodium', label: 'VSCodium' },
+  { id: 'sublime', label: 'Sublime Text' },
+  { id: 'atom', label: 'Atom' },
+  { id: 'zed', label: 'Zed' },
+  { id: 'fleet', label: 'Fleet' },
+  { id: 'webstorm', label: 'WebStorm' },
+  { id: 'phpstorm', label: 'PhpStorm' },
+  { id: 'idea', label: 'IntelliJ IDEA' },
+  { id: 'none', label: 'None' },
+];
+
+export function externalEditorLabel(id: ExternalEditor): string {
+  return EXTERNAL_EDITORS.find((e) => e.id === id)?.label ?? 'External Editor';
+}
+
 interface SettingsState {
   theme: Theme;
   accent: AccentId;
@@ -141,6 +179,7 @@ interface SettingsState {
   showPullRequests: boolean;
   cherryPickRecordOrigin: boolean;
   worktreeRoot: string | null;
+  externalEditor: ExternalEditor;
   profiles: IdentityProfile[];
   ai: AiConfig;
   aiProfiles: Partial<Record<AiProviderKind, AiProfile>>;
@@ -160,6 +199,7 @@ interface SettingsState {
   setShowPullRequests: (value: boolean) => void;
   setCherryPickRecordOrigin: (value: boolean) => void;
   setWorktreeRoot: (value: string | null) => void;
+  setExternalEditor: (editor: ExternalEditor) => void;
   addProfile: (profile: Omit<IdentityProfile, 'id'>) => void;
   updateProfile: (id: string, patch: Partial<Omit<IdentityProfile, 'id'>>) => void;
   removeProfile: (id: string) => void;
@@ -213,6 +253,7 @@ export const useSettings = create<SettingsState>()(
       showPullRequests: true,
       cherryPickRecordOrigin: true,
       worktreeRoot: null,
+      externalEditor: 'cursor',
       reduceMotion:
         typeof window !== 'undefined' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -244,6 +285,7 @@ export const useSettings = create<SettingsState>()(
       setShowPullRequests: (showPullRequests) => set({ showPullRequests }),
       setCherryPickRecordOrigin: (cherryPickRecordOrigin) => set({ cherryPickRecordOrigin }),
       setWorktreeRoot: (worktreeRoot) => set({ worktreeRoot }),
+      setExternalEditor: (externalEditor) => set({ externalEditor }),
       setReduceMotion: (reduceMotion) => {
         applyReduceMotion(reduceMotion);
         set({ reduceMotion });

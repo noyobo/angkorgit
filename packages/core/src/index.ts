@@ -17,6 +17,7 @@ export * from './ai/models';
 export * as aiCapabilities from './ai/capabilities';
 export * from './ai/cliAgents';
 export * from './forge/pullRequestUrl';
+export * from './forge/fileUrl';
 export * from './forge/remote';
 export * from './forge/shared';
 export * from './forge/types';

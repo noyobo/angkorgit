@@ -103,6 +103,7 @@ pub fn run() {
             commands::unstage_line,
             commands::discard_line,
             commands::open_path,
+            commands::open_in_editor,
             commands::read_file,
             commands::write_file,
             commands::reveal_path,

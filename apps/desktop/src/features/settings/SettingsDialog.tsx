@@ -63,7 +63,7 @@ import { Avatar } from '@/components/Avatar';
 import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { ACCENTS, THEMES, useSettings, ZOOM_MAX, ZOOM_MIN, type IdentityProfile } from './store';
+import { ACCENTS, THEMES, useSettings, ZOOM_MAX, ZOOM_MIN, EXTERNAL_EDITORS, type IdentityProfile, type ExternalEditor } from './store';
 import { applyProfileToRepo } from './profiles';
 import { installCliTool } from './cliTool';
 import { AccountsTab, providerIcon } from './AccountsTab';
@@ -71,7 +71,7 @@ import { Field, SettingCard, SettingEmpty, SettingRow } from './SettingCard';
 import { getAiProvider } from '@/features/ai/client';
 import { modKey } from '@/shared/utils';
 
-type SectionId = 'appearance' | 'git' | 'accounts' | 'ai' | 'shortcuts';
+type SectionId = 'appearance' | 'git' | 'integrations' | 'accounts' | 'ai' | 'shortcuts';
 
 const SECTIONS: Array<{
   id: SectionId;
@@ -81,6 +81,7 @@ const SECTIONS: Array<{
 }> = [
   { id: 'appearance', label: 'Appearance', description: 'Theme, accent color, zoom and motion', icon: Palette },
   { id: 'git', label: 'Git', description: 'Auto fetch, pull requests, command line, identity and profiles', icon: User },
+  { id: 'integrations', label: 'Integrations', description: 'External editor and shell', icon: UserRound },
   { id: 'accounts', label: 'Authentication', description: 'https:// remotes use accounts · git@ remotes use SSH keys', icon: Github },
   { id: 'ai', label: 'AI Assistant', description: 'Provider, connection and message style', icon: Sparkles },
   { id: 'shortcuts', label: 'Shortcuts', description: 'Keyboard reference', icon: Keyboard },
@@ -1182,6 +1183,33 @@ export function SettingsDialog() {
                         </div>
                       )}
                     </div>
+                  </SettingCard>
+                </div>
+              )}
+
+              {section === 'integrations' && (
+                <div className="flex flex-col gap-4">
+                  <SettingCard
+                    title="External Editor"
+                    description="Opens files when you select 'Open in {editor}' from the file context menu."
+                  >
+                    <Field label="Editor">
+                      <Select
+                        value={settings.externalEditor}
+                        onValueChange={(value) => settings.setExternalEditor(value as ExternalEditor)}
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXTERNAL_EDITORS.map((editor) => (
+                            <SelectItem key={editor.id} value={editor.id}>
+                              {editor.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
                   </SettingCard>
                 </div>
               )}

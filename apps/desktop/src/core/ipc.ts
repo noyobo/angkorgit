@@ -222,6 +222,10 @@ export const ipc = {
     if (!isTauri()) return;
     return invoke('open_path', { path: target });
   },
+  async openInEditor(target: string, editor: string): Promise<void> {
+    if (!isTauri()) return;
+    return invoke('open_in_editor', { path: target, editor });
+  },
   async pathsExist(paths: string[]): Promise<boolean[]> {
     if (!isTauri()) return paths.map((p) => !p.includes('api-gateway'));
     return invoke('paths_exist', { paths });

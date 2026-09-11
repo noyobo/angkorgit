@@ -1,9 +1,9 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
-import { AlertTriangle, Archive, Copy, ExternalLink, FolderGit2, FolderOpen, History, Maximize2, Minus, Pencil, Plus, SearchCheck, Sparkles, Trash2, Undo2, X } from 'lucide-react';
+import { AlertTriangle, Archive, Copy, ExternalLink, FileText, Folder, FolderGit2, Globe, History, Maximize2, Minus, Pencil, Plus, SearchCheck, Sparkles, Trash2, Undo2, X } from 'lucide-react';
 import type { FileStatus } from '@angkorgit/core';
-import { aiCapabilities, buildStagedReviewSignature, filterFiles, hashText, PROJECT_REVIEW_FILE, joinCommitMessage, splitCommitMessage } from '@angkorgit/core';
+import { aiCapabilities, buildStagedReviewSignature, filterFiles, hashText, PROJECT_REVIEW_FILE, joinCommitMessage, splitCommitMessage, fileUrl, pickForgeRemote } from '@angkorgit/core';
 import {
   Badge,
   Button,
@@ -28,7 +28,7 @@ import { aiConfigured, getAiProvider } from '@/features/ai/client';
 import { AiText } from '@/features/ai/AiText';
 import { AiResultDialog } from '@/features/ai/AiResultDialog';
 import { useAiWork } from '@/features/ai/workStore';
-import { useSettings } from '@/features/settings/store';
+import { useSettings, externalEditorLabel } from '@/features/settings/store';
 import { ensureRepoProfile } from '@/features/settings/profiles';
 import { useUndo } from '@/features/history/undoStore';
 import { abortMergeFlow } from '@/features/repository/merge';
@@ -36,7 +36,8 @@ import { useCommitDraft } from './draftStore';
 import { confirmDialog } from '@/components/confirm';
 import { FileFilterInput } from '@/components/FileFilterInput';
 import { FileTree, treeIndent as sharedTreeIndent, FileTreeFoldButton, INITIAL_FOLD, nextFold, type FileTreeFold, type FileTreeFoldState } from '@/components/FileTree';
-import { basename, dirname } from '@/shared/utils';
+import { basename, dirname, fileManagerLabel } from '@/shared/utils';
+import { openExternal } from '@/core/ipc';
 
 function statusBadge(kind: string | null) {
   switch (kind) {
@@ -218,6 +219,8 @@ export function WorkingCopyPanel() {
   const status = useRepo((s) => s.status);
   const conflicts = useRepo((s) => s.conflicts);
   const submodules = useRepo((s) => s.submodules);
+  const remotes = useRepo((s) => s.remotes);
+  const branches = useRepo((s) => s.branches);
   const refreshStatus = useRepo((s) => s.refreshStatus);
   const reloadGraph = useGraph((s) => s.reload);
   const selectedFile = useUi((s) => s.selectedFile);
@@ -226,6 +229,7 @@ export function WorkingCopyPanel() {
   const openEditor = useUi((s) => s.openEditor);
   const openConflict = useUi((s) => s.openConflict);
   const fileTree = useUi((s) => s.fileTree);
+  const externalEditor = useSettings((s) => s.externalEditor);
   const path = repo?.path ?? '';
   const message = useCommitDraft((s) => (path ? (s.drafts[path] ?? '') : ''));
   const amend = useCommitDraft((s) => !!path && s.amendFor === path);
@@ -722,6 +726,13 @@ export function WorkingCopyPanel() {
   const menuMulti =
     fileMenu && multi && multi.paths.length > 1 && inMulti(fileMenu.file, fileMenu.staged) ? multi : null;
 
+  const forgeFileUrl = (filePath: string): string | null => {
+    const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
+    const remote = pickForgeRemote(remotes, headUpstream);
+    if (!remote) return null;
+    return fileUrl(remote.url, filePath, repo?.headBranch ?? null);
+  };
+
   const moveFileSelection = (direction: 1 | -1) => {
     if (visibleOrder.length === 0) return;
     const current = useUi.getState().selectedFile;
@@ -1072,6 +1083,74 @@ export function WorkingCopyPanel() {
                 <DropdownMenuSeparator />
               </>
             )}
+            <DropdownMenuItem
+              onClick={() =>
+                void ipc
+                  .revealPath(`${path}/${fileMenu.file.path}`)
+                  .catch((error) =>
+                    toast.error(
+                      `Could not reveal the file: ${(error as { message?: string }).message ?? error}`,
+                    ),
+                  )
+              }
+            >
+              <Folder /> Reveal in {fileManagerLabel()}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={externalEditor === 'none'}
+              onClick={() =>
+                void ipc
+                  .openInEditor(`${path}/${fileMenu.file.path}`, externalEditor)
+                  .catch((error) =>
+                    toast.error(
+                      `Could not open in editor: ${(error as { message?: string }).message ?? error}`,
+                    ),
+                  )
+              }
+            >
+              <Pencil /> Open in {externalEditorLabel(externalEditor)}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                void ipc
+                  .openPath(`${path}/${fileMenu.file.path}`)
+                  .catch((error) =>
+                    toast.error(
+                      `Could not open the file: ${(error as { message?: string }).message ?? error}`,
+                    ),
+                  )
+              }
+            >
+              <ExternalLink /> Open with Default Program
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                void navigator.clipboard.writeText(`${path}/${fileMenu.file.path}`);
+                toast.success('Absolute path copied');
+              }}
+            >
+              <Copy /> Copy File Path
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                void navigator.clipboard.writeText(fileMenu.file.path);
+                toast.success('Relative path copied');
+              }}
+            >
+              <Copy /> Copy Relative File Path
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              disabled={!forgeFileUrl(fileMenu.file.path)}
+              onClick={() => {
+                const url = forgeFileUrl(fileMenu.file.path);
+                if (url) void openExternal(url);
+              }}
+            >
+              <Globe /> View on Remote
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {fileMenu.staged ? (
               <>
                 <DropdownMenuItem
@@ -1102,44 +1181,10 @@ export function WorkingCopyPanel() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => openEditor(fileMenu.file.path)}>
-              <Pencil /> Edit file
+              <FileText /> Edit in app
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => useUi.getState().openFileHistory(fileMenu.file.path)}>
               <History /> File history
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                void ipc
-                  .openPath(`${path}/${fileMenu.file.path}`)
-                  .catch((error) =>
-                    toast.error(
-                      `Could not open the file: ${(error as { message?: string }).message ?? error}`,
-                    ),
-                  )
-              }
-            >
-              <ExternalLink /> Open in external app
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                void ipc
-                  .revealPath(`${path}/${fileMenu.file.path}`)
-                  .catch((error) =>
-                    toast.error(
-                      `Could not reveal the file: ${(error as { message?: string }).message ?? error}`,
-                    ),
-                  )
-              }
-            >
-              <FolderOpen /> Show in Finder
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                void navigator.clipboard.writeText(fileMenu.file.path);
-                toast.success('Path copied');
-              }}
-            >
-              <Copy /> Copy path
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
