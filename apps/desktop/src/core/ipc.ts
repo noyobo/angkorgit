@@ -55,7 +55,6 @@ export interface HostingAccount {
 
 export interface CliToolStatus {
   path: string;
-  onPath: boolean;
 }
 
 export type CliRequest =
@@ -743,7 +742,7 @@ export const ipc = {
   },
   async cliInstall(): Promise<CliToolStatus> {
     if (!isTauri()) {
-      demoCli = { path: '/usr/local/bin/angkorgit', onPath: true };
+      demoCli = { path: '/usr/local/bin/angkorgit' };
       return demoCli;
     }
     return invoke('cli_install');

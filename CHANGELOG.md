@@ -24,9 +24,8 @@ All notable changes to AngKorGit are documented here. The format follows
   shows the number on the left of the first nine tabs.
 - **Open or clone a repository from the terminal.** Settings → Git (or the command
   palette) installs an `angkorgit` command. `angkorgit` and `angkorgit open [path]`
-  open a local folder; `angkorgit clone [-b branch] <url>` clones by URL or
-  `owner/repo` (GitHub) into the current directory and opens it. `angkorgit --help`
-  lists the commands.
+  open a local folder; `angkorgit clone [-b branch] <url>` opens the clone dialog
+  with the URL, folder and branch filled in. `angkorgit --help` lists the commands.
 - **Delete a branch or tag on the remote too.** The sidebar's "Delete local and
   remote…" checks the remote with `ls-remote` first: missing names can still be
   deleted locally, a hit asks once, then the local ref and the server copy both go. Regular

@@ -44,6 +44,7 @@ import { openDeleteBranches } from '@/features/repository/deleteBranches';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
 import { applyTheme, THEMES, useSettings, type Theme } from '@/features/settings/store';
+import { installCliTool } from '@/features/settings/cliTool';
 import { useUndo } from '@/features/history/undoStore';
 import { useForge } from '@/features/forge/store';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
@@ -590,20 +591,11 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             label="Install command line tool"
             onSelect={() => {
               close();
-              void ipc
-                .cliInstall()
-                .then((status) =>
-                  toast.success(
-                    status.onPath
-                      ? 'Installed. Run angkorgit --help for usage.'
-                      : `Installed at ${status.path}. Add that folder to your PATH.`,
-                  ),
-                )
-                .catch((error) =>
-                  toast.error(
-                    `Could not install: ${(error as { message?: string }).message ?? error}`,
-                  ),
-                );
+              void installCliTool().catch((error) =>
+                toast.error(
+                  `Could not install: ${(error as { message?: string }).message ?? error}`,
+                ),
+              );
             }}
           />
           <PaletteItem
