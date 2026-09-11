@@ -220,6 +220,9 @@ export function RepositoryPage() {
       // Command palette - Desktop uses Cmd+K style
       { combo: 'mod+k', handler: () => setPaletteOpen(true) },
       
+      // Panels palette - Go to Panel
+      { combo: 'mod+shift+/', handler: () => useUi.getState().setPanelsOpen(true) },
+      
       // View toggles - Desktop-aligned shortcuts
       { combo: 'mod+b', handler: () => useUi.getState().openBranchSwitcher() }, // Desktop: Cmd+B opens branch switcher
       { combo: 'mod+`', handler: () => toggleTerminal() }, // Terminal (Desktop: Ctrl+`)

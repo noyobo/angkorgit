@@ -9,6 +9,7 @@ import { ProfilePromptHost } from '@/components/profilePrompt';
 import { StaleLocalsHost } from '@/components/staleLocalsDialog';
 import { DeleteBranchesHost } from '@/components/deleteBranchesDialog';
 import { RecentReposDialog } from '@/components/RecentReposDialog';
+import { PanelsDialog } from '@/components/PanelsDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WelcomePage } from '@/features/repository/WelcomePage';
 
@@ -42,6 +43,7 @@ function Shell() {
       { combo: 'mod+shift+=', handler: () => useSettings.getState().zoomIn(), allowInInput: true },
       { combo: 'mod+-', handler: () => useSettings.getState().zoomOut(), allowInInput: true },
       { combo: 'mod+0', handler: () => useSettings.getState().zoomReset(), allowInInput: true },
+      { combo: 'mod+shift+/', handler: () => useUi.getState().setPanelsOpen(true) },
     ],
     [],
   );
@@ -196,6 +198,7 @@ export function App() {
       <StaleLocalsHost />
       <DeleteBranchesHost />
       <RecentReposDialog />
+      <PanelsDialog />
       <Toaster
         position="bottom-left"
         theme={themeBase(theme)}

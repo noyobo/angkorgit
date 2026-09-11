@@ -12,7 +12,7 @@
 
 use tauri::{
     menu::{Menu, MenuBuilder, MenuItem, PredefinedMenuItem, SubmenuBuilder},
-    AppHandle, Runtime, Emitter,
+    AppHandle, Runtime, Emitter, Manager,
 };
 
 const IS_MACOS: bool = cfg!(target_os = "macos");

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Command } from 'cmdk';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import {
   FolderTree,
 } from 'lucide-react';
 import { Badge, Kbd, Spinner, cn } from '@angkorgit/design-system';
+import { PaletteShell } from './PaletteShell';
 import { RepoMark } from './RepoMark';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
@@ -28,7 +29,6 @@ export function RecentReposDialog() {
   const worktreeTabs = useUi((s) => s.worktreeTabs);
   const [query, setQuery] = useState('');
   const [missing, setMissing] = useState<Set<string>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (recentReposOpen) {
@@ -118,27 +118,17 @@ export function RecentReposDialog() {
   }, [recentReposOpen, filtered]);
 
   return (
-    <Command.Dialog
+    <PaletteShell
       open={recentReposOpen}
       onOpenChange={setRecentReposOpen}
       label="Recent repositories"
+      search={query}
+      onSearchChange={setQuery}
+      searchPlaceholder="Filter recent repositories…"
       shouldFilter={false}
-      className="fixed left-1/2 top-24 z-50 w-full max-w-2xl -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-overlay shadow-soft"
+      headerIcon={<Clock />}
     >
-      <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-        <Clock className="size-4 shrink-0 text-muted" />
-        <Command.Input
-          value={query}
-          onValueChange={setQuery}
-          placeholder="Filter recent repositories…"
-          className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-faint"
-        />
-      </div>
-      <Command.List
-        ref={containerRef}
-        className="max-h-[28rem] overflow-y-auto p-2 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint"
-      >
-        {filtered.length === 0 && recents.length === 0 ? (
+      {filtered.length === 0 && recents.length === 0 ? (
           <div className="py-8 text-center text-sm text-faint">
             <p className="mb-4">No repositories yet</p>
             <p className="text-xs">Open a folder or clone a repository to get started.</p>
@@ -232,7 +222,6 @@ export function RecentReposDialog() {
             </Command.Group>
           </>
         )}
-      </Command.List>
-    </Command.Dialog>
+    </PaletteShell>
   );
 }

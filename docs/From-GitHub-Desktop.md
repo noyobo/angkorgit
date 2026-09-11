@@ -25,6 +25,8 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Add local repository | ⌘O | ⌘O (opens recent repositories picker) |
 | Clone repository | ⌘⇧O | ⌘⇧O |
 | Show preferences | ⌘, | ⌘, (Settings) |
+| **Command palette** | **⌘K or ⌘⇧P** | **⌘K** — all commands |
+| **Go to Panel** | **N/A** | **⌘⇧?** — quick jump to dialogs/panels |
 | **Switch to Changes** | **⌘1** | **N/A** — Working Copy is always visible |
 | **Switch to History** | **⌘2** | **N/A** — Graph is always visible |
 | **Switch tabs** | **N/A** | **⌘1–9** — switches between open repository tabs |
@@ -46,6 +48,13 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Command palette | ⌘K or ⌘⇧P | ⌘K |
 
 *Keyboard shortcuts are displayed as badges in the Command Palette (⌘K) to help you learn them.*
+
+### ⌘K vs ⌘⇧? — two entry points
+
+- **⌘K (Command Palette)** — Total entry for all actions: file history, fetch/pull/push, create branch, checkout, zoom, themes, etc. Use this when you want to *do something*.
+- **⌘⇧? (Go to Panel)** — Discover and jump to dialogs/panels only: Settings, Create branch, Delete branches, Stash changes, etc. Shows keyboard shortcuts for panels that have them. Use this when you want to *open a UI panel*.
+
+Both palettes are searchable and share the same visual style. Power users gradually memorize direct shortcuts (⌘O for Recent repositories, ⌘, for Settings) and may skip ⌘⇧?, but it remains the discoverable panel index for beginners.
 
 ### Important differences
 

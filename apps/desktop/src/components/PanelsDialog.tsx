@@ -1,0 +1,203 @@
+import { useState, useEffect } from 'react';
+import { Command } from 'cmdk';
+import {
+  Palette,
+  FolderOpen,
+  Settings,
+  GitBranchPlus,
+  Pencil,
+  Archive,
+  Tag as TagIcon,
+  FolderTree,
+  ListOrdered,
+  ListRestart,
+  Trash2,
+  GitPullRequest,
+  Layers,
+} from 'lucide-react';
+import { Kbd } from '@angkorgit/design-system';
+import { PaletteShell, PaletteItem } from './PaletteShell';
+import { useUi } from '@/features/ui/store';
+import { modKey } from '@/shared/utils';
+
+interface PanelEntry {
+  id: string;
+  icon: React.ReactNode;
+  label: string;
+  shortcut?: string;
+  action: () => void;
+}
+
+export function PanelsDialog() {
+  const panelsOpen = useUi((s) => s.panelsOpen);
+  const setPanelsOpen = useUi((s) => s.setPanelsOpen);
+  const openDialog = useUi((s) => s.openDialog);
+  const setPaletteOpen = useUi((s) => s.setPaletteOpen);
+  const setRecentReposOpen = useUi((s) => s.setRecentReposOpen);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (panelsOpen) {
+      setSearch('');
+    }
+  }, [panelsOpen]);
+
+  const panels: PanelEntry[] = [
+    {
+      id: 'command-palette',
+      icon: <Palette />,
+      label: 'Command Palette',
+      shortcut: 'K',
+      action: () => {
+        setPanelsOpen(false);
+        setPaletteOpen(true);
+      },
+    },
+    {
+      id: 'recent-repos',
+      icon: <FolderOpen />,
+      label: 'Open Repository / Recent repositories',
+      shortcut: 'O',
+      action: () => {
+        setPanelsOpen(false);
+        setRecentReposOpen(true);
+      },
+    },
+    {
+      id: 'settings',
+      icon: <Settings />,
+      label: 'Settings',
+      shortcut: ',',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('settings');
+      },
+    },
+    {
+      id: 'create-branch',
+      icon: <GitBranchPlus />,
+      label: 'Create branch…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('createBranch');
+      },
+    },
+    {
+      id: 'rename-branch',
+      icon: <Pencil />,
+      label: 'Rename branch…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('rename');
+      },
+    },
+    {
+      id: 'delete-branches',
+      icon: <Trash2 />,
+      label: 'Delete branches…',
+      action: () => {
+        setPanelsOpen(false);
+        void import('@/features/repository/deleteBranches').then(({ openDeleteBranches }) => {
+          void openDeleteBranches(() => Promise.resolve());
+        });
+      },
+    },
+    {
+      id: 'create-tag',
+      icon: <TagIcon />,
+      label: 'Create tag…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('createTag');
+      },
+    },
+    {
+      id: 'create-stash',
+      icon: <Archive />,
+      label: 'Stash changes…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('createStash');
+      },
+    },
+    {
+      id: 'create-worktree',
+      icon: <FolderTree />,
+      label: 'New worktree…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('createWorktree');
+      },
+    },
+    {
+      id: 'interactive-rebase',
+      icon: <ListOrdered />,
+      label: 'Interactive rebase…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('interactiveRebase');
+      },
+    },
+    {
+      id: 'cherry-pick',
+      icon: <ListRestart />,
+      label: 'Cherry-pick…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('cherryPick');
+      },
+    },
+    {
+      id: 'create-pr',
+      icon: <GitPullRequest />,
+      label: 'Create pull request…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('createPullRequest');
+      },
+    },
+    {
+      id: 'clone',
+      icon: <GitBranchPlus />,
+      label: 'Clone repository…',
+      action: () => {
+        setPanelsOpen(false);
+        openDialog('clone');
+      },
+    },
+  ];
+
+  const close = () => setPanelsOpen(false);
+
+  return (
+    <PaletteShell
+      open={panelsOpen}
+      onOpenChange={setPanelsOpen}
+      label="Go to Panel"
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Find a panel or dialog…"
+      headerIcon={<Layers />}
+    >
+      <Command.Empty className="py-8 text-center text-sm text-faint">No panels match.</Command.Empty>
+      <Command.Group heading="Panels &amp; Dialogs">
+        {panels.map((panel) => (
+          <PaletteItem
+            key={panel.id}
+            icon={panel.icon}
+            label={panel.label}
+            shortcut={
+              panel.shortcut ? (
+                <span className="flex items-center gap-0.5">
+                  <Kbd>{modKey()}</Kbd>
+                  <Kbd>{panel.shortcut}</Kbd>
+                </span>
+              ) : undefined
+            }
+            onSelect={panel.action}
+          />
+        ))}
+      </Command.Group>
+    </PaletteShell>
+  );
+}

@@ -336,6 +336,10 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         {mode === 'commands' && (
         <>
         <Command.Group heading="Actions">
+          <PaletteItem icon={<Palette />} label="Go to Panel…" shortcut="⇧?" onSelect={() => {
+            close();
+            useUi.getState().setPanelsOpen(true);
+          }} />
           <PaletteItem icon={<History />} label="File history…" shortcut="F" onSelect={enterFileHistory} />
           <PaletteItem icon={<ArrowDownToLine />} label="Pull" onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
           <PaletteItem icon={<ArrowUpFromLine />} label="Push" onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
