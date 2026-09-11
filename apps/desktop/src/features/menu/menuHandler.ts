@@ -5,8 +5,7 @@ import { useRepo } from '@/features/repository/store';
 import { useGraph } from '@/features/graph/store';
 import { useUi } from '@/features/ui/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
-import { ipc } from '@/core/ipc';
-import { pickDirectory, openExternal } from '@/core/ipc';
+import { ipc, openExternal } from '@/core/ipc';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
 
@@ -80,10 +79,7 @@ export async function handleMenuEvent(
 
       // File menu
       case 'open-repo': {
-        const dir = await pickDirectory('Open a Git repository');
-        if (!dir || dir === repoPath) return;
-        await useRepo.getState().open(dir);
-        navigate('/repo');
+        ui.setRecentReposOpen(true);
         break;
       }
 

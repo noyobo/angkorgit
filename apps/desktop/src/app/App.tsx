@@ -8,6 +8,7 @@ import { ConfirmHost } from '@/components/confirm';
 import { ProfilePromptHost } from '@/components/profilePrompt';
 import { StaleLocalsHost } from '@/components/staleLocalsDialog';
 import { DeleteBranchesHost } from '@/components/deleteBranchesDialog';
+import { RecentReposDialog } from '@/components/RecentReposDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WelcomePage } from '@/features/repository/WelcomePage';
 
@@ -194,6 +195,7 @@ export function App() {
       <ProfilePromptHost />
       <StaleLocalsHost />
       <DeleteBranchesHost />
+      <RecentReposDialog />
       <Toaster
         position="bottom-left"
         theme={themeBase(theme)}

@@ -90,6 +90,7 @@ interface UiState {
   sidebarOpen: boolean;
   terminalOpen: boolean;
   paletteOpen: boolean;
+  recentReposOpen: boolean;
   dialog: DialogKind;
   dialogContext: DialogContext;
   diffView: DiffViewMode;
@@ -122,6 +123,7 @@ interface UiState {
   setSidebarOpen: (open: boolean) => void;
   toggleTerminal: () => void;
   setPaletteOpen: (open: boolean) => void;
+  setRecentReposOpen: (open: boolean) => void;
   openBranchSwitcher: () => void;
   openDialog: (dialog: DialogKind, context?: DialogContext) => void;
   closeDialog: () => void;
@@ -182,6 +184,7 @@ export const useUi = create<UiState>()(
       sidebarOpen: true,
   terminalOpen: false,
   paletteOpen: false,
+  recentReposOpen: false,
   dialog: null,
   dialogContext: null,
   diffView: 'inline',
@@ -214,6 +217,7 @@ export const useUi = create<UiState>()(
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setRecentReposOpen: (recentReposOpen) => set({ recentReposOpen }),
   openBranchSwitcher: () => set((s) => ({ branchSwitcherOpenSeq: s.branchSwitcherOpenSeq + 1 })),
   openDialog: (dialog, context = null) => {
     captureDialogFocus();

@@ -22,7 +22,7 @@ If you're familiar with GitHub Desktop, this guide will help you map your knowle
 | Action | GitHub Desktop | AngKorGit |
 |--------|---------------|-----------|
 | New repository | ⌘N | ⌘N |
-| Add local repository | ⌘O | ⌘O |
+| Add local repository | ⌘O | ⌘O (opens recent repositories picker) |
 | Clone repository | ⌘⇧O | ⌘⇧O |
 | Show preferences | ⌘, | ⌘, (Settings) |
 | **Switch to Changes** | **⌘1** | **N/A** — Working Copy is always visible |
