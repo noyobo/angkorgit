@@ -138,6 +138,7 @@ pub fn request(app: &AppHandle, request: CliRequest) {
     focus_main(app);
 }
 
+#[cfg(target_os = "macos")]
 pub fn request_open(app: &AppHandle, path: String) {
     request(app, CliRequest::Open { path });
 }
@@ -289,6 +290,7 @@ fn is_our_shim(path: &Path) -> bool {
 }
 
 enum LaunchTarget {
+    #[cfg(target_os = "macos")]
     MacApp(PathBuf),
     Binary(PathBuf),
 }
@@ -315,6 +317,7 @@ fn launch_target() -> AppResult<LaunchTarget> {
 fn shim_body() -> AppResult<String> {
     let target = launch_target()?;
     Ok(match target {
+        #[cfg(target_os = "macos")]
         LaunchTarget::MacApp(app) => unix_shim(&app, "app"),
         LaunchTarget::Binary(exe) => {
             if cfg!(windows) {
@@ -354,19 +357,19 @@ mod tests {
     #[test]
     fn parse_open_forms() {
         assert_eq!(
-            parse_args(&args(&["--open", "/tmp/repo"]), None),
+            parse_args(&args(&["--open", "/tmp/repo"]), Some("/cwd")),
             Some(CliRequest::Open {
                 path: "/tmp/repo".into()
             })
         );
         assert_eq!(
-            parse_args(&args(&["open", "/tmp/repo"]), None),
+            parse_args(&args(&["open", "/tmp/repo"]), Some("/cwd")),
             Some(CliRequest::Open {
                 path: "/tmp/repo".into()
             })
         );
         assert_eq!(
-            parse_args(&args(&["/tmp/repo"]), None),
+            parse_args(&args(&["/tmp/repo"]), Some("/cwd")),
             Some(CliRequest::Open {
                 path: "/tmp/repo".into()
             })
@@ -413,7 +416,7 @@ mod tests {
                     "--branch",
                     "main"
                 ]),
-                None
+                Some("/cwd")
             ),
             Some(CliRequest::Clone {
                 url: "git@github.com:acme/app.git".into(),
