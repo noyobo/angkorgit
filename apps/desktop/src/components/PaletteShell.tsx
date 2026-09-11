@@ -62,7 +62,7 @@ export function PaletteShell({
           className="h-11 w-full border-b border-border-subtle bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-faint"
         />
       )}
-      <Command.List className="max-h-80 overflow-y-auto p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint">
+      <Command.List className="max-h-96 overflow-y-auto p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint">
         {children}
       </Command.List>
     </Command.Dialog>
@@ -104,13 +104,11 @@ export function PaletteItem({
       keywords={keywords}
       disabled={disabled}
       onSelect={onSelect}
-      className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground data-[disabled]:cursor-not-allowed data-[disabled]:text-muted data-[disabled]:data-[selected=true]:bg-surface-raised/50 data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
+      className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground data-[disabled]:cursor-not-allowed data-[disabled]:text-muted data-[disabled]:data-[selected=true]:bg-surface-raised/50 data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
     >
       {icon}
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate">{label}</span>
-        {hint && <span className="text-[11px] text-muted">{hint}</span>}
-      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {hint && <span className="shrink-0 text-[11px] text-muted/70">{hint}</span>}
       {active && (
         <svg className="size-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
