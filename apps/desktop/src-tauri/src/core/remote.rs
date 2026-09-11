@@ -418,6 +418,17 @@ pub fn edit(path: &str, name: &str, new_name: &str, url: &str) -> AppResult<()> 
 pub fn remove(path: &str, name: &str) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     repo.remote_delete(name)?;
+    
+    let mut config = repo.config()?;
+    let section = format!("remote.{}", name);
+    if config.remove_multivar(&section, ".*").is_ok() {
+        let _ = config.remove(&format!("{}.url", section));
+        let _ = config.remove(&format!("{}.fetch", section));
+        let _ = config.remove(&format!("{}.pushurl", section));
+        let _ = config.remove(&format!("{}.push", section));
+        let _ = config.remove(&format!("{}.tagopt", section));
+    }
+    
     Ok(())
 }
 
@@ -934,8 +945,17 @@ pub fn clone(
     opts.remote_callbacks(callbacks);
     let mut builder = git2::build::RepoBuilder::new();
     builder.fetch_options(opts);
-    if let Some(branch) = branch {
-        builder.branch(branch);
+    
+    let branch_to_clone = match branch {
+        Some(b) => Some(b.to_string()),
+        None => git2::Config::open_default()
+            .ok()
+            .and_then(|c| c.get_string("init.defaultBranch").ok())
+            .filter(|s| !s.trim().is_empty()),
+    };
+    
+    if let Some(ref b) = branch_to_clone {
+        builder.branch(b);
     }
 
     let repo = builder.clone(url, std::path::Path::new(into))?;
