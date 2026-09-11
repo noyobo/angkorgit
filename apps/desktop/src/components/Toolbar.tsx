@@ -8,7 +8,6 @@ import {
   Check,
   ChevronDown,
   Command,
-  FolderGit2,
   FolderOpen,
   GitBranchPlus,
   Home,
@@ -37,13 +36,13 @@ import {
   DropdownMenuTrigger,
   Hint,
   Kbd,
-  Logo,
   Separator,
   Spinner,
   cn,
 } from '@angkorgit/design-system';
 import { ipc, pickDirectory } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
+import { RepoMark } from '@/components/RepoMark';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
 import { sidebarVisible, useUi } from '@/features/ui/store';
@@ -106,7 +105,7 @@ function RepoSwitcher() {
           disabled={!!busy}
           aria-label="Switch repository"
         >
-          <Logo size={22} className="text-foreground" />
+          <RepoMark name={repo.name} size={22} />
           <span className="leading-tight">
             <span className="flex items-center gap-1 text-sm font-semibold">
               {repo.name}
@@ -130,11 +129,12 @@ function RepoSwitcher() {
             const isCurrent = recent.path === repo.path;
             return (
               <DropdownMenuItem key={recent.path} onClick={() => void switchTo(recent.path)}>
-                {isCurrent ? <Check className="text-primary" /> : <FolderGit2 />}
+                <RepoMark name={recent.name} size={20} />
                 <span className="min-w-0 flex-1">
                   <span className={cn('block truncate', isCurrent && 'text-primary')}>{recent.name}</span>
                   <span className="block truncate font-mono text-[10px] text-faint">{recent.path}</span>
                 </span>
+                {isCurrent ? <Check className="text-primary" /> : null}
               </DropdownMenuItem>
             );
           })}

@@ -2,6 +2,7 @@ export * from './git/types';
 export * from './git/worktree';
 export * from './git/commitMessage';
 export * from './git/fileFilter';
+export * from './git/repoMark';
 export * from './git/staleLocals';
 export * from './git/branchPick';
 export * from './graph/layout';

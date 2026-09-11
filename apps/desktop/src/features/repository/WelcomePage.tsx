@@ -7,7 +7,6 @@ import {
   Copy,
   FolderGit2,
   FolderOpen,
-  FolderTree,
   GitBranchPlus,
   MoreHorizontal,
   Search,
@@ -38,6 +37,7 @@ import { useUi } from '@/features/ui/store';
 import { CloneDialog } from './CloneDialog';
 import { SettingsDialog } from '@/features/settings/SettingsDialog';
 import { SettingEmpty } from '@/features/settings/SettingCard';
+import { RepoMark } from '@/components/RepoMark';
 import { isMac, timeAgo } from '@/shared/utils';
 
 function shortenHome(path: string): string {
@@ -48,7 +48,6 @@ export function WelcomePage() {
   const navigate = useNavigate();
   const { recents, open, opening, loadRecents } = useRepo();
   const openDialog = useUi((s) => s.openDialog);
-  const worktreeTabs = useUi((s) => s.worktreeTabs);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [missing, setMissing] = useState<Set<string>>(new Set());
@@ -227,7 +226,6 @@ export function WelcomePage() {
             ) : (
               filtered.map((repo, index) => {
                 const gone = missing.has(repo.path);
-                const isWorktree = worktreeTabs.includes(repo.path);
                 const active = index === activeIndex;
                 return (
                   <div
@@ -250,14 +248,7 @@ export function WelcomePage() {
                       openMenuAt(e.clientX, e.clientY, repo);
                     }}
                   >
-                    <span
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-md',
-                        gone ? 'bg-surface-raised text-faint' : 'bg-primary/10 text-primary',
-                      )}
-                    >
-                      {isWorktree ? <FolderTree className="size-4" /> : <FolderGit2 className="size-4" />}
-                    </span>
+                    <RepoMark name={repo.name} size={32} faded={gone} />
                     <span className="flex min-w-0 flex-1 flex-col leading-tight">
                       <span className="flex items-center gap-2">
                         <span className={cn('truncate text-sm font-medium', gone ? 'text-muted' : 'text-foreground')}>

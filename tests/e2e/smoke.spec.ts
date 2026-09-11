@@ -978,6 +978,8 @@ test('welcome page flags missing folders and opens a repository from the keyboar
   await expect(page.getByText('Recent repositories')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('folder missing')).toBeVisible();
   await expect(page.getByText('~/work/api-gateway')).toBeVisible();
+  await expect(page.locator('[data-repo-mark="temple-ui"]')).toHaveText('TU');
+  await expect(page.locator('[data-repo-mark="api-gateway"]')).toHaveText('AG');
   const search = page.getByLabel('Search recent repositories');
   await expect(search).toBeFocused();
   await search.press('ArrowDown');

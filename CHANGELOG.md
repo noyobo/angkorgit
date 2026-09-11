@@ -40,6 +40,10 @@ All notable changes to AngKorGit are documented here. The format follows
   but cannot be selected.
 
 ### Changed
+- **Repositories get a two-letter tile instead of the same Angkor mark.** The
+  toolbar, the welcome recent list, and the switcher menu hash the folder name
+  onto a graph color so switching projects is actually visible. The current
+  repo still gets a check.
 - **macOS bundle identifier is `dev.angkorgit`.** It used to end in `.app`,
   which collides with the application bundle extension. Folder-access prompts
   may ask once more after this update; if they loop, `tccutil reset All

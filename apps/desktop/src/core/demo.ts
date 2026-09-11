@@ -85,7 +85,7 @@ const ALL_COMMITS = makeCommits(400);
 
 export const demoRepo: RepositoryInfo = {
   path: '/Users/demo/projects/angkorgit',
-  name: 'angkorgit (demo)',
+  name: 'angkorgit',
   headBranch: 'main',
   headOid: ALL_COMMITS[0].oid,
   isDetached: false,
