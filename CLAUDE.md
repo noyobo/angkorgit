@@ -178,7 +178,9 @@ no build step for packages).
 ```
 main.rs / lib.rs      ← builder: plugins(dialog, opener), setup sets accounts::CONFIG_DIR,
                         manage(TerminalState, WatcherState), ~69 command registrations,
-                        pub mod test_api (flat re-exports for integration tests)
+                        pub mod test_api (flat re-exports for integration tests);
+                        macOS RunEvent: Opened → cli open, Reopen → focus_main,
+                        CloseRequested → hide (see G39)
 commands.rs           ← THIN Tauri command layer; every git op via blocking() → spawn_blocking
                         (incl. paths_exist(paths) → Vec<bool> is_dir, used by the welcome page
                         to flag recents whose folder is gone)
@@ -210,7 +212,8 @@ cli.rs                ← `angkorgit` CLI (GitHub Desktop-shaped): bare / `open 
                         opens a folder; `clone [-b branch] <url|owner/repo>` clones into
                         cwd and opens it; `--help` lists commands. Shim in cli/angkorgit.sh
                         (.cmd on Windows); app takes `--open` / `--clone` / RunEvent::Opened
-                        + single-instance forward; 5 module tests
+                        + single-instance forward; macOS app menu replaces predefined Quit
+                        with app.exit so ⌘W can hide (G39); 5 module tests
 ai_cli.rs             ← installed AI-CLI transport: detect (which_in over augmented PATH +
                         login-shell fallback, per-agent --version) and run (allowlisted
                         binaries only, stdin prompt, {OUTPUT_FILE} placeholder → temp file,
@@ -1615,6 +1618,16 @@ update CLAUDE.md or docs/ — never the code.
   isn't possible locally (no Windows target/SDK); CI's windows clippy job is
   the gate.
 
+- **G39 — macOS ⌘W must hide, and the stock Quit item cannot stay**: tao's
+  `windowShouldClose` always returns NO; Tauri then destroys the window unless
+  `CloseRequested` calls `prevent_close`. Last window destroyed → `ExitRequested`
+  → the process dies, which is why ⌘W used to quit. Hide is `prevent_close` +
+  `hide`. The default menu Quit is `terminate:`, which also goes through
+  `CloseRequested` — if we hide there, ⌘Q becomes another hide and never
+  `ExitRequested` (that event only fires after the last window is destroyed).
+  Replace that item with one that calls `app.exit(0)` (`RequestExit` leaves
+  the event loop without waiting on the window). Dock click is
+  `RunEvent::Reopen` → `cli::focus_main`. Windows/Linux still quit on last close.
 - **G38 — confirmDialog labels are user-controlled strings too**: confirm.tsx's
   footer is `flex-wrap` and the confirm Button is `min-w-0 max-w-full` with a
   truncating span, so a long confirmLabel can never spill past the dialog edge —

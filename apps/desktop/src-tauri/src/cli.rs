@@ -165,6 +165,13 @@ pub fn focus_main(app: &AppHandle) {
     }
 }
 
+#[cfg(target_os = "macos")]
+pub fn hide_main(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+}
+
 pub fn status() -> Option<CliToolStatus> {
     find_shim().map(|path| status_of(&path))
 }
@@ -220,9 +227,23 @@ pub fn attach_app_menu(app: &tauri::App) -> tauri::Result<()> {
         let sep = PredefinedMenuItem::separator(app.handle())?;
         app_menu.insert(&install, 2)?;
         app_menu.insert(&sep, 3)?;
+        let last = app_menu.items()?.len().saturating_sub(1);
+        app_menu.remove_at(last)?;
+        let quit = MenuItem::with_id(
+            app.handle(),
+            "quit",
+            "Quit AngKorGit",
+            true,
+            Some("CmdOrCtrl+Q"),
+        )?;
+        app_menu.insert(&quit, app_menu.items()?.len())?;
     }
     app.set_menu(menu)?;
     app.on_menu_event(|app, event| {
+        if event.id() == "quit" {
+            app.exit(0);
+            return;
+        }
         if event.id() != "install-cli" {
             return;
         }

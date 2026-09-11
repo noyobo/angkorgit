@@ -18,6 +18,11 @@ All notable changes to AngKorGit are documented here. The format follows
   Delete still only drops the local one. A failed push leaves the local ref in
   place.
 
+### Changed
+- **⌘W hides the window on macOS.** The Dock icon stays; click it or run
+  `angkorgit` and the same screen comes back. ⌘Q still quits. Windows and
+  Linux still exit when the last window closes.
+
 ## [0.12.0] — 2026-09-10
 
 The find and fix release. Searching the graph now finds instead of filters, so
