@@ -78,7 +78,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 
     // View menu - Desktop-aligned shortcuts
     let show_tabs = MenuItem::with_id(app, "show-tabs", if IS_MACOS { "Repository Tabs" } else { "Repository &tabs" }, true, Some("CmdOrCtrl+T"))?;
-    let show_branches = MenuItem::with_id(app, "show-branches", if IS_MACOS { "Show Branches List" } else { "&Branches list" }, true, Some("CmdOrCtrl+B"))?;
+    let show_branches = MenuItem::with_id(app, "show-branches", if IS_MACOS { "Switch Branch…" } else { "Switch &branch…" }, true, Some("CmdOrCtrl+B"))?;
     let go_summary = MenuItem::with_id(app, "go-summary", if IS_MACOS { "Go to Commit Summary" } else { "Go to commit &summary" }, true, Some("CmdOrCtrl+G"))?;
     let toggle_sidebar = MenuItem::with_id(app, "toggle-sidebar", if IS_MACOS { "Toggle Sidebar" } else { "Toggle &sidebar" }, true, Some("CmdOrCtrl+L"))?;
     let toggle_terminal = MenuItem::with_id(app, "toggle-terminal", if IS_MACOS { "Toggle Terminal" } else { "Toggle t&erminal" }, true, Some("CmdOrCtrl+`"))?;

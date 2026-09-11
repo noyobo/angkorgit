@@ -340,6 +340,10 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             close();
             useUi.getState().setPanelsOpen(true);
           }} />
+          <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" shortcut="B" onSelect={() => {
+            close();
+            useUi.getState().openBranchSwitcher();
+          }} />
           <PaletteItem icon={<History />} label="File history…" shortcut="F" onSelect={enterFileHistory} />
           <PaletteItem icon={<ArrowDownToLine />} label="Pull" shortcut="⇧P" onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
           <PaletteItem icon={<ArrowUpFromLine />} label="Push" shortcut="P" onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
@@ -674,6 +678,25 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               void import('@/features/updater/check').then(({ checkForUpdates }) =>
                 checkForUpdates({ silent: false }),
               );
+            }}
+          />
+        </Command.Group>
+
+        <Command.Group heading="Help">
+          <PaletteItem
+            icon={<Download />}
+            label="Documentation"
+            onSelect={async () => {
+              close();
+              await openExternal('https://github.com/noyobo/angkorgit');
+            }}
+          />
+          <PaletteItem
+            icon={<Download />}
+            label="Report Issue…"
+            onSelect={async () => {
+              close();
+              await openExternal('https://github.com/noyobo/angkorgit/issues/new');
             }}
           />
         </Command.Group>

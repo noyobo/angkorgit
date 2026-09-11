@@ -119,7 +119,9 @@ export async function handleMenuEvent(
         break;
 
       case 'show-branches':
-        ui.openBranchSwitcher();
+        if (repo) {
+          ui.openBranchSwitcher();
+        }
         break;
 
       case 'show-worktrees':
