@@ -86,6 +86,10 @@ pub fn create(path: &str, name: &str, from_oid: Option<&str>, checkout: bool) ->
 }
 
 pub fn delete(path: &str, name: &str, remote: bool) -> AppResult<()> {
+    delete_with_force(path, name, remote, false)
+}
+
+pub fn delete_with_force(path: &str, name: &str, remote: bool, force: bool) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     let kind = if remote {
         BranchType::Remote
@@ -93,6 +97,30 @@ pub fn delete(path: &str, name: &str, remote: bool) -> AppResult<()> {
         BranchType::Local
     };
     let mut branch = repo.find_branch(name, kind)?;
+    
+    if !force && !remote {
+        let branch_oid = branch
+            .get()
+            .target()
+            .ok_or_else(|| AppError::other("branch has no target"))?;
+        
+        let is_merged = if let Ok(head) = repo.head() {
+            if let Some(head_oid) = head.target() {
+                branch_oid == head_oid || repo.graph_descendant_of(head_oid, branch_oid).unwrap_or(false)
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        
+        if !is_merged {
+            return Err(AppError::other(format!(
+                "branch '{name}' is not fully merged — use force delete if you're sure"
+            )));
+        }
+    }
+    
     branch.delete()?;
     Ok(())
 }
