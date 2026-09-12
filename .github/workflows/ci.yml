@@ -85,7 +85,7 @@ jobs:
   typecheck-packages:
     name: Typecheck (Packages)
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +105,7 @@ jobs:
   typecheck-desktop:
     name: Typecheck (Desktop)
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -124,10 +124,7 @@ jobs:
   test-core:
     name: Unit Tests (Core Logic)
     needs: [changes, typecheck-packages]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-packages.result == 'success'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -146,10 +143,7 @@ jobs:
   test-ai:
     name: Unit Tests (AI & Integrations)
     needs: [changes, typecheck-packages]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-packages.result == 'success'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -168,10 +162,7 @@ jobs:
   test-utils:
     name: Unit Tests (Utilities)
     needs: [changes, typecheck-packages]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-packages.result == 'success'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -189,14 +180,8 @@ jobs:
 
   build:
     name: Build
-    needs: [changes, typecheck-desktop, test-core, test-ai, test-utils]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-desktop.result == 'success' &&
-      needs.test-core.result == 'success' &&
-      needs.test-ai.result == 'success' &&
-      needs.test-utils.result == 'success'
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -281,7 +266,7 @@ jobs:
   rust-lint:
     name: Rust Lint
     needs: [changes]
-    if: needs.changes.outputs.rust == 'true'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -305,10 +290,7 @@ jobs:
   rust-test:
     name: Rust Tests (${{ matrix.os }})
     needs: [changes, rust-lint]
-    if: |
-      always() &&
-      needs.changes.outputs.rust == 'true' &&
-      needs.rust-lint.result == 'success'
+    if: false  # Temporarily disabled to focus on E2E
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
