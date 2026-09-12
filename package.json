@@ -29,13 +29,15 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test ./tests/unit",
     "test:watch": "bun test ./tests/unit --watch",
-    "test:e2e": "bunx playwright test -c tests/e2e/playwright.config.ts",
+    "test:e2e": "bun test ./tests/e2e/smoke.test.ts",
+    "test:e2e:server": "bun --filter @angkorgit/desktop dev",
     "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
     "@types/bun": "^1.4.2",
     "@types/node": "^22.20.2",
+    "@types/puppeteer": "^7.0.4",
+    "puppeteer": "^25.10.0",
     "typescript": "^7.0.2"
   }
 }

@@ -112,7 +112,7 @@ jobs:
           if-no-files-found: error
 
   e2e:
-    name: Playwright (demo mode)
+    name: E2E Tests (Puppeteer)
     needs: [changes, frontend]
     if: |
       always() &&
@@ -120,8 +120,6 @@ jobs:
       needs.changes.outputs.e2e == 'true' &&
       (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
     runs-on: ubuntu-latest
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.ms-playwright
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -133,13 +131,6 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             bun-${{ runner.os }}-
-      - uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ${{ github.workspace }}/.ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - name: Download desktop dist
         id: download-dist
@@ -151,14 +142,20 @@ jobs:
       - name: Build desktop for e2e
         if: needs.frontend.result != 'success'
         run: bun --filter @angkorgit/desktop build
-      - name: Install Playwright Chromium
+      - name: Start dev server and run tests
         run: |
-          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
-            bunx playwright install-deps chromium
-          else
-            bunx playwright install --with-deps chromium
-          fi
-      - run: bun run test:e2e
+          bun run test:e2e:server &
+          SERVER_PID=$!
+          echo "Waiting for server..."
+          for i in {1..30}; do
+            if curl -s http://localhost:1420 > /dev/null; then
+              echo "Server is ready"
+              break
+            fi
+            sleep 1
+          done
+          bun run test:e2e
+          kill $SERVER_PID || true
 
   rust:
     name: Rust (${{ matrix.os }})
