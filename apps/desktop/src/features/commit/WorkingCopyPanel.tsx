@@ -1261,23 +1261,6 @@ export function WorkingCopyPanel() {
                 >
                   <History /> File history
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() =>
-                    useUi.getState().openDialog('createStash', { paths: [fileMenu.file.path] })
-                  }
-                >
-                  <Archive /> Stash this file…
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => openEditor(fileMenu.file.path)}>
-                  <FileText /> Edit in app
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => useUi.getState().openFileHistory(fileMenu.file.path)}
-                >
-                  <History /> File history
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => useUi.getState().openBlame(fileMenu.file.path)}>
                   <UserRoundSearch /> Blame
                 </DropdownMenuItem>
