@@ -3,6 +3,15 @@ use std::process::Command;
 
 use angkorgit_lib::test_api as core;
 
+fn git() -> Command {
+    let mut cmd = Command::new("git");
+    cmd.env("GIT_AUTHOR_NAME", "Test User")
+        .env("GIT_AUTHOR_EMAIL", "test@angkorgit.dev")
+        .env("GIT_COMMITTER_NAME", "Test User")
+        .env("GIT_COMMITTER_EMAIL", "test@angkorgit.dev");
+    cmd
+}
+
 struct TempRepo {
     dir: PathBuf,
 }
@@ -26,6 +35,16 @@ impl TempRepo {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.to_str().unwrap();
         core::init(path).unwrap();
+        // Host/CI `init.defaultBranch` may be `main`; the suite hardcodes `master`.
+        let renamed = git()
+            .args(["branch", "-M", "master"])
+            .current_dir(&dir)
+            .status()
+            .expect("git CLI available");
+        assert!(
+            renamed.success(),
+            "failed to rename default branch to master"
+        );
         core::set_config(Some(path), "user.name", "Test User", false).unwrap();
         core::set_config(Some(path), "user.email", "test@angkorgit.dev", false).unwrap();
         core::set_config(Some(path), "core.autocrlf", "false", false).unwrap();
@@ -35,7 +54,7 @@ impl TempRepo {
 
     fn bare_clone(src: &TempRepo) -> Self {
         let dir = Self::scratch_dir();
-        let status = Command::new("git")
+        let status = git()
             .args(["clone", "--bare", src.path(), dir.to_str().unwrap()])
             .status()
             .expect("git CLI available");
@@ -319,7 +338,7 @@ fn stash_selected_staged_file_leaves_other_staged_files_alone() {
     assert_eq!(repo.read("b.txt"), "B\n");
     assert_eq!(repo.read("c.txt"), "new staged\n");
 
-    let status = Command::new("git")
+    let status = git()
         .args(["stash", "list"])
         .current_dir(&repo.dir)
         .output()
@@ -340,7 +359,7 @@ fn stash_selected_new_staged_file_is_removed_and_restored() {
 
     let stashes = core::stash_list(repo.path()).unwrap();
     assert!(stashes[0].message.starts_with("WIP on master: "));
-    let listed = Command::new("git")
+    let listed = git()
         .args(["stash", "show", "--name-only", "stash@{0}"])
         .current_dir(&repo.dir)
         .output()
@@ -635,7 +654,7 @@ fn push_is_up_to_date_when_the_remote_already_has_the_tip() {
     let origin = TempRepo::bare_clone(&origin);
 
     let dir = TempRepo::scratch_dir();
-    let status = Command::new("git")
+    let status = git()
         .args(["clone", origin.path(), dir.to_str().unwrap()])
         .status()
         .expect("git CLI available");
@@ -745,7 +764,7 @@ fn cherry_pick_applies_commit() {
 }
 
 fn head_message(repo: &TempRepo) -> String {
-    let output = Command::new("git")
+    let output = git()
         .args(["log", "-1", "--format=%B"])
         .current_dir(&repo.dir)
         .output()
@@ -778,7 +797,7 @@ fn cherry_pick_many_applies_in_order_with_origin_lines() {
         head_message(&repo),
         format!("feat: two\n\n(cherry picked from commit {second})\n\n")
     );
-    let output = Command::new("git")
+    let output = git()
         .args(["log", "-1", "--format=%B", "HEAD~1"])
         .current_dir(&repo.dir)
         .output()
@@ -848,7 +867,7 @@ fn cherry_pick_record_origin_matches_git_cli() {
         );
 
         core::reset(repo.path(), &base, "hard").unwrap();
-        let output = Command::new("git")
+        let output = git()
             .args(["cherry-pick", "-x", &picked])
             .current_dir(&repo.dir)
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
@@ -1385,7 +1404,7 @@ fn interoperates_with_git_cli() {
     repo.write("a.txt", "cli\n");
     commit_all(&repo, "from engine");
 
-    let output = Command::new("git")
+    let output = git()
         .args(["log", "--oneline"])
         .current_dir(&repo.dir)
         .output()
@@ -1651,7 +1670,7 @@ impl Drop for SigningKey {
 }
 
 fn commit_header(repo: &TempRepo, rev: &str) -> String {
-    let output = Command::new("git")
+    let output = git()
         .args(["cat-file", "commit", rev])
         .current_dir(&repo.dir)
         .output()
@@ -1676,7 +1695,7 @@ fn commit_signs_with_ssh_key_when_config_enables_it() {
     let pubkey = std::fs::read_to_string(signing.key.with_extension("pub")).unwrap();
     let signers = signing.dir.join("allowed_signers");
     std::fs::write(&signers, format!("test@angkorgit.dev {pubkey}")).unwrap();
-    let verify = Command::new("git")
+    let verify = git()
         .args([
             "-c",
             &format!("gpg.ssh.allowedSignersFile={}", signers.display()),
@@ -1766,7 +1785,7 @@ fn signing_failure_blocks_the_commit_and_leaves_the_repo_untouched() {
     let err = core::commit(repo.path(), "second").unwrap_err();
     assert!(err.to_string().contains("user.signingKey"));
 
-    let head = Command::new("git")
+    let head = git()
         .args(["rev-parse", "HEAD"])
         .current_dir(&repo.dir)
         .output()
@@ -1778,7 +1797,7 @@ fn signing_failure_blocks_the_commit_and_leaves_the_repo_untouched() {
 }
 
 fn add_origin(local: &TempRepo, origin: &TempRepo) {
-    let status = Command::new("git")
+    let status = git()
         .args(["remote", "add", "origin", origin.path()])
         .current_dir(&local.dir)
         .status()
@@ -1787,7 +1806,7 @@ fn add_origin(local: &TempRepo, origin: &TempRepo) {
 }
 
 fn set_pull_head(origin: &TempRepo, oid: &str) {
-    let status = Command::new("git")
+    let status = git()
         .args(["update-ref", "refs/pull/1/head", oid])
         .current_dir(&origin.dir)
         .status()
@@ -1850,7 +1869,7 @@ fn pr_checkout_refuses_a_diverged_local_branch() {
     let err = core::checkout_remote_ref(local.path(), "origin", "refs/pull/1/head", "pr/1", false)
         .unwrap_err();
     assert!(err.to_string().contains("delete or rename"));
-    let head = Command::new("git")
+    let head = git()
         .args(["rev-parse", "HEAD"])
         .current_dir(&local.dir)
         .output()
@@ -1884,7 +1903,7 @@ fn pr_checkout_tracks_the_source_branch_for_same_repo_pull_requests() {
     assert_eq!(info.head_branch.as_deref(), Some("feature"));
     assert_eq!(local.read("pr.txt"), "one\n");
 
-    let upstream = Command::new("git")
+    let upstream = git()
         .args(["rev-parse", "--abbrev-ref", "feature@{upstream}"])
         .current_dir(&local.dir)
         .output()
@@ -2338,7 +2357,7 @@ fn git_cli_recognizes_worktrees_created_by_the_engine() {
     let (dir, _cleanup) = worktree_target(&repo, "cli");
     let created = add_worktree(&repo, &dir, "feature", false);
 
-    let output = Command::new("git")
+    let output = git()
         .args(["worktree", "list", "--porcelain"])
         .current_dir(repo.path())
         .output()
@@ -2355,7 +2374,7 @@ fn git_cli_recognizes_worktrees_created_by_the_engine() {
     );
     assert!(listing.contains("branch refs/heads/feature"), "{listing}");
 
-    let status = Command::new("git")
+    let status = git()
         .args(["status", "--porcelain"])
         .current_dir(&created)
         .output()
@@ -2474,23 +2493,20 @@ fn force_with_lease_refuses_when_remote_moved_unexpectedly() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("b.txt", "other work\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "other"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("c.txt", "local work\n");
     commit_all(&local, "local");
@@ -2506,12 +2522,12 @@ fn pull_respects_pull_rebase_config() {
     let base = commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2519,23 +2535,20 @@ fn pull_respects_pull_rebase_config() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("remote.txt", "remote change\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "remote"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("local.txt", "local change\n");
     commit_all(&local, "local");
@@ -2568,12 +2581,12 @@ fn pull_respects_pull_ff_only_config() {
     commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2581,23 +2594,20 @@ fn pull_respects_pull_ff_only_config() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("remote.txt", "remote change\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "remote"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("local.txt", "local change\n");
     commit_all(&local, "local");
@@ -2615,12 +2625,12 @@ fn pull_with_rebase_autostash_stashes_and_restores() {
     commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2628,23 +2638,20 @@ fn pull_with_rebase_autostash_stashes_and_restores() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("remote.txt", "remote change\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "remote"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("work.txt", "uncommitted work\n");
 
@@ -2668,12 +2675,12 @@ fn pull_branch_for_head_respects_pull_rebase_config() {
     let base = commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2681,23 +2688,20 @@ fn pull_branch_for_head_respects_pull_rebase_config() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("remote.txt", "remote change\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "remote"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("local.txt", "local change\n");
     commit_all(&local, "local");
@@ -2730,12 +2734,12 @@ fn pull_branch_for_head_respects_pull_ff_only_config() {
     commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2743,23 +2747,20 @@ fn pull_branch_for_head_respects_pull_ff_only_config() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("remote.txt", "remote change\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "remote"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("local.txt", "local change\n");
     commit_all(&local, "local");
@@ -2777,12 +2778,12 @@ fn pull_branch_for_head_with_rebase_autostash() {
     commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2790,23 +2791,20 @@ fn pull_branch_for_head_with_rebase_autostash() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
     other.write("remote.txt", "remote change\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "remote"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("work.txt", "uncommitted work\n");
 
@@ -2830,12 +2828,12 @@ fn pull_branch_for_non_head_fast_forwards_without_autostash() {
     commit_all(&local, "initial");
 
     let remote = TempRepo::bare_clone(&local);
-    Command::new("git")
+    git()
         .args(["remote", "add", "origin", remote.path()])
         .current_dir(&local.dir)
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["push", "-u", "origin", "master"])
         .current_dir(&local.dir)
         .output()
@@ -2851,27 +2849,24 @@ fn pull_branch_for_non_head_fast_forwards_without_autostash() {
 
     let other = TempRepo::new();
     std::fs::remove_dir_all(&other.dir).unwrap();
-    Command::new("git")
+    git()
         .args(["clone", remote.path(), other.path()])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "checkout", "feature"])
         .output()
         .unwrap();
     other.write("more.txt", "more work\n");
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "add", "."])
         .output()
         .unwrap();
-    Command::new("git")
+    git()
         .args(["-C", other.path(), "commit", "-m", "more"])
         .output()
         .unwrap();
-    Command::new("git")
-        .args(["-C", other.path(), "push"])
-        .output()
-        .unwrap();
+    git().args(["-C", other.path(), "push"]).output().unwrap();
 
     local.write("work.txt", "uncommitted on master\n");
 

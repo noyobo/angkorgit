@@ -288,21 +288,30 @@ mod tests {
 
     fn temp_repo() -> (PathBuf, Repository) {
         isolate_from_host_gitconfig();
+        static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let dir = std::env::temp_dir().join(format!(
             "angkorgit-sign-test-{}-{}",
             std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
+            SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
+        let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let repo = Repository::init(&dir).unwrap();
         (dir, repo)
     }
 
     fn set(repo: &Repository, name: &str, value: &str) {
-        repo.config().unwrap().set_str(name, value).unwrap();
+        let mut attempts = 0;
+        loop {
+            match repo.config().and_then(|mut c| c.set_str(name, value)) {
+                Ok(()) => return,
+                Err(err) if attempts < 8 && err.message().contains("config.lock") => {
+                    attempts += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(5 * attempts));
+                }
+                Err(err) => panic!("set config {name}: {err}"),
+            }
+        }
     }
 
     #[test]

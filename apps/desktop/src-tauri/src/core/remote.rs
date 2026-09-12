@@ -418,6 +418,7 @@ pub fn edit(path: &str, name: &str, new_name: &str, url: &str) -> AppResult<()> 
         }
         Err(_) => {
             repo.remote(new_name, url)?;
+            ensure_fetch_refspec(&repo, new_name)?;
         }
     }
     Ok(())
