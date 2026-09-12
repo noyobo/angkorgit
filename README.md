@@ -37,6 +37,10 @@ bun test:e2e
 cd apps/desktop/src-tauri && cargo test
 ```
 
+**📚 Testing Documentation:**
+- [Testing Strategy](./TESTING_STRATEGY.md) - Overview of test structure
+- [E2E Testing Guide](./docs/E2E-TESTING.md) - Critical setup and troubleshooting
+
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript 7, Rspack 2

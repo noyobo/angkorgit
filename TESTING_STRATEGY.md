@@ -103,6 +103,27 @@ bun test:e2e
 bun test && bun test:e2e
 ```
 
+### Important: E2E Test Configuration
+
+⚠️ **E2E tests run against production builds, not dev server.**
+
+This is critical because Rspack's lazy compilation in dev mode causes:
+- JavaScript chunks failing to load (404 errors)
+- MIME type errors in CI environments
+- Test timeouts
+
+**See [`docs/E2E-TESTING.md`](./docs/E2E-TESTING.md) for complete details.**
+
+CI configuration:
+```yaml
+# Build production artifacts first
+bun run build
+
+# Serve static files (not dev server)
+cd apps/desktop/dist
+python3 -m http.server 1420
+```
+
 ## Future Additions
 
 When adding new features:
