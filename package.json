@@ -29,7 +29,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test ./tests/unit",
     "test:watch": "bun test ./tests/unit --watch",
-    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
+    "test:e2e": "bunx playwright test -c tests/e2e/playwright.config.ts",
     "website": "bun --filter @angkorgit/website dev",
     "website:build": "bun --filter @angkorgit/website build",
     "website:preview": "bun --filter @angkorgit/website preview",
