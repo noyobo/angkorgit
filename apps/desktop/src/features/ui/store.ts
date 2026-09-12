@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { sidebarToggle, workspaceView, type WorkspaceLayout } from './workspace';
+
+export type { WorkspaceLayout };
 
 export type DiffViewMode = 'inline' | 'split';
 
@@ -37,6 +40,15 @@ export interface CenterDiffTarget {
   staged?: boolean;
   oid?: string;
   oldPath?: string | null;
+  fromOid?: string;
+  toOid?: string;
+}
+
+export interface RangeDiffTarget {
+  fromOid: string;
+  toOid: string;
+  fromLabel?: string;
+  toLabel?: string;
 }
 
 export interface InteractiveRebasePreset {
@@ -58,19 +70,29 @@ export interface StashPreset {
   paths: string[];
 }
 
+export interface ClonePreset {
+  url: string;
+  into: string;
+  branch?: string;
+}
+
 export type DialogContext =
   | string
   | InteractiveRebasePreset
   | CherryPickPreset
   | CreateWorktreePreset
   | StashPreset
+  | ClonePreset
   | null;
 
 interface UiState {
+  layout: WorkspaceLayout;
   sidebarOpen: boolean;
-  sidebarHiddenForDiff: boolean;
   terminalOpen: boolean;
   paletteOpen: boolean;
+  recentReposOpen: boolean;
+  branchSwitcherOpen: boolean;
+  panelsOpen: boolean;
   dialog: DialogKind;
   dialogContext: DialogContext;
   diffView: DiffViewMode;
@@ -79,6 +101,7 @@ interface UiState {
   wrapLines: boolean;
   selectedFile: { path: string; staged: boolean } | null;
   centerDiff: CenterDiffTarget | null;
+  rangeDiff: RangeDiffTarget | null;
   centerEditor: string | null;
   centerFileHistory: string | null;
   conflictFile: string | null;
@@ -89,16 +112,21 @@ interface UiState {
   fileFilterFocusSeq: number;
   inspectorFocusSeq: number;
   graphFocusSeq: number;
+  commitSummaryFocusSeq: number;
   sidebarSections: Record<string, boolean>;
   sidebarCollapseEpoch: number;
   commitBoxHeight: number | null;
   graphColumns: GraphColumns;
   graphTail: boolean;
 
+  setLayout: (layout: WorkspaceLayout) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   toggleTerminal: () => void;
   setPaletteOpen: (open: boolean) => void;
+  setRecentReposOpen: (open: boolean) => void;
+  setBranchSwitcherOpen: (open: boolean) => void;
+  setPanelsOpen: (open: boolean) => void;
   openDialog: (dialog: DialogKind, context?: DialogContext) => void;
   closeDialog: () => void;
   setDiffView: (mode: DiffViewMode) => void;
@@ -108,6 +136,8 @@ interface UiState {
   selectFile: (file: { path: string; staged: boolean } | null) => void;
   openCenterDiff: (target: CenterDiffTarget) => void;
   closeCenterDiff: () => void;
+  openRangeDiff: (target: RangeDiffTarget) => void;
+  closeRangeDiff: () => void;
   openEditor: (file: string) => void;
   closeEditor: () => void;
   openFileHistory: (file: string) => void;
@@ -115,6 +145,7 @@ interface UiState {
   openConflict: (file: string | null) => void;
   addRepoTab: (path: string) => void;
   closeRepoTab: (path: string) => void;
+  closeAllTabs: () => void;
   moveRepoTab: (from: string, to: string) => void;
   markWorktreeTab: (path: string, isWorktree: boolean) => void;
   setSidebarSection: (id: string, open: boolean) => void;
@@ -126,11 +157,12 @@ interface UiState {
   setFileFilterOpen: (on: boolean) => void;
   focusInspector: () => void;
   focusGraph: () => void;
+  focusCommitSummary: () => void;
 }
 
-export const sidebarVisible = (s: UiState) => s.sidebarOpen && !s.sidebarHiddenForDiff;
+export const sidebarVisible = (s: UiState) => workspaceView(s).showSidebar;
 
-export const focusRequests = { inspectorConsumed: 0 };
+export const focusRequests = { inspectorConsumed: 0, commitSummaryConsumed: 0 };
 
 let dialogReturnFocus: HTMLElement | null = null;
 
@@ -150,10 +182,13 @@ const restoreDialogFocus = () => {
 export const useUi = create<UiState>()(
   persist(
     (set) => ({
+      layout: 'standard',
       sidebarOpen: true,
-  sidebarHiddenForDiff: false,
   terminalOpen: false,
   paletteOpen: false,
+  recentReposOpen: false,
+  branchSwitcherOpen: false,
+  panelsOpen: false,
   dialog: null,
   dialogContext: null,
   diffView: 'inline',
@@ -162,31 +197,32 @@ export const useUi = create<UiState>()(
   wrapLines: false,
   selectedFile: null,
   centerDiff: null,
+  rangeDiff: null,
   centerEditor: null,
   centerFileHistory: null,
   conflictFile: null,
   repoTabs: [],
   worktreeTabs: [],
   fileTree: false,
-  fileFilterOpen: false,
+      fileFilterOpen: false,
   fileFilterFocusSeq: 0,
   inspectorFocusSeq: 0,
   graphFocusSeq: 0,
+  commitSummaryFocusSeq: 0,
   sidebarSections: {},
   sidebarCollapseEpoch: 0,
   commitBoxHeight: null,
   graphColumns: DEFAULT_GRAPH_COLUMNS,
   graphTail: true,
 
-  toggleSidebar: () =>
-    set((s) =>
-      s.centerDiff
-        ? { centerDiff: null, sidebarHiddenForDiff: false, sidebarOpen: true }
-        : { sidebarOpen: !s.sidebarOpen },
-    ),
+  setLayout: (layout) => set({ layout }),
+  toggleSidebar: () => set((s) => sidebarToggle(s)),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setRecentReposOpen: (recentReposOpen) => set({ recentReposOpen }),
+  setBranchSwitcherOpen: (branchSwitcherOpen) => set({ branchSwitcherOpen }),
+  setPanelsOpen: (panelsOpen) => set({ panelsOpen }),
   openDialog: (dialog, context = null) => {
     captureDialogFocus();
     set({ dialog, dialogContext: context });
@@ -200,12 +236,14 @@ export const useUi = create<UiState>()(
   setFullFileDiff: (fullFileDiff) => set({ fullFileDiff }),
   setWrapLines: (wrapLines) => set({ wrapLines }),
   selectFile: (selectedFile) => set({ selectedFile }),
-  openCenterDiff: (centerDiff) => set({ centerDiff, sidebarHiddenForDiff: true }),
-  closeCenterDiff: () => set({ centerDiff: null, sidebarHiddenForDiff: false }),
+  openCenterDiff: (centerDiff) => set({ centerDiff, rangeDiff: null }),
+  closeCenterDiff: () => set({ centerDiff: null }),
+  openRangeDiff: (rangeDiff) => set({ rangeDiff, centerDiff: null }),
+  closeRangeDiff: () => set({ rangeDiff: null }),
   openEditor: (centerEditor) => set({ centerEditor }),
   closeEditor: () => set({ centerEditor: null }),
   openFileHistory: (centerFileHistory) =>
-    set({ centerFileHistory, centerDiff: null, sidebarHiddenForDiff: false }),
+    set({ centerFileHistory, centerDiff: null }),
   closeFileHistory: () => set({ centerFileHistory: null }),
   openConflict: (conflictFile) => set({ conflictFile }),
   addRepoTab: (path) =>
@@ -215,6 +253,11 @@ export const useUi = create<UiState>()(
       repoTabs: s.repoTabs.filter((t) => t !== path),
       worktreeTabs: s.worktreeTabs.filter((t) => t !== path),
     })),
+  closeAllTabs: () =>
+    set({
+      repoTabs: [],
+      worktreeTabs: [],
+    }),
   moveRepoTab: (from, to) =>
     set((s) => {
       const fromIdx = s.repoTabs.indexOf(from);
@@ -245,10 +288,10 @@ export const useUi = create<UiState>()(
     set((s) => ({ graphColumns: { ...s.graphColumns, [column]: on } })),
   setGraphTail: (graphTail) => set({ graphTail }),
   setFileTree: (fileTree) => set({ fileTree }),
+  setFileFilterOpen: (on) => set((s) => ({ fileFilterOpen: on, fileFilterFocusSeq: on ? s.fileFilterFocusSeq + 1 : s.fileFilterFocusSeq })),
   focusInspector: () => set((s) => ({ inspectorFocusSeq: s.inspectorFocusSeq + 1 })),
   focusGraph: () => set((s) => ({ graphFocusSeq: s.graphFocusSeq + 1 })),
-  setFileFilterOpen: (fileFilterOpen) =>
-    set((s) => ({ fileFilterOpen, fileFilterFocusSeq: fileFilterOpen ? s.fileFilterFocusSeq + 1 : s.fileFilterFocusSeq })),
+  focusCommitSummary: () => set((s) => ({ commitSummaryFocusSeq: s.commitSummaryFocusSeq + 1 })),
     }),
     {
       name: 'angkorgit-ui',
@@ -257,10 +300,12 @@ export const useUi = create<UiState>()(
         return {
           ...current,
           ...saved,
+          layout: saved.layout === 'preview' ? 'preview' : 'standard',
           graphColumns: { ...DEFAULT_GRAPH_COLUMNS, ...(saved.graphColumns ?? {}) },
         };
       },
       partialize: (state) => ({
+        layout: state.layout,
         sidebarOpen: state.sidebarOpen,
         diffView: state.diffView,
         wordDiff: state.wordDiff,

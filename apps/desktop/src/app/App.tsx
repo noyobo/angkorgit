@@ -7,6 +7,10 @@ import { SplashScreen } from './SplashScreen';
 import { ConfirmHost } from '@/components/confirm';
 import { ProfilePromptHost } from '@/components/profilePrompt';
 import { StaleLocalsHost } from '@/components/staleLocalsDialog';
+import { DeleteBranchesHost } from '@/components/deleteBranchesDialog';
+import { RecentReposDialog } from '@/components/RecentReposDialog';
+import { SwitchBranchPanel } from '@/components/SwitchBranchPanel';
+import { PanelsDialog } from '@/components/PanelsDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WelcomePage } from '@/features/repository/WelcomePage';
 
@@ -15,13 +19,24 @@ const RepositoryPage = lazy(() =>
 );
 import { useRepo } from '@/features/repository/store';
 import { applyTheme, themeBase, useSettings } from '@/features/settings/store';
+import { useUi, type ClonePreset } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { ipc, listen, type CliRequest } from '@/core/ipc';
+import { handleMenuEvent } from '@/features/menu/menuHandler';
 
 function Shell() {
   const [splash, setSplash] = useState(true);
   const loadRecents = useRepo((s) => s.loadRecents);
   const navigate = useNavigate();
+
+  // Menu event listener
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void listen('menu-event', (eventId) => {
+      void handleMenuEvent(eventId as any, navigate);
+    }).then((fn) => (unlisten = fn));
+    return () => unlisten?.();
+  }, [navigate]);
 
   const zoomShortcuts = useMemo(
     () => [
@@ -29,6 +44,7 @@ function Shell() {
       { combo: 'mod+shift+=', handler: () => useSettings.getState().zoomIn(), allowInInput: true },
       { combo: 'mod+-', handler: () => useSettings.getState().zoomOut(), allowInInput: true },
       { combo: 'mod+0', handler: () => useSettings.getState().zoomReset(), allowInInput: true },
+      { combo: 'mod+shift+/', handler: () => useUi.getState().setPanelsOpen(true) },
     ],
     [],
   );
@@ -36,18 +52,23 @@ function Shell() {
 
   useEffect(() => {
     const splashStart = Date.now();
-    const splashFloor = useSettings.getState().reduceMotion ? 0 : 600;
+    const splashFloor = useSettings.getState().reduceMotion ? 0 : 1400;
     let finished = false;
     let readyTimer: number | undefined;
     let cancelled = false;
     let unlisten: (() => void) | undefined;
+    let pendingClone: ClonePreset | null = null;
+    const openClone = (preset: ClonePreset) => {
+      useUi.getState().openDialog('clone', preset);
+      navigate('/welcome', { replace: true });
+    };
     const finishSplash = () => {
       if (finished) return;
       finished = true;
       setSplash(false);
-      navigate(useRepo.getState().repo ? '/repo' : '/welcome', { replace: true });
+      if (pendingClone) openClone(pendingClone);
+      else navigate(useRepo.getState().repo ? '/repo' : '/welcome', { replace: true });
     };
-    let cliBusy = false;
     const openFromCli = (path: string) => {
       const { repo, opening } = useRepo.getState();
       if (opening === path || repo?.path === path) {
@@ -70,22 +91,17 @@ function Shell() {
     };
     const runCli = (request: CliRequest) => {
       if (request.kind === 'open') return openFromCli(request.path);
-      cliBusy = true;
-      return ipc
-        .cloneRepository(request.url, request.into, request.branch)
-        .then((path) => {
-          cliBusy = false;
-          toast.success('Repository cloned');
-          return openFromCli(path);
-        })
-        .catch((error) => {
-          cliBusy = false;
-          toast.error(`Clone failed: ${(error as { message?: string }).message ?? error}`);
-          if (!finished) finishSplash();
-        });
+      const preset: ClonePreset = {
+        url: request.url,
+        into: request.into,
+        branch: request.branch,
+      };
+      if (finished) openClone(preset);
+      else pendingClone = preset;
+      return Promise.resolve();
     };
     const splashFallback = window.setTimeout(() => {
-      if (!useRepo.getState().opening && !cliBusy) finishSplash();
+      if (!useRepo.getState().opening) finishSplash();
     }, 1600);
     void loadRecents()
       .catch(() => undefined)
@@ -93,7 +109,7 @@ function Shell() {
       .then((request) => (request ? runCli(request) : undefined))
       .catch(() => undefined)
       .finally(() => {
-        if (useRepo.getState().opening || cliBusy) return;
+        if (useRepo.getState().opening) return;
         readyTimer = window.setTimeout(
           finishSplash,
           Math.max(0, splashFloor - (Date.now() - splashStart)),
@@ -177,10 +193,14 @@ export function App() {
             <Shell />
           </ErrorBoundary>
         </div>
+        <ConfirmHost />
+        <ProfilePromptHost />
+        <StaleLocalsHost />
+        <DeleteBranchesHost />
+        <RecentReposDialog />
+        <SwitchBranchPanel />
+        <PanelsDialog />
       </MemoryRouter>
-      <ConfirmHost />
-      <ProfilePromptHost />
-      <StaleLocalsHost />
       <Toaster
         position="bottom-left"
         theme={themeBase(theme)}

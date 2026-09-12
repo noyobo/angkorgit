@@ -9,9 +9,11 @@ import { useUi } from '@/features/ui/store';
 export function WipRow({
   gutterWidth,
   showRefs = true,
+  showGutter = true,
 }: {
   gutterWidth: number;
   showRefs?: boolean;
+  showGutter?: boolean;
 }) {
   const status = useRepo((s) => s.status);
   const conflicts = useRepo((s) => s.conflicts);
@@ -53,18 +55,20 @@ export function WipRow({
       )}
     >
       {showRefs && <span className="h-full shrink-0" style={{ width: REF_COL_WIDTH }} />}
-      <svg width={gutterWidth} height={36} className="shrink-0" style={{ marginRight: GUTTER_GAP }} aria-hidden>
-        <line x1={laneX(0)} y1={18} x2={laneX(0)} y2={36} stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="3 3" />
-        <circle
-          cx={laneX(0)}
-          cy={18}
-          r={4.5}
-          fill="hsl(var(--surface))"
-          stroke="hsl(var(--primary))"
-          strokeWidth={2}
-          strokeDasharray="3 2.5"
-        />
-      </svg>
+      {showGutter && (
+        <svg width={gutterWidth} height={36} className="shrink-0" style={{ marginRight: GUTTER_GAP }} aria-hidden>
+          <line x1={laneX(0)} y1={18} x2={laneX(0)} y2={36} stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="3 3" />
+          <circle
+            cx={laneX(0)}
+            cy={18}
+            r={4.5}
+            fill="hsl(var(--surface))"
+            stroke="hsl(var(--primary))"
+            strokeWidth={2}
+            strokeDasharray="3 2.5"
+          />
+        </svg>
+      )}
       <Pencil className="size-3.5 shrink-0 text-primary" />
       <span className="font-mono text-xs text-primary">// WIP</span>
       <span className="min-w-0 truncate text-muted">

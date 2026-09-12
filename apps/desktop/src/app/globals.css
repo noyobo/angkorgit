@@ -129,3 +129,12 @@ body {
   animation: none !important;
   opacity: 1 !important;
 }
+
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

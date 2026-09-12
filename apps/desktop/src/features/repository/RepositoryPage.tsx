@@ -1,24 +1,16 @@
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useRepo } from './store';
 import { useGraph } from '@/features/graph/store';
-import { sidebarVisible, useUi } from '@/features/ui/store';
-import { RepoTabs } from '@/components/RepoTabs';
+import { useUi } from '@/features/ui/store';
+import { WorkspaceLayout } from '@/features/ui/WorkspaceLayout';
+import { TitleBarOverlay } from '@/components/TitleBarOverlay';
 import { StatusBar } from '@/components/StatusBar';
 import { Toolbar } from '@/components/Toolbar';
-import { Sidebar } from '@/features/sidebar/Sidebar';
-import { CommitGraph } from '@/features/graph/CommitGraph';
 import { InteractiveRebaseDialog } from '@/features/graph/InteractiveRebaseDialog';
-import { DiffPanel } from '@/features/diff/DiffPanel';
-import { EditorPanel, editorCloseShortcut } from '@/features/editor/EditorPanel';
+import { editorCloseShortcut } from '@/features/editor/EditorPanel';
 import { commitShortcut } from '@/features/commit/WorkingCopyPanel';
-import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
-import { Inspector } from '@/features/inspector/Inspector';
-const TerminalPanel = lazy(() =>
-  import('@/features/terminal/TerminalPanel').then((m) => ({ default: m.TerminalPanel })),
-);
 import { CommandPalette } from '@/components/CommandPalette';
 const ConflictResolver = lazy(() =>
   import('@/features/conflicts/ConflictResolver').then((m) => ({ default: m.ConflictResolver })),
@@ -32,15 +24,13 @@ import { useForge } from '@/features/forge/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings } from '@/features/settings/store';
+import { killTerminalSession } from '@/features/terminal/sessions';
 import { ipc, listen } from '@/core/ipc';
-import { Logo, cn } from '@angkorgit/design-system';
+import { Logo } from '@angkorgit/design-system';
 import { basename } from '@/shared/utils';
 
 const OVERLAY_SHOW_DELAY = 250;
 const OVERLAY_MIN_VISIBLE = 450;
-const SIDEBAR_DEFAULT_SIZE = 18;
-const INSPECTOR_DEFAULT_SIZE = 28;
-const INSPECTOR_MIN_SIZE = 20;
 
 function useRepoLoadingOverlay(): boolean {
   const active = useRepo((s) => s.opening !== null || s.refreshing);
@@ -81,19 +71,16 @@ function RepoLoadingOverlay() {
 
 export function RepositoryPage() {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const refresh = useRepo((s) => s.refresh);
   const reload = useGraph((s) => s.reload);
   const navigate = useNavigate();
   const toggleTerminal = useUi((s) => s.toggleTerminal);
   const toggleSidebar = useUi((s) => s.toggleSidebar);
-  const sidebarOpen = useUi(sidebarVisible);
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
-  const terminalOpen = useUi((s) => s.terminalOpen);
   const conflictFile = useUi((s) => s.conflictFile);
-  const centerDiff = useUi((s) => s.centerDiff);
-  const centerEditor = useUi((s) => s.centerEditor);
-  const centerFileHistory = useUi((s) => s.centerFileHistory);
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
+  const closeRangeDiff = useUi((s) => s.closeRangeDiff);
 
   const repoPath = repo?.path ?? null;
   useEffect(() => {
@@ -230,10 +217,50 @@ export function RepositoryPage() {
 
   const shortcuts = useMemo(
     () => [
+      // Command palette - Desktop uses Cmd+K style
       { combo: 'mod+k', handler: () => setPaletteOpen(true) },
-      { combo: 'mod+p', handler: () => setPaletteOpen(true) },
-      { combo: 'mod+`', handler: () => toggleTerminal() },
-      { combo: 'mod+b', handler: () => toggleSidebar() },
+      
+      // Panels palette - Go to Panel
+      { combo: 'mod+shift+/', handler: () => useUi.getState().setPanelsOpen(true) },
+      
+      // View toggles - Desktop-aligned shortcuts
+      { combo: 'mod+b', handler: () => useUi.getState().setBranchSwitcherOpen(true) }, // Desktop: Cmd+B opens branch switcher
+      { combo: 'ctrl+`', handler: () => toggleTerminal() },
+      { combo: 'mod+l', handler: () => toggleSidebar() }, // REMAPPED: Sidebar toggle from Cmd+B to Cmd+L
+      
+      // Commit flow - Desktop-aligned
+      { combo: 'mod+g', handler: () => useUi.getState().focusCommitSummary() }, // Focus commit summary (Desktop: Cmd+G)
+      
+      // View on forge - git-open equivalent (Desktop: Cmd+Shift+G)
+      {
+        combo: 'mod+shift+g',
+        handler: async () => {
+          if (!repo) return;
+          const { viewOnRemoteOperation } = await import('./operations');
+          await viewOnRemoteOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
+        },
+      },
+      
+      // Tab management - AngKorGit multi-repo feature
+      // EXCEPTION: Keep Cmd+1-9 for tab switching (core AngKorGit feature)
+      // EXCEPTION: Close All Tabs stays on Cmd+Shift+W (explicit product decision)
+      {
+        combo: 'mod+shift+w',
+        handler: () => {
+          const tabs = useUi.getState().repoTabs;
+          tabs.forEach((path) => killTerminalSession(path));
+          useUi.getState().closeAllTabs();
+          useRepo.getState().close();
+          navigate('/welcome');
+        },
+      },
+      
+      // Undo/Redo - Desktop-aligned
       {
         combo: 'mod+z',
         skipInInput: true,
@@ -254,62 +281,87 @@ export function RepositoryPage() {
             });
         },
       },
-      { combo: 'mod+r', handler: () => void refreshAll() },
-      { combo: 'mod+enter', handler: () => commitShortcut.current?.() },
+      
+      // Repository actions
+      { combo: 'mod+r', handler: () => void refreshAll() }, // Refresh (AngKorGit-specific)
+      { combo: 'mod+enter', handler: () => commitShortcut.current?.() }, // Commit when focused
+      
+      // Repository sync operations - Desktop-aligned
+      {
+        combo: 'mod+p',
+        handler: async () => {
+          if (!repo || busy) return;
+          const { pushOperation } = await import('./operations');
+          await pushOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
+        },
+      },
+      {
+        combo: 'mod+shift+p',
+        handler: async () => {
+          if (!repo || busy) return;
+          const { pullOperation } = await import('./operations');
+          await pullOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
+        },
+      },
+      {
+        combo: 'mod+shift+t',
+        handler: async () => {
+          if (!repo || busy) return;
+          const { fetchOperation } = await import('./operations');
+          await fetchOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
+        },
+      },
+      
+      // Branch operations - Desktop-aligned
+      {
+        combo: 'mod+shift+n',
+        handler: () => useUi.getState().openDialog('createBranch'),
+      },
+      {
+        combo: 'mod+shift+s',
+        handler: () => useUi.getState().openDialog('createStash'),
+      },
+      
+      // Settings - Desktop-aligned
       {
         combo: 'mod+,',
         handler: () => useUi.getState().openDialog('settings'),
       },
+      
+      // Escape - close overlays
       {
         combo: 'escape',
+        skipWhenOverlayOpen: false,
         handler: () => {
           const ui = useUi.getState();
           if (ui.conflictFile) return;
           if (ui.centerEditor) editorCloseShortcut.current?.();
+          else if (ui.rangeDiff) closeRangeDiff();
           else if (ui.centerDiff) closeCenterDiff();
           else if (ui.centerFileHistory) ui.closeFileHistory();
         },
       },
     ],
-    [setPaletteOpen, toggleTerminal, toggleSidebar, refreshAll, closeCenterDiff],
+    [setPaletteOpen, toggleTerminal, toggleSidebar, refreshAll, closeCenterDiff, closeRangeDiff],
   );
   useShortcuts(shortcuts);
 
-  const focusMode = !!centerFileHistory && !centerEditor && !centerDiff;
-  const showSidebar = sidebarOpen && !focusMode;
-  const focusModeRef = useRef(focusMode);
-  focusModeRef.current = focusMode;
-  const showSidebarRef = useRef(showSidebar);
-  showSidebarRef.current = showSidebar;
-  const sidebarDragging = useRef(false);
-  const sidebarPanel = useRef<ImperativePanelHandle>(null);
-  const inspectorPanel = useRef<ImperativePanelHandle>(null);
-  const inspectorSizeBeforeFocus = useRef<number | null>(null);
-  useEffect(() => {
-    const panel = sidebarPanel.current;
-    if (!panel) return;
-    if (showSidebar) {
-      if (panel.isCollapsed()) panel.expand(SIDEBAR_DEFAULT_SIZE);
-    } else if (!panel.isCollapsed()) {
-      panel.collapse();
-    }
-  }, [showSidebar, repo]);
-  useLayoutEffect(() => {
-    const panel = inspectorPanel.current;
-    if (!panel) return;
-    if (focusMode) {
-      if (!panel.isCollapsed()) {
-        inspectorSizeBeforeFocus.current = panel.getSize();
-        panel.collapse();
-      }
-    } else {
-      const restore = inspectorSizeBeforeFocus.current;
-      inspectorSizeBeforeFocus.current = null;
-      if (restore != null && restore >= INSPECTOR_MIN_SIZE) panel.resize(restore);
-    }
-  }, [focusMode, repo]);
-
-  if (!repo) return null;
+  if (!repo) return <Navigate to="/welcome" replace />;
 
   return (
     <motion.div
@@ -318,91 +370,14 @@ export function RepositoryPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
     >
-      <RepoTabs />
+      <TitleBarOverlay />
       <Toolbar onRefresh={refreshAll} />
       <div className="relative min-h-0 flex-1">
         <RepoLoadingOverlay />
-        <PanelGroup direction="horizontal" autoSaveId="angkorgit-main-v2">
-          <Panel
-            ref={sidebarPanel}
-            id="sidebar"
-            order={1}
-            defaultSize={SIDEBAR_DEFAULT_SIZE}
-            minSize={13}
-            maxSize={30}
-            collapsible
-            collapsedSize={0}
-            onCollapse={() => {
-              if (sidebarDragging.current) {
-                const ui = useUi.getState();
-                if (ui.sidebarOpen && !ui.sidebarHiddenForDiff && !focusModeRef.current) ui.setSidebarOpen(false);
-                return;
-              }
-              if (showSidebarRef.current) {
-                requestAnimationFrame(() => {
-                  const panel = sidebarPanel.current;
-                  if (panel && showSidebarRef.current && panel.isCollapsed()) panel.expand(SIDEBAR_DEFAULT_SIZE);
-                });
-              }
-            }}
-            onExpand={() => {
-              if (!sidebarDragging.current) return;
-              const ui = useUi.getState();
-              if (!ui.sidebarOpen && !ui.sidebarHiddenForDiff && !focusModeRef.current) ui.setSidebarOpen(true);
-            }}
-          >
-            {showSidebar && <Sidebar />}
-          </Panel>
-          <PanelResizeHandle
-            className={cn('w-px bg-border-subtle', !showSidebar && 'hidden')}
-            onDragging={(dragging) => {
-              sidebarDragging.current = dragging;
-            }}
-          />
-          <Panel id="center" order={2} defaultSize={54} minSize={30}>
-            <PanelGroup direction="vertical" autoSaveId="angkorgit-center">
-              <Panel minSize={30}>
-                <div className={centerDiff || centerEditor || centerFileHistory ? 'hidden' : 'h-full'}>
-                  <CommitGraph key={repo.path} />
-                </div>
-                {centerEditor ? (
-                  <EditorPanel key={centerEditor} file={centerEditor} />
-                ) : centerDiff ? (
-                  <DiffPanel target={centerDiff} />
-                ) : (
-                  centerFileHistory && (
-                    <FileHistoryPanel key={centerFileHistory} file={centerFileHistory} />
-                  )
-                )}
-              </Panel>
-              {terminalOpen && (
-                <>
-                  <PanelResizeHandle className="h-px bg-border-subtle" />
-                  <Panel defaultSize={30} minSize={12} maxSize={60}>
-                    <Suspense fallback={null}>
-                      <TerminalPanel />
-                    </Suspense>
-                  </Panel>
-                </>
-              )}
-            </PanelGroup>
-          </Panel>
-          <PanelResizeHandle className={cn('w-px bg-border-subtle', focusMode && 'hidden')} />
-          <Panel
-            ref={inspectorPanel}
-            id="inspector"
-            order={3}
-            defaultSize={INSPECTOR_DEFAULT_SIZE}
-            minSize={INSPECTOR_MIN_SIZE}
-            maxSize={45}
-            collapsible={focusMode}
-            collapsedSize={0}
-          >
-            {!focusMode && <Inspector />}
-          </Panel>
-        </PanelGroup>
+        <WorkspaceLayout repoPath={repo.path} />
       </div>
       <StatusBar />
+
 
       <CommandPalette onRefresh={refreshAll} />
       <SettingsDialog />

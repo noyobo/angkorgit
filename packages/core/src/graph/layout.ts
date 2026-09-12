@@ -145,7 +145,12 @@ export class GraphLayout {
   }
 }
 
-export function flatGraphRows(commits: readonly CommitInfo[], startRow = 0): GraphRow[] {
+export function flatGraphRows(
+  commits: readonly CommitInfo[],
+  startRow = 0,
+  hasMore = false,
+): GraphRow[] {
+  const last = commits.length - 1;
   return commits.map((commit, i) => ({
     node: {
       oid: commit.oid,
@@ -153,8 +158,8 @@ export function flatGraphRows(commits: readonly CommitInfo[], startRow = 0): Gra
       lane: 0,
       color: 0,
       isMerge: commit.parents.length > 1,
-      hasIncoming: false,
-      continues: false,
+      hasIncoming: startRow + i > 0,
+      continues: i < last || hasMore,
       closing: [],
       merges: [],
     },

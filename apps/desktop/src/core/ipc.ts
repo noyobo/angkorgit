@@ -25,7 +25,10 @@ import type {
   WorktreeAddRequest,
   WorktreeInfo,
 } from '@angkorgit/core';
+import { logger } from './logger';
+
 let demo = null as unknown as typeof import('./demo');
+let pushAttemptCounter = 0;
 
 export interface OpOutcome {
   status: 'ok' | 'conflicts' | 'up_to_date' | 'fast_forward';
@@ -55,7 +58,6 @@ export interface HostingAccount {
 
 export interface CliToolStatus {
   path: string;
-  onPath: boolean;
 }
 
 export type CliRequest =
@@ -73,13 +75,36 @@ export interface AccountCheckResult {
 export const isTauri = (): boolean =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+let windowApi: typeof import('@tauri-apps/api/window') | null = null;
+if (isTauri()) {
+  void import('@tauri-apps/api/window').then((mod) => {
+    windowApi = mod;
+  });
+}
+
+export function startWindowDrag(event: { button: number; target: EventTarget | null }): void {
+  if (event.button !== 0 || !windowApi) return;
+  if (event.target instanceof Element && event.target.closest('.no-drag')) return;
+  void windowApi.getCurrentWindow().startDragging();
+}
+
 if (!isTauri()) {
   demo = await import('./demo');
 }
 
 async function invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-  const { invoke } = await import('@tauri-apps/api/core');
-  return invoke<T>(command, args);
+  const { invoke: tauriInvoke } = await import('@tauri-apps/api/core');
+  const start = performance.now();
+  try {
+    const result = await tauriInvoke<T>(command, args);
+    const duration = performance.now() - start;
+    void logger.cmd(command, args, { duration: Math.round(duration), status: 'ok' });
+    return result;
+  } catch (error) {
+    const duration = performance.now() - start;
+    void logger.cmd(command, args, { duration: Math.round(duration), status: 'error' });
+    throw error;
+  }
 }
 
 export async function listen(event: string, handler: (payload: unknown) => void): Promise<() => void> {
@@ -222,6 +247,10 @@ export const ipc = {
   async openPath(target: string): Promise<void> {
     if (!isTauri()) return;
     return invoke('open_path', { path: target });
+  },
+  async openInEditor(target: string, editor: string): Promise<void> {
+    if (!isTauri()) return;
+    return invoke('open_in_editor', { path: target, editor });
   },
   async pathsExist(paths: string[]): Promise<boolean[]> {
     if (!isTauri()) return paths.map((p) => !p.includes('api-gateway'));
@@ -425,12 +454,34 @@ export const ipc = {
     withTags: boolean,
     setUpstream: boolean,
     branch?: string,
+    source?: string,
   ): Promise<OpOutcome> {
+    const attemptId = ++pushAttemptCounter;
+    const meta = {
+      path: path.split('/').pop(),
+      remote,
+      branch: branch ?? 'HEAD',
+      force,
+      withTags,
+      setUpstream,
+    };
+    
+    await logger.push(attemptId, source ?? 'unknown', meta);
+    
     if (!isTauri()) {
       await delay(400);
+      await logger.push(attemptId, source ?? 'unknown', { ...meta, status: 'ok', result: 'completed-demo' });
       return { status: 'ok', message: `Pushed to ${remote} (demo)` };
     }
-    return invoke('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
+    
+    try {
+      const result = await invoke<OpOutcome>('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
+      await logger.push(attemptId, source ?? 'unknown', { ...meta, status: result.status, result: 'completed' });
+      return result;
+    } catch (error) {
+      await logger.push(attemptId, source ?? 'unknown', { ...meta, error: String(error), result: 'failed' });
+      throw error;
+    }
   },
   async pullBranch(path: string, branch: string): Promise<OpOutcome> {
     if (!isTauri()) return { status: 'ok', message: `Pulled ${branch} (demo)` };
@@ -546,6 +597,15 @@ export const ipc = {
       oid,
       file,
       oldPath: oldPath ?? null,
+      contextLines: contextLines ?? null,
+    });
+  },
+  async rangeDiff(path: string, fromOid: string, toOid: string, contextLines?: number): Promise<FileDiff[]> {
+    if (!isTauri()) return demo.demoCommitDiff();
+    return invoke('diff_range', {
+      path,
+      fromOid,
+      toOid,
       contextLines: contextLines ?? null,
     });
   },
@@ -743,7 +803,7 @@ export const ipc = {
   },
   async cliInstall(): Promise<CliToolStatus> {
     if (!isTauri()) {
-      demoCli = { path: '/usr/local/bin/angkorgit', onPath: true };
+      demoCli = { path: '/usr/local/bin/angkorgit' };
       return demoCli;
     }
     return invoke('cli_install');

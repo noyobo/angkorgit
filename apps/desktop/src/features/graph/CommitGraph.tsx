@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
 import { Archive, ArchiveRestore, ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, Combine, Copy, Filter, FolderTree, GitBranchPlus, Settings2, GitMerge, ListOrdered, ListRestart, RotateCcw, Search, Tag as TagIcon, Trash2, Undo2, User, X } from 'lucide-react';
-import type { CommitInfo, RefInfo } from '@angkorgit/core';
+import { flatGraphRows, type CommitInfo, type RefInfo } from '@angkorgit/core';
 import {
   Button,
   DropdownMenu,
@@ -19,12 +19,12 @@ import {
   cn,
 } from '@angkorgit/design-system';
 import { ipc } from '@/core/ipc';
-import { ensureRepoProfile } from '@/features/settings/profiles';
+import { pushOperation, type OperationContext } from '@/features/repository/operations';
 import { useRepo } from '@/features/repository/store';
 import { useGraph } from './store';
 import { useUi } from '@/features/ui/store';
 import { useUndo, type UndoKind } from '@/features/history/undoStore';
-import { AUTHOR_COL_WIDTH, CommitRow, GUTTER_GAP, GraphTailDefs, REF_COL_WIDTH, ROW_HEIGHT, gutterWidthFor, laneWidthFor } from './GraphRow';
+import { AUTHOR_COL_WIDTH, CommitRow, GUTTER_GAP, GraphTailDefs, LANE_WIDTH, REF_COL_WIDTH, ROW_HEIGHT, gutterWidthFor, laneWidthFor } from './GraphRow';
 import { WipRow } from './WipRow';
 import { confirmDialog } from '@/components/confirm';
 import { useShortcuts } from '@/shared/useShortcuts';
@@ -43,8 +43,17 @@ interface RefMenuState {
 
 const stashIndexOf = (ref: RefInfo) => Number(/\{(\d+)\}/.exec(ref.name)?.[1] ?? 0);
 
+const PREVIEW_COLUMNS = {
+  refs: false,
+  author: false,
+  message: true,
+  hash: false,
+  date: true,
+} as const;
+
 export function CommitGraph() {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const refresh = useRepo((s) => s.refresh);
   const worktrees = useRepo((s) => s.worktrees);
   const branches = useRepo((s) => s.branches);
@@ -52,8 +61,12 @@ export function CommitGraph() {
   const { rows, commits, maxLane, hasMore, loading, error, filters, find, locatedOid, selectedOid, selectedOids, pendingScrollIndex, loadMore, reload, setFilters, setFind, stepFind, select, toggleSelect, rangeSelect, clearPendingScroll } =
     useGraph();
   const openDialog = useUi((s) => s.openDialog);
-  const graphColumns = useUi((s) => s.graphColumns);
-  const graphTail = useUi((s) => s.graphTail);
+  const compact = useUi((s) => s.layout === 'preview');
+  const storedColumns = useUi((s) => s.graphColumns);
+  const storedTail = useUi((s) => s.graphTail);
+  const graphColumns = compact ? PREVIEW_COLUMNS : storedColumns;
+  const graphTail = compact ? false : storedTail;
+  const displayRows = compact ? flatGraphRows(commits, 0, hasMore) : rows;
   const setGraphTail = useUi((s) => s.setGraphTail);
   const setGraphColumn = useUi((s) => s.setGraphColumn);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -122,8 +135,8 @@ export function CommitGraph() {
     clearPendingScroll();
   }, [pendingScrollIndex, rows.length, virtualizer, clearPendingScroll]);
 
-  const laneWidth = laneWidthFor(maxLane);
-  const gutterWidth = gutterWidthFor(maxLane, laneWidth);
+  const laneWidth = compact ? LANE_WIDTH : laneWidthFor(maxLane);
+  const gutterWidth = compact ? gutterWidthFor(0, LANE_WIDTH) : gutterWidthFor(maxLane, laneWidth);
   const filtersActive = Boolean(filters.branch);
 
   const moveSelection = useCallback(
@@ -181,6 +194,10 @@ export function CommitGraph() {
       op: () => Promise<unknown>,
       undoable?: { kind: UndoKind; extra?: Record<string, string> },
     ) => {
+      if (busy) {
+        toast.info(`${label} already in progress`);
+        return;
+      }
       try {
         const run = undoable
           ? () =>
@@ -204,22 +221,17 @@ export function CommitGraph() {
         toast.error(`${label} failed: ${(error as { message?: string }).message ?? error}`);
       }
     },
-    [refresh, reload, path],
+    [refresh, reload, path, busy],
   );
 
-  const pushRemoteFor = (branch: string): string => {
-    const upstream = branches.find((b) => !b.isRemote && b.name === branch)?.upstream;
-    if (upstream) {
-      const remoteName = upstream.split('/')[0];
-      if (remotes.some((r) => r.name === remoteName)) return remoteName;
-    }
-    return remotes[0]?.name ?? 'origin';
-  };
-
   const pushBranch = async (branch: string) => {
-    await ensureRepoProfile(path);
-    await act(`Push ${branch}`, () => ipc.push(path, pushRemoteFor(branch), false, false, true, branch));
-    void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
+    const makeContext = (): OperationContext => ({
+      path,
+      branches,
+      remotes,
+      source: 'graph-commit-menu',
+    });
+    await pushOperation(makeContext(), { branch, label: `Push ${branch}` });
   };
 
   const aheadOf = (branch: string): number => branches.find((b) => !b.isRemote && b.name === branch)?.ahead ?? 0;
@@ -342,7 +354,7 @@ export function CommitGraph() {
 
   return (
     <section className="relative flex h-full flex-col bg-background" aria-label="Commit history">
-      <GraphTailDefs />
+      {!compact && <GraphTailDefs />}
       <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle bg-surface px-3 py-2">
         <div className="relative w-64">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
@@ -412,49 +424,75 @@ export function CommitGraph() {
             </button>
           </span>
         )}
+        {selectedOids.length >= 2 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const sorted = selectedOids
+                .map((oid) => commits.find((c) => c.oid === oid))
+                .filter((c): c is CommitInfo => c !== undefined);
+              if (sorted.length >= 2) {
+                const oldest = sorted[sorted.length - 1];
+                const newest = sorted[0];
+                useUi.getState().openRangeDiff({
+                  fromOid: oldest.oid,
+                  toOid: newest.oid,
+                  fromLabel: oldest.shortOid,
+                  toLabel: newest.shortOid,
+                });
+              }
+            }}
+          >
+            <Combine className="size-3.5" />
+            View {selectedOids.length} commits diff
+          </Button>
+        )}
         <div className="ml-auto flex items-center gap-2 text-xs text-faint">
           {loading && <Spinner className="size-3.5" />}
           <span>
             {commits.length.toLocaleString()}
             {hasMore ? '+' : ''} commit{commits.length === 1 && !hasMore ? '' : 's'}
           </span>
-          <DropdownMenu>
-            <Hint label="Graph display">
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Graph display options">
-                  <Settings2 className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-            </Hint>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Show in graph</DropdownMenuLabel>
-              {(
-                [
-                  ['refs', 'Branches and tags'],
-                  ['message', 'Commit message'],
-                  ['author', 'Author'],
-                  ['hash', 'Hash'],
-                  ['date', 'Date'],
-                ] as const
-              ).map(([key, label]) => (
+          {!compact && (
+            <DropdownMenu>
+              <Hint label="Graph display">
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm" aria-label="Graph display options">
+                    <Settings2 className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </Hint>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Show in graph</DropdownMenuLabel>
+                {(
+                  [
+                    ['refs', 'Branches and tags'],
+                    ['message', 'Commit message'],
+                    ['author', 'Author'],
+                    ['hash', 'Hash'],
+                    ['date', 'Date'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={graphColumns[key]}
+                    onSelect={(e) => e.preventDefault()}
+                    onCheckedChange={(checked) => setGraphColumn(key, checked === true)}
+                  >
+                    {label}
+                  </DropdownMenuCheckboxItem>
+                ))}
                 <DropdownMenuCheckboxItem
-                  key={key}
-                  checked={graphColumns[key]}
+                  checked={graphTail}
                   onSelect={(e) => e.preventDefault()}
-                  onCheckedChange={(checked) => setGraphColumn(key, checked === true)}
+                  onCheckedChange={(checked) => setGraphTail(checked === true)}
                 >
-                  {label}
+                  Lane color band
                 </DropdownMenuCheckboxItem>
-              ))}
-              <DropdownMenuCheckboxItem
-                checked={graphTail}
-                onSelect={(e) => e.preventDefault()}
-                onCheckedChange={(checked) => setGraphTail(checked === true)}
-              >
-                Lane color band
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 
@@ -471,7 +509,7 @@ export function CommitGraph() {
           </span>
         )}
         <span className="shrink-0 truncate" style={{ width: gutterWidth, marginRight: GUTTER_GAP }}>
-          Graph
+          {compact ? null : 'Graph'}
         </span>
         {graphColumns.message && (
           <span className="min-w-0 flex-1 truncate">
@@ -518,7 +556,7 @@ export function CommitGraph() {
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
             {items.map((item) => {
-              const row = rows[item.index];
+              const row = displayRows[item.index];
               const commit = commits[item.index];
               if (!row || !commit) return null;
               return (

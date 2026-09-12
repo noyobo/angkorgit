@@ -7,7 +7,6 @@ import {
   Copy,
   FolderGit2,
   FolderOpen,
-  FolderTree,
   GitBranchPlus,
   MoreHorizontal,
   Search,
@@ -32,13 +31,15 @@ import {
   cn,
 } from '@angkorgit/design-system';
 import type { RecentRepository } from '@angkorgit/core';
-import { appVersion, ipc, pickDirectory } from '@/core/ipc';
+import { appVersion, ipc, pickDirectory, startWindowDrag } from '@/core/ipc';
 import { useRepo } from './store';
 import { useUi } from '@/features/ui/store';
 import { CloneDialog } from './CloneDialog';
 import { SettingsDialog } from '@/features/settings/SettingsDialog';
 import { SettingEmpty } from '@/features/settings/SettingCard';
+import { RepoMark } from '@/components/RepoMark';
 import { isMac, timeAgo } from '@/shared/utils';
+import { useListFocus } from '@/shared/useListFocus';
 
 function shortenHome(path: string): string {
   return path.replace(/^(\/Users\/[^/]+|\/home\/[^/]+|[A-Z]:\\Users\\[^\\]+)(?=[/\\]|$)/, '~');
@@ -48,9 +49,7 @@ export function WelcomePage() {
   const navigate = useNavigate();
   const { recents, open, opening, loadRecents } = useRepo();
   const openDialog = useUi((s) => s.openDialog);
-  const worktreeTabs = useUi((s) => s.worktreeTabs);
   const [query, setQuery] = useState('');
-  const [activeIndex, setActiveIndex] = useState(0);
   const [missing, setMissing] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ x: number; y: number; repo: RecentRepository } | null>(null);
   const [version, setVersion] = useState('');
@@ -87,10 +86,6 @@ export function WelcomePage() {
     );
   }, [recents, query]);
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
   const openRepository = async (path: string) => {
     if (useRepo.getState().opening !== null) return;
     if (missing.has(path)) {
@@ -99,6 +94,7 @@ export function WelcomePage() {
     }
     try {
       await open(path);
+      if (useRepo.getState().repo?.path !== path) return;
       navigate('/repo');
     } catch (error) {
       toast.error(`Could not open repository: ${(error as { message?: string }).message ?? error}`);
@@ -115,18 +111,11 @@ export function WelcomePage() {
     await loadRecents();
   };
 
-  const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((i) => Math.min(filtered.length - 1, i + 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => Math.max(0, i - 1));
-    } else if (e.key === 'Enter') {
-      const target = filtered[activeIndex];
-      if (target) void openRepository(target.path);
-    }
-  };
+  const listFocus = useListFocus({
+    items: filtered,
+    open: true,
+    onSelect: (repo) => void openRepository(repo.path),
+  });
 
   const openMenuAt = (x: number, y: number, repo: RecentRepository) => setMenu({ x, y, repo });
 
@@ -137,6 +126,13 @@ export function WelcomePage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
+      {isMac && (
+        <div
+          data-tauri-drag-region
+          className="absolute left-0 right-0 top-0 h-16 bg-transparent"
+          onPointerDown={startWindowDrag}
+        />
+      )}
       <TemplePattern className="[mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_75%)]" />
       <div className="relative w-full max-w-3xl">
         <div className="mb-10 flex items-center gap-4">
@@ -194,11 +190,12 @@ export function WelcomePage() {
               <div className="relative ml-auto w-56">
                 <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-faint" />
                 <Input
+                  ref={listFocus.inputRef}
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={onSearchKey}
-                  placeholder="Search, ↑↓ to choose, ⏎ to open"
+                  onKeyDown={listFocus.handleInputKeyDown}
+                  placeholder="Search, ↑↓⇥ to choose, ⏎ to open"
                   aria-label="Search recent repositories"
                   className="h-7 pl-8 text-xs"
                 />
@@ -227,38 +224,28 @@ export function WelcomePage() {
             ) : (
               filtered.map((repo, index) => {
                 const gone = missing.has(repo.path);
-                const isWorktree = worktreeTabs.includes(repo.path);
-                const active = index === activeIndex;
+                const active = index === listFocus.activeIndex;
+                const itemProps = listFocus.getItemProps(index);
                 return (
                   <div
                     key={repo.path}
-                    role="button"
-                    tabIndex={0}
+                    data-testid="recent-repo"
+                    data-path={repo.path}
                     aria-current={active || undefined}
                     className={cn(
                       'group flex items-center gap-3 rounded-md px-2.5 py-2 transition-colors',
                       gone ? 'cursor-default' : 'cursor-pointer hover:bg-surface-raised',
                       active && 'bg-surface-raised ring-1 ring-inset ring-primary/40',
                     )}
-                    onMouseEnter={() => setActiveIndex(index)}
+                    {...itemProps}
                     onClick={() => void openRepository(repo.path)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void openRepository(repo.path);
-                    }}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       openMenuAt(e.clientX, e.clientY, repo);
                     }}
                   >
-                    <span
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-md',
-                        gone ? 'bg-surface-raised text-faint' : 'bg-primary/10 text-primary',
-                      )}
-                    >
-                      {isWorktree ? <FolderTree className="size-4" /> : <FolderGit2 className="size-4" />}
-                    </span>
-                    <span className="flex min-w-0 flex-1 flex-col leading-tight">
+                    <RepoMark name={repo.name} size={32} faded={gone} />
+                    <span className="flex min-w-0 flex-1 select-none flex-col leading-tight">
                       <span className="flex items-center gap-2">
                         <span className={cn('truncate text-sm font-medium', gone ? 'text-muted' : 'text-foreground')}>
                           {repo.name}
@@ -278,19 +265,19 @@ export function WelcomePage() {
                     ) : (
                       <span className="shrink-0 text-xs text-faint">{timeAgo(repo.lastOpenedAt)}</span>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                    <button
+                      type="button"
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted opacity-0 hover:bg-surface-raised hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group-hover:opacity-100"
                       aria-label={`${repo.name} actions`}
                       onClick={(e) => {
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
                         openMenuAt(rect.left, rect.bottom + 4, repo);
                       }}
+                      onKeyDown={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="size-3.5" />
-                    </Button>
+                    </button>
                   </div>
                 );
               })

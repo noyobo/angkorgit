@@ -100,7 +100,7 @@ export function EditorPanel({ file }: { file: string }) {
           </Button>
         </Hint>
         <Pencil className="size-3.5 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 truncate font-mono text-xs">{file}</span>
+        <span className="min-w-0 flex-1 select-none truncate font-mono text-xs">{file}</span>
         {dirty && <Badge tone="primary">unsaved</Badge>}
         <Hint
           label={

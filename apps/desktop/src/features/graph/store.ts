@@ -3,6 +3,7 @@ import type { CommitInfo, HistoryPage, HistoryPosition } from '@angkorgit/core';
 import { GraphLayout, type GraphRow } from '@angkorgit/core';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
+import { useUi } from '@/features/ui/store';
 
 const PAGE_SIZE = 200;
 
@@ -60,6 +61,12 @@ const errorText = (error: unknown) =>
 
 const emptyFilters = (): GraphFilters => ({ branch: '' });
 
+function historyBranch(filters: GraphFilters): string | undefined {
+  if (filters.branch) return filters.branch;
+  if (useUi.getState().layout !== 'preview') return undefined;
+  return useRepo.getState().repo?.headBranch || undefined;
+}
+
 const sameQuery = (a: FindQuery | null, b: FindQuery) => a !== null && a.text === b.text && a.author === b.author;
 
 export const useGraph = create<GraphState>((set, get) => {
@@ -84,7 +91,7 @@ export const useGraph = create<GraphState>((set, get) => {
       const page = await ipc.history(path, {
         skip: commits.length,
         limit,
-        branch: filters.branch || undefined,
+        branch: historyBranch(filters),
       });
       if (seq !== requestSeq || get().lastPath !== path || get().layout !== layout) return false;
       appendPage(page, layout);
@@ -151,7 +158,7 @@ export const useGraph = create<GraphState>((set, get) => {
         const page = await ipc.history(path, {
           skip: 0,
           limit: loadedCount > PAGE_SIZE ? Math.max(PAGE_SIZE, loadedCount) : PAGE_SIZE,
-          branch: filters.branch || undefined,
+          branch: historyBranch(filters),
         });
         if (seq !== requestSeq || get().lastPath !== path) return;
         const layout = new GraphLayout();
@@ -215,7 +222,7 @@ export const useGraph = create<GraphState>((set, get) => {
         const result = await ipc.historySearch(path, {
           search: text,
           author: author || undefined,
-          branch: filters.branch || undefined,
+          branch: historyBranch(filters),
         });
         if (seq !== findSeq || get().lastPath !== path) return null;
         set({ find: { ...wanted, matches: result.matches, truncated: result.truncated, active: 0, loading: false } });
@@ -290,4 +297,10 @@ export const useGraph = create<GraphState>((set, get) => {
         return { selectedOids: s.commits.slice(lo, hi + 1).map((c) => c.oid) };
       }),
   };
+});
+
+useUi.subscribe((s, prev) => {
+  if (s.layout === prev.layout) return;
+  const path = useRepo.getState().repo?.path;
+  if (path) void useGraph.getState().reload(path);
 });

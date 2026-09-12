@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowRight, GitPullRequest, Sparkles, Square, Users } from 'lucide-react';
+import { ArrowRight, Eye, GitPullRequest, Sparkles, Square, Users } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -404,6 +404,29 @@ export function CreatePrDialog() {
           <Button variant="secondary" onClick={closeDialog}>
             Cancel
           </Button>
+          {base && source && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const baseBranch =
+                  branches.find((b) => !b.isRemote && b.name === base) ??
+                  branches.find((b) => b.name === `${remotePrefix}${base}`);
+                const headBranch = branches.find((b) => !b.isRemote && b.isHead);
+                if (baseBranch && headBranch) {
+                  closeDialog();
+                  useUi.getState().openRangeDiff({
+                    fromOid: baseBranch.targetOid,
+                    toOid: headBranch.targetOid,
+                    fromLabel: base,
+                    toLabel: source,
+                  });
+                }
+              }}
+            >
+              <Eye className="size-3.5" />
+              Preview diff
+            </Button>
+          )}
           <Button
             disabled={!title.trim() || !base || !source || notPushed || submitting}
             onClick={() => void submit()}

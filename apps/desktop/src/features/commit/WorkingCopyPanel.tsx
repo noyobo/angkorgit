@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
-import { AlertTriangle, Archive, Copy, ExternalLink, FolderOpen, History, Maximize2, Minus, Pencil, Plus, SearchCheck, Sparkles, Trash2, Undo2, X } from 'lucide-react';
+import { AlertTriangle, Archive, FileText, FolderGit2, History, Maximize2, Minus, Plus, SearchCheck, Sparkles, Trash2, Undo2, X } from 'lucide-react';
 import type { FileStatus } from '@angkorgit/core';
 import { aiCapabilities, buildStagedReviewSignature, filterFiles, hashText, PROJECT_REVIEW_FILE, joinCommitMessage, splitCommitMessage } from '@angkorgit/core';
 import {
@@ -37,6 +37,7 @@ import { confirmDialog } from '@/components/confirm';
 import { FileFilterInput } from '@/components/FileFilterInput';
 import { FileTree, treeIndent as sharedTreeIndent, FileTreeFoldButton, INITIAL_FOLD, nextFold, type FileTreeFold, type FileTreeFoldState } from '@/components/FileTree';
 import { basename, dirname } from '@/shared/utils';
+import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 
 function statusBadge(kind: string | null) {
   switch (kind) {
@@ -100,6 +101,25 @@ const FileRow = memo(function FileRow({
         {statusBadge(conflicted && !staged ? 'conflicted' : kind)}
         <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
           <span className="max-w-full shrink-0 truncate text-foreground">{basename(file.path)}</span>
+          {file.isSubmodule && (
+            <Hint
+              label={
+                file.submodulePointerChanged && file.submoduleHasChanges
+                  ? 'Submodule: commit pointer changed and has uncommitted changes inside'
+                  : file.submodulePointerChanged
+                    ? 'Submodule: commit pointer changed'
+                    : file.submoduleHasChanges
+                      ? 'Submodule: has uncommitted changes inside'
+                      : 'Submodule'
+              }
+              side="top"
+            >
+              <FolderGit2 className={cn(
+                'size-3.5 shrink-0',
+                file.submoduleHasChanges ? 'text-warning' : 'text-info'
+              )} />
+            </Hint>
+          )}
           {!treeMode && dirname(file.path) && (
             <span className="min-w-0 flex-1 truncate text-faint">{dirname(file.path)}</span>
           )}
@@ -199,6 +219,7 @@ export function WorkingCopyPanel() {
   const status = useRepo((s) => s.status);
   const conflicts = useRepo((s) => s.conflicts);
   const submodules = useRepo((s) => s.submodules);
+  const remotes = useRepo((s) => s.remotes);
   const refreshStatus = useRepo((s) => s.refreshStatus);
   const reloadGraph = useGraph((s) => s.reload);
   const selectedFile = useUi((s) => s.selectedFile);
@@ -207,6 +228,7 @@ export function WorkingCopyPanel() {
   const openEditor = useUi((s) => s.openEditor);
   const openConflict = useUi((s) => s.openConflict);
   const fileTree = useUi((s) => s.fileTree);
+  const externalEditor = useSettings((s) => s.externalEditor);
   const path = repo?.path ?? '';
   const message = useCommitDraft((s) => (path ? (s.drafts[path] ?? '') : ''));
   const amend = useCommitDraft((s) => !!path && s.amendFor === path);
@@ -220,6 +242,7 @@ export function WorkingCopyPanel() {
   const [stagedFold, setStagedFold] = useState<FileTreeFold>(INITIAL_FOLD);
   const [stagedFoldState, setStagedFoldState] = useState<FileTreeFoldState | null>(null);
   const commitBoxHeight = useUi((s) => s.commitBoxHeight);
+  const commitSummaryFocusSeq = useUi((s) => s.commitSummaryFocusSeq);
   const [resizing, setResizing] = useState(false);
   const startResize = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -712,7 +735,8 @@ export function WorkingCopyPanel() {
       index < 0 ? (direction === 1 ? 0 : visibleOrder.length - 1) : index + direction;
     const next = visibleOrder[nextIndex];
     if (!next) return;
-    selectFile({ path: next.file.path, staged: next.staged });
+    setMulti(null);
+    showDiff(next.file, next.staged);
     requestAnimationFrame(() => {
       listScrollRef.current
         ?.querySelector('[data-selected-file-row]')
@@ -727,6 +751,12 @@ export function WorkingCopyPanel() {
     listScrollRef.current?.focus();
     if (!useUi.getState().selectedFile && visibleOrder[0]) showDiff(visibleOrder[0].file, visibleOrder[0].staged);
   }, [inspectorFocusSeq, visibleOrder, showDiff]);
+
+  useEffect(() => {
+    if (commitSummaryFocusSeq === focusRequests.commitSummaryConsumed) return;
+    focusRequests.commitSummaryConsumed = commitSummaryFocusSeq;
+    summaryRef.current?.focus();
+  }, [commitSummaryFocusSeq]);
 
   const onListKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {
@@ -1032,6 +1062,29 @@ export function WorkingCopyPanel() {
             ) : (
             <>
             <DropdownMenuLabel className="max-w-64 truncate font-mono">{fileMenu.file.path}</DropdownMenuLabel>
+            <FileActionsMenu
+              repoPath={path}
+              filePath={fileMenu.file.path}
+              source="working-copy"
+              externalEditor={externalEditor}
+              remotes={remotes}
+              headBranch={repo?.headBranch ?? null}
+            >
+              {fileMenu.file.isSubmodule && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const subPath = `${path}/${fileMenu.file.path}`;
+                      useRepo.getState().open(subPath);
+                    }}
+                  >
+                    <FolderGit2 /> Open submodule
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+            </FileActionsMenu>
+            <DropdownMenuSeparator />
             {fileMenu.staged ? (
               <>
                 <DropdownMenuItem
@@ -1062,44 +1115,10 @@ export function WorkingCopyPanel() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => openEditor(fileMenu.file.path)}>
-              <Pencil /> Edit file
+              <FileText /> Edit in app
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => useUi.getState().openFileHistory(fileMenu.file.path)}>
               <History /> File history
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                void ipc
-                  .openPath(`${path}/${fileMenu.file.path}`)
-                  .catch((error) =>
-                    toast.error(
-                      `Could not open the file: ${(error as { message?: string }).message ?? error}`,
-                    ),
-                  )
-              }
-            >
-              <ExternalLink /> Open in external app
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                void ipc
-                  .revealPath(`${path}/${fileMenu.file.path}`)
-                  .catch((error) =>
-                    toast.error(
-                      `Could not reveal the file: ${(error as { message?: string }).message ?? error}`,
-                    ),
-                  )
-              }
-            >
-              <FolderOpen /> Show in Finder
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                void navigator.clipboard.writeText(fileMenu.file.path);
-                toast.success('Path copied');
-              }}
-            >
-              <Copy /> Copy path
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

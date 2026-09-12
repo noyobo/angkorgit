@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns2, Copy, FileText, History, Minus, Plus, Rows3, TextSelect, Trash2, WholeWord, WrapText, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns2, Copy, FileText, History, Menu, Minus, Plus, Rows3, TextSelect, Trash2, WholeWord, WrapText, X } from 'lucide-react';
 import type { CommitFileInfo, FileDiff } from '@angkorgit/core';
 import {
   Badge,
@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Hint,
@@ -21,6 +22,7 @@ import { confirmDialog } from '@/components/confirm';
 import type { LineMenuInfo } from './VirtualDiff';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
+import { useSettings } from '@/features/settings/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { captureSelectionRanges, useKeepSelection } from '@/shared/useKeepSelection';
 import { useUi, type CenterDiffTarget } from '@/features/ui/store';
@@ -29,15 +31,18 @@ import { wrapUnavailable } from './diffShared';
 import { useDiffFind } from './diffSearch';
 import { useDiffSelectAll } from './diffCopy';
 import { changeBlocks, DiffMinimap, scrollToFraction } from './DiffMinimap';
+import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 
 export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const repo = useRepo((s) => s.repo);
+  const remotes = useRepo((s) => s.remotes);
   const status = useRepo((s) => s.status);
   const statusVersion = useRepo((s) => s.statusVersion);
   const refreshStatus = useRepo((s) => s.refreshStatus);
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
   const openCenterDiff = useUi((s) => s.openCenterDiff);
   const openFileHistory = useUi((s) => s.openFileHistory);
+  const externalEditor = useSettings((s) => s.externalEditor);
   const diffView = useUi((s) => s.diffView);
   const setDiffView = useUi((s) => s.setDiffView);
   const wordDiff = useUi((s) => s.wordDiff);
@@ -66,26 +71,55 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const { selectAllOverlay, selectSide } = useDiffSelectAll(textDiff, scrollRef);
 
   const path = repo?.path ?? '';
-  const isWorkingCopy = target.oid === undefined;
+  const isWorkingCopy = target.oid === undefined && !target.fromOid;
+  const isRange = !!(target.fromOid && target.toOid);
   const [commitFileList, setCommitFileList] = useState<CommitFileInfo[]>([]);
   const commitFiles = useMemo(() => commitFileList.map((f) => f.path), [commitFileList]);
 
   useEffect(() => {
-    if (!path || !target.oid) {
+    if (!path) {
       setCommitFileList([]);
       return;
     }
-    let cancelled = false;
-    void ipc
-      .commitFiles(path, target.oid)
-      .then((files) => {
-        if (!cancelled) setCommitFileList(files);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [path, target.oid]);
+    if (target.oid) {
+      let cancelled = false;
+      void ipc
+        .commitFiles(path, target.oid)
+        .then((files) => {
+          if (!cancelled) setCommitFileList(files);
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (isRange) {
+      let cancelled = false;
+      void ipc
+        .rangeDiff(path, target.fromOid!, target.toOid!)
+        .then((diffs) => {
+          if (!cancelled) {
+            setCommitFileList(
+              diffs.map((d) => ({
+                path: d.path,
+                oldPath: d.oldPath ?? null,
+                status: d.status as CommitFileInfo['status'],
+                additions: d.additions,
+                deletions: d.deletions,
+                isBinary: d.isBinary,
+                isImage: d.isImage,
+                sourceOid: undefined,
+              })),
+            );
+          }
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setCommitFileList([]);
+  }, [path, target.oid, isRange, target.fromOid, target.toOid]);
 
   const workingSiblings = useMemo(
     () =>
@@ -192,10 +226,22 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
     if (!path) return;
     let cancelled = false;
     const seq = ++requestSeq.current;
-    const key = `${path}|${target.path}|${target.oid ?? ''}|${target.staged ?? false}|${fullFileDiff}|${reloadToken}`;
+    const key = `${path}|${target.path}|${target.oid ?? ''}|${target.fromOid ?? ''}|${target.toOid ?? ''}|${target.staged ?? false}|${fullFileDiff}|${reloadToken}`;
     if (loadedKey.current !== key) setLoading(true);
     const context = fullFileDiff ? 10_000_000 : undefined;
     const load = async (): Promise<FileDiff | null> => {
+      if (isRange && target.fromOid && target.toOid) {
+        const diffs = await ipc.rangeDiff(path, target.fromOid, target.toOid, context);
+        const match = diffs.find((d) => d.path === target.path);
+        if (!match) return null;
+        const untouched =
+          match.hunks.length === 0 &&
+          match.additions === 0 &&
+          match.deletions === 0 &&
+          !match.isBinary &&
+          !match.isImage;
+        return untouched ? null : match;
+      }
       if (target.oid) {
         const result = await ipc.commitFileDiff(
           path,
@@ -267,8 +313,31 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             <X className="size-4" />
           </Button>
         </Hint>
-        <span className="min-w-0 flex-1 truncate font-mono text-xs">{target.path}</span>
-        {target.oid ? (
+        <span className="min-w-0 flex-1 select-none truncate font-mono text-xs">{target.path}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="File actions">
+              <Menu className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom">
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">{target.path}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <FileActionsMenu
+              repoPath={path}
+              filePath={target.path}
+              source="diff-panel"
+              externalEditor={externalEditor}
+              remotes={remotes}
+              headBranch={repo?.headBranch ?? null}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {isRange ? (
+          <Badge tone="neutral" className="font-mono text-[10px]">
+            {target.fromOid!.slice(0, 7)}..{target.toOid!.slice(0, 7)}
+          </Badge>
+        ) : target.oid ? (
           <Badge tone="neutral" className="font-mono">
             {target.oid.slice(0, 8)}
           </Badge>

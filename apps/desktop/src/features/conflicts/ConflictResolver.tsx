@@ -1236,7 +1236,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                     aria-label="Take all lines from side A"
                   />
                   <Badge tone="info">A</Badge>
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-info">{aLabel}</span>
+                  <span className="min-w-0 flex-1 select-none truncate text-xs font-medium text-info">{aLabel}</span>
                   <Hint label={sideHint(repoState, 'current')}>
                     <span className="shrink-0 cursor-help text-[10px] uppercase tracking-wide text-faint">current</span>
                   </Hint>
@@ -1248,7 +1248,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                     aria-label="Take all lines from side B"
                   />
                   <Badge tone="success">B</Badge>
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium text-success">{bLabel}</span>
+                  <span className="min-w-0 flex-1 select-none truncate text-xs font-medium text-success">{bLabel}</span>
                   <Hint label={sideHint(repoState, 'incoming')}>
                     <span className="shrink-0 cursor-help text-[10px] uppercase tracking-wide text-faint">incoming</span>
                   </Hint>
