@@ -21,7 +21,7 @@ Trunk is **`main` only** — there is no long-lived `dev` branch.
    ```
 4. Open a PR **into `main`** with a conventional-commit title, a short "why", and screenshots for UI changes. Delete the branch after merge.
 
-Agents: see [`AGENTS.md`](../AGENTS.md).
+Agents: branching and project conventions live in [`CLAUDE.md`](../CLAUDE.md) (§10).
 
 ## What makes a good first contribution
 
