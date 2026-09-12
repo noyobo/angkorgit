@@ -269,7 +269,8 @@ jobs:
           echo "Waiting for server..."
           for i in {1..30}; do
             if curl -s http://localhost:1420 > /dev/null; then
-              echo "Server is ready"
+              echo "Server is ready, waiting 5s for app to initialize..."
+              sleep 5
               break
             fi
             sleep 1

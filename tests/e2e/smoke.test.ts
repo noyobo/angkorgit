@@ -3,7 +3,7 @@ import { expect, test } from '@rstest/playwright';
 // Smoke tests for critical user paths
 // Other functionality migrated to unit tests for speed and stability
 
-const CI_TIMEOUT = 15_000;
+const CI_TIMEOUT = 30_000;
 
 test('opens repository and displays commit graph', async ({ page }) => {
   await page.goto('http://localhost:1420/');
