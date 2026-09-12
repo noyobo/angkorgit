@@ -4,10 +4,10 @@ This document tracks behavioral alignment between AngKorGit's libgit2-based engi
 
 ## Architecture Context
 
-**AngKorGit** uses libgit2 (via Rust `git2` crate) for size/performance (12 MB vs ~1 GB for Electron+git).
-**GitHub Desktop** shells to embedded git CLI (perfect alignment, larger bundle).
+**AngKorGit** uses libgit2 (via Rust `git2` crate). Decision: [ADR 0004](./adr/0004-libgit2-is-the-engine.md).
+**GitHub Desktop** shells to embedded git CLI (dugite).
 
-This trade-off requires **deliberate semantic alignment** where libgit2 and git CLI differ.
+This trade-off requires **deliberate semantic alignment** where libgit2 and git CLI differ. Oracle for Remote effects is CI's `git`, not a second engine.
 
 ## Implemented Parity (2026-09-11)
 

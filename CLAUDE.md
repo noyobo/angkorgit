@@ -1921,8 +1921,7 @@ plugin can be added), and the Homebrew cask.
   `## Notes`; (5) `## Install` — Platform/File table with this version's exact
   artifact names; (6) footer line: first-launch guide · changelog · issues links.
   Never paste raw CHANGELOG sections as release notes.
-- Repo remote: `git@github.com:cheat2001/angkorgit.git` (SSH). The owner's key is
-  `~/.ssh/angkorgit_rsa`, selected for github.com via `~/.ssh/config`.
+- Repo remote: `git@github.com:noyobo/angkorgit.git` (SSH). Issues and PRs for this codebase go here, not to `cheat2001/angkorgit`.
 
 ## 11. Backlog (agreed direction, not yet built)
 
