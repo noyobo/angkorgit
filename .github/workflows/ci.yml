@@ -264,7 +264,9 @@ jobs:
           fi
       - name: Serve production build and run tests
         run: |
-          # Serve the production build with a simple HTTP server
+          # IMPORTANT: Use production build, NOT dev server
+          # Rspack lazy compilation in dev mode causes 404s and MIME type errors in CI
+          # See docs/E2E-TESTING.md for details
           cd apps/desktop/dist
           python3 -m http.server 1420 &
           SERVER_PID=$!

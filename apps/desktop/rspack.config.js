@@ -19,6 +19,11 @@ const getGitHash = () => {
 const isDev = process.env.NODE_ENV !== 'production';
 const isCi = Boolean(process.env.CI);
 
+// Note: Lazy compilation is enabled by default in dev mode
+// This is fine for local development but causes issues in E2E tests
+// E2E tests use production builds to avoid lazy compilation problems
+// See docs/E2E-TESTING.md for details
+
 export default defineConfig({
   entry: {
     main: './src/main.tsx',
