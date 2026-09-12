@@ -52,11 +52,11 @@ test('resolves conflict by picking side', async ({ page }) => {
 
 test('opens blame view from working copy file menu', async ({ page }) => {
   console.time('⏱️ Total test time');
-
+  
   console.time('1. Page load');
   await page.goto('http://localhost:1420/');
   console.timeEnd('1. Page load');
-
+  
   console.time('2. Open repo');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -84,7 +84,7 @@ test('opens blame view from working copy file menu', async ({ page }) => {
     timeout: CI_TIMEOUT,
   });
   console.timeEnd('7. Verify hunk visible');
-
+  
   console.timeEnd('⏱️ Total test time');
 });
 
@@ -115,7 +115,7 @@ test.skip('opens blame at specific commit from commit details', async ({ page })
   });
 });
 
-test.skip('closes blame view with Escape key', async ({ page }) => {
+test('closes blame view with Escape key', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -137,7 +137,7 @@ test.skip('closes blame view with Escape key', async ({ page }) => {
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
 });
 
-test.skip('displays blame hunks with author and commit info', async ({ page }) => {
+test('displays blame hunks with author and commit info', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -171,7 +171,7 @@ test.skip('displays blame hunks with author and commit info', async ({ page }) =
   expect(authorText?.length).toBeGreaterThan(0);
 });
 
-test.skip('clicks hunk to navigate to commit in graph', async ({ page }) => {
+test('clicks hunk to navigate to commit in graph', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -206,7 +206,7 @@ test.skip('clicks hunk to navigate to commit in graph', async ({ page }) => {
   });
 });
 
-test.skip('opens blame from diff panel toolbar button', async ({ page }) => {
+test('opens blame from diff panel toolbar button', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -241,7 +241,7 @@ test.skip('opens blame from diff panel toolbar button', async ({ page }) => {
   }
 });
 
-test.skip('right-click hunk menu provides copy actions', async ({ page }) => {
+test('right-click hunk menu provides copy actions', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -273,7 +273,7 @@ test.skip('right-click hunk menu provides copy actions', async ({ page }) => {
   expect(itemCount).toBeGreaterThan(0);
 });
 
-test.skip('switches between working copy and specific commit blame', async ({ page }) => {
+test('switches between working copy and specific commit blame', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -303,7 +303,7 @@ test.skip('switches between working copy and specific commit blame', async ({ pa
   }
 });
 
-test.skip('opens file history from blame panel', async ({ page }) => {
+test('opens file history from blame panel', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
