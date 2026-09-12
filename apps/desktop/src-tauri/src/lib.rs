@@ -123,6 +123,7 @@ pub fn run() {
             commands::history_file,
             commands::repo_files,
             commands::branch_list,
+            commands::branch_list_stale_locals,
             commands::branch_create,
             commands::branch_delete,
             commands::branch_delete_local_and_remote,
