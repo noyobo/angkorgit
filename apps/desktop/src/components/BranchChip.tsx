@@ -27,6 +27,7 @@ export function BranchChip() {
           isMac && 'pointer-events-auto',
         )}
         aria-label="Switch branch"
+        data-testid="title-bar-branch-chip"
         onClick={() => setBranchSwitcherOpen(true)}
       >
         <GitBranch className="size-3 shrink-0 text-muted group-hover:text-foreground" />

@@ -96,16 +96,16 @@ test('the status bar branch name opens a local branch switcher', async ({ page }
   await page.goto('/');
   await page.getByText('angkorgit', { exact: true }).first().click();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: 'Switch branch' }).click();
+  await page.getByTestId('status-bar-branch').click();
   const filter = page.getByPlaceholder('Filter branches…');
   await expect(filter).toBeFocused();
-  await expect(page.getByRole('menuitem', { name: 'develop' })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /develop/ })).toContainText(/ago|just now/);
-  await expect(page.getByRole('menuitem', { name: 'origin/main' })).toHaveCount(0);
+  await expect(page.getByRole('option', { name: 'develop' })).toBeVisible();
+  await expect(page.getByRole('option', { name: /develop/ })).toContainText(/ago|just now/);
+  await expect(page.getByRole('option', { name: 'origin/main' })).toHaveCount(0);
   await filter.fill('origin');
   await expect(page.getByText('No branches match')).toBeVisible();
   await filter.fill('develop');
-  await page.getByRole('menuitem', { name: 'develop' }).click();
+  await page.getByRole('option', { name: 'develop' }).click();
   await expect(page.getByText('Checkout develop done')).toBeVisible();
 });
 

@@ -52,6 +52,7 @@ export function StatusBar() {
         type="button"
         className="flex min-w-0 max-w-56 items-center gap-1.5 rounded px-1 hover:bg-surface-raised hover:text-foreground"
         aria-label="Switch branch"
+        data-testid="status-bar-branch"
         onClick={() => useUi.getState().setBranchSwitcherOpen(true)}
       >
         <GitBranch className="size-3 shrink-0" />
