@@ -312,10 +312,6 @@ export const ipc = {
     if (!isTauri()) return demo.demoBranches;
     return invoke('branch_list', { path });
   },
-  async listStaleLocals(path: string): Promise<string[]> {
-    if (!isTauri()) return [];
-    return invoke('branch_list_stale_locals', { path });
-  },
   async createBranch(path: string, name: string, fromOid: string | null, checkout: boolean): Promise<void> {
     if (!isTauri()) return;
     return invoke('branch_create', { path, name, fromOid, checkout });

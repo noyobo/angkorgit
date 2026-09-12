@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { AlertTriangle } from 'lucide-react';
-import type { StaleLocalRow } from '@angkorgit/core';
+import type { EligibleBranch } from '@angkorgit/core';
 import {
   Button,
   Dialog,
@@ -14,8 +14,8 @@ import {
 import { BranchPickList } from './BranchPickList';
 
 interface StaleLocalsState {
-  request: { rows: StaleLocalRow[]; resolve: (names: string[] | null) => void } | null;
-  ask: (rows: StaleLocalRow[]) => Promise<string[] | null>;
+  request: { rows: EligibleBranch[]; resolve: (names: string[] | null) => void } | null;
+  ask: (rows: EligibleBranch[]) => Promise<string[] | null>;
   settle: (names: string[] | null) => void;
 }
 
@@ -32,7 +32,7 @@ const useStaleLocalsStore = create<StaleLocalsState>((set, get) => ({
   },
 }));
 
-export function pickStaleLocals(rows: StaleLocalRow[]): Promise<string[] | null> {
+export function pickStaleLocals(rows: EligibleBranch[]): Promise<string[] | null> {
   return useStaleLocalsStore.getState().ask(rows);
 }
 

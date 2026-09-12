@@ -430,10 +430,6 @@ pub async fn branch_list(path: String) -> AppResult<Vec<BranchInfo>> {
 }
 
 #[tauri::command]
-pub async fn branch_list_stale_locals(path: String) -> AppResult<Vec<String>> {
-    blocking(move || branch::list_stale_locals(&path)).await
-}
-
 #[tauri::command]
 pub async fn branch_create(
     path: String,

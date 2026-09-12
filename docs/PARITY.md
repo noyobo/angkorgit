@@ -39,7 +39,7 @@ This trade-off requires **deliberate semantic alignment** where libgit2 and git 
 | Clone default branch | Honor `init.defaultBranch` config | ✅ |
 | Reset --keep | Refuse when local changes would be lost | ✅ |
 | Submodule --recursive | Recursively update nested submodules | ✅ |
-| Stale branch detection | `list_stale_locals()` for upstream-gone cleanup | ✅ |
+| Stale branch detection | TypeScript eligibility classifier for upstream-gone cleanup | ✅ |
 
 ## Merge/Rebase Strategy
 
