@@ -16,6 +16,24 @@ body {
   @apply bg-background font-sans text-sm text-foreground antialiased;
 }
 
+/* Desktop chrome is not a document: selection is off unless opted in. */
+html {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable="true"],
+pre,
+[data-diff-pane],
+[data-diff-layer] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+::selection {
+  background-color: hsl(var(--primary) / 0.35);
+}
+
 /* Subtle scrollbars everywhere */
 * {
   scrollbar-width: thin;

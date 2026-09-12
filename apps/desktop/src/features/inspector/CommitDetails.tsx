@@ -431,7 +431,7 @@ export function CommitDetails({
 
   return (
     <div ref={scrollRef} className="flex h-full flex-col overflow-y-auto">
-      <div className="border-b border-border-subtle px-4 pb-4 pt-3">
+      <div className="select-text border-b border-border-subtle px-4 pb-4 pt-3">
         <h2 className="text-sm font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">
           {commit.summary}
         </h2>

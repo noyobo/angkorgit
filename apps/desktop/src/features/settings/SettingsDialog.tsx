@@ -216,7 +216,7 @@ function SshCard() {
 
         {publicKey && (
           <div className="flex flex-col gap-2 rounded-md border border-border-subtle bg-surface-raised p-2.5">
-            <p className="break-all font-mono text-xs text-muted">{publicKey}</p>
+            <p className="select-text break-all font-mono text-xs text-muted">{publicKey}</p>
             <Button
               variant="ghost"
               size="sm"
@@ -667,7 +667,9 @@ function CliToolCard() {
 angkorgit open [path]
 angkorgit clone [-b branch] <url>`}
       </pre>
-      {status && <p className="mt-1 text-[11px] leading-relaxed text-faint">{status.path}</p>}
+      {status && (
+        <p className="mt-1 select-text text-[11px] leading-relaxed text-faint">{status.path}</p>
+      )}
     </SettingCard>
   );
 }

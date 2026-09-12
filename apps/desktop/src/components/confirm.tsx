@@ -60,7 +60,7 @@ function PathBlock({ path }: { path: string }) {
   const segments = path.split('/');
   const name = segments.pop() ?? path;
   return (
-    <p className="mt-1 max-h-32 overflow-y-auto rounded-md border border-border-subtle bg-surface-raised px-2 py-1.5 font-mono text-xs leading-relaxed [overflow-wrap:anywhere]">
+    <p className="mt-1 max-h-32 select-text overflow-y-auto rounded-md border border-border-subtle bg-surface-raised px-2 py-1.5 font-mono text-xs leading-relaxed [overflow-wrap:anywhere]">
       {segments.map((segment, index) => (
         <span key={index} className="text-muted">
           {segment}/<wbr />
@@ -91,7 +91,7 @@ export function ConfirmHost() {
           <DialogDescription>{request?.description}</DialogDescription>
           {request?.path && <PathBlock path={request.path} />}
           {request?.list && request.list.length > 0 && (
-            <ul className="mt-1 max-h-32 overflow-y-auto rounded-md border border-border-subtle bg-surface-raised px-2 py-1.5 font-mono text-xs leading-relaxed">
+            <ul className="mt-1 max-h-32 select-text overflow-y-auto rounded-md border border-border-subtle bg-surface-raised px-2 py-1.5 font-mono text-xs leading-relaxed">
               {request.list.map((name) => (
                 <li key={name} className="truncate [overflow-wrap:anywhere]">
                   {name}
