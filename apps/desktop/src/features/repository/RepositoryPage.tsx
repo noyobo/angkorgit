@@ -25,11 +25,10 @@ import { useShortcuts } from '@/shared/useShortcuts';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings } from '@/features/settings/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
-import { ipc, listen, openExternal } from '@/core/ipc';
+import { ipc, listen } from '@/core/ipc';
 import { Logo } from '@angkorgit/design-system';
 import { basename } from '@/shared/utils';
 import { toast } from 'sonner';
-import { toastOutcome } from '@/shared/toastOutcome';
 
 const OVERLAY_SHOW_DELAY = 250;
 const OVERLAY_MIN_VISIBLE = 450;

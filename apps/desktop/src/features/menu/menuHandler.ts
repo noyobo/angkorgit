@@ -11,10 +11,8 @@ import {
   pullOperation,
   fetchOperation,
   viewOnRemoteOperation,
-  type OperationContext,
 } from '@/features/repository/operations';
 import { toast } from 'sonner';
-import { toastOutcome } from '@/shared/toastOutcome';
 import { logger } from '@/core/logger';
 
 type MenuEventId =
