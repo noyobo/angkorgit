@@ -37,6 +37,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@angkorgit/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
       '@angkorgit/design-system': path.resolve(__dirname, '../../packages/design-system/src/index.ts'),
+      // Ensure all modules use the same React instance (fixes "Invalid hook call")
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
   },
   module: {

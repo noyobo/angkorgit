@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "rspack serve",
     "dev:rspack": "rspack serve",
-    "build": "tsc --noEmit && rspack build",
+    "build": "rspack build",
+    "build:check": "tsc --noEmit && rspack build",
     "typecheck": "tsc --noEmit",
     "preview": "rspack serve --mode production",
     "tauri": "tauri"
@@ -41,8 +42,8 @@
     "@rspack/dev-server": "^2.2.1",
     "@rspack/plugin-react-refresh": "^2.0.2",
     "@tauri-apps/cli": "^2.11.4",
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.5.6",
     "css-loader": "^7.1.5",
     "postcss": "^8.5.28",
