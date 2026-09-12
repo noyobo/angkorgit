@@ -289,7 +289,7 @@ pub async fn open_in_editor(path: String, editor: String) -> AppResult<()> {
                     "webstorm" => "webstorm",
                     "phpstorm" => "phpstorm",
                     "idea" => "idea",
-                    _ => return crate::proc::hidden("xdg-open").arg(&path).status(),
+                    _ => "xdg-open",
                 };
                 crate::proc::hidden(cmd).arg(&path).status()
             }
