@@ -247,19 +247,23 @@ jobs:
           else
             bunx playwright install --with-deps chromium
           fi
-      - name: Start dev server and run tests
+      - name: Serve production build and run tests
         run: |
-          bun run test:e2e:server &
+          # Serve the production build with a simple HTTP server
+          cd apps/desktop/dist
+          python3 -m http.server 1420 &
           SERVER_PID=$!
+          cd ../../..
+          
           echo "Waiting for server..."
           for i in {1..30}; do
             if curl -s http://localhost:1420 > /dev/null; then
-              echo "Server is ready, waiting 5s for app to initialize..."
-              sleep 5
+              echo "Server is ready"
               break
             fi
             sleep 1
           done
+          
           bun run test:e2e
           kill $SERVER_PID || true
 
