@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
+import { Panel, Group, Separator, type PanelImperativeHandle } from 'react-resizable-panels';
 import { cn } from '@angkorgit/design-system';
 import { CommitGraph } from '@/features/graph/CommitGraph';
 import { DiffPanel } from '@/features/diff/DiffPanel';
@@ -92,16 +92,15 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
 
   const showSidebarRef = useRef(view.showSidebar);
   showSidebarRef.current = view.showSidebar;
-  const sidebarDragging = useRef(false);
-  const sidebarPanel = useRef<ImperativePanelHandle>(null);
-  const inspectorPanel = useRef<ImperativePanelHandle>(null);
+  const sidebarPanel = useRef<PanelImperativeHandle>(null);
+  const inspectorPanel = useRef<PanelImperativeHandle>(null);
   const inspectorSizeBeforeFocus = useRef<number | null>(null);
 
   useEffect(() => {
     const panel = sidebarPanel.current;
     if (!panel) return;
     if (view.showSidebar) {
-      if (panel.isCollapsed()) panel.expand(SIDEBAR_DEFAULT_SIZE);
+      if (panel.isCollapsed()) panel.expand();
     } else if (!panel.isCollapsed()) {
       panel.collapse();
     }
@@ -112,13 +111,13 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
     if (!panel) return;
     if (view.focusMode) {
       if (!panel.isCollapsed()) {
-        inspectorSizeBeforeFocus.current = panel.getSize();
+        const size = panel.getSize();
+        inspectorSizeBeforeFocus.current = size.asPercentage;
         panel.collapse();
       }
-    } else {
-      const restore = inspectorSizeBeforeFocus.current;
+    } else if (panel.isCollapsed()) {
+      panel.expand();
       inspectorSizeBeforeFocus.current = null;
-      if (restore != null && restore >= INSPECTOR_MIN_SIZE) panel.resize(restore);
     }
   }, [view.focusMode, repoPath]);
 
@@ -137,18 +136,17 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
   if (view.layout === 'preview') {
     return (
       <div className="h-full" data-workspace-layout="preview">
-        <PanelGroup direction="vertical" autoSaveId="angkorgit-preview-v1">
+        <Group orientation="vertical" id="angkorgit-preview-v1">
           <Panel minSize={30}>
             {view.showDiffDock ? (
-              <PanelGroup direction="horizontal" autoSaveId="angkorgit-preview-cols-v2">
-                <Panel id="graph" order={1} defaultSize={28} minSize={18}>
+              <Group orientation="horizontal" id="angkorgit-preview-cols-v2">
+                <Panel id="graph" defaultSize={28} minSize={18}>
                   {graph}
                 </Panel>
-                <PanelResizeHandle className={cn('w-px bg-border-subtle', view.focusMode && 'hidden')} />
+                <Separator className={cn('w-px bg-border-subtle', view.focusMode && 'hidden')} />
                 <Panel
-                  ref={inspectorPanel}
+                  panelRef={inspectorPanel}
                   id="inspector"
-                  order={2}
                   defaultSize={24}
                   minSize={INSPECTOR_MIN_SIZE}
                   maxSize={40}
@@ -157,87 +155,60 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
                 >
                   {!view.focusMode && <Inspector />}
                 </Panel>
-                <PanelResizeHandle className="w-px bg-border-subtle" />
-                <Panel id="diff" order={3} defaultSize={DIFF_DOCK_DEFAULT_SIZE} minSize={22}>
+                <Separator className="w-px bg-border-subtle" />
+                <Panel id="diff" defaultSize={DIFF_DOCK_DEFAULT_SIZE} minSize={22}>
                   <DiffDock target={centerDiff} />
                 </Panel>
-              </PanelGroup>
+              </Group>
             ) : (
               graph
             )}
           </Panel>
           {terminalOpen && (
             <>
-              <PanelResizeHandle className="h-px bg-border-subtle" />
+              <Separator className="h-px bg-border-subtle" />
               <Panel defaultSize={30} minSize={12} maxSize={60}>
                 <TerminalSlot />
               </Panel>
             </>
           )}
-        </PanelGroup>
+        </Group>
       </div>
     );
   }
 
   return (
     <div className="h-full" data-workspace-layout="standard">
-      <PanelGroup direction="horizontal" autoSaveId="angkorgit-main-v2">
+      <Group orientation="horizontal" id="angkorgit-main-v2">
         <Panel
-          ref={sidebarPanel}
+          panelRef={sidebarPanel}
           id="sidebar"
-          order={1}
           defaultSize={SIDEBAR_DEFAULT_SIZE}
           minSize={13}
           maxSize={30}
           collapsible
           collapsedSize={0}
-          onCollapse={() => {
-            if (sidebarDragging.current) {
-              if (workspaceView(useUi.getState()).showSidebar) useUi.getState().setSidebarOpen(false);
-              return;
-            }
-            if (showSidebarRef.current) {
-              requestAnimationFrame(() => {
-                const panel = sidebarPanel.current;
-                if (panel && showSidebarRef.current && panel.isCollapsed()) panel.expand(SIDEBAR_DEFAULT_SIZE);
-              });
-            }
-          }}
-          onExpand={() => {
-            if (!sidebarDragging.current) return;
-            const ui = useUi.getState();
-            const next = workspaceView(ui);
-            if (!ui.sidebarOpen && next.layout === 'standard' && !next.diffInCenter && !next.focusMode) {
-              ui.setSidebarOpen(true);
-            }
-          }}
         >
           {view.showSidebar && <Sidebar />}
         </Panel>
-        <PanelResizeHandle
-          className={cn('w-px bg-border-subtle', !view.showSidebar && 'hidden')}
-          onDragging={(dragging) => {
-            sidebarDragging.current = dragging;
-          }}
-        />
-        <Panel id="center" order={2} defaultSize={54} minSize={30}>
-          <PanelGroup direction="vertical" autoSaveId="angkorgit-center">
+        <Separator className={cn('w-px bg-border-subtle', !view.showSidebar && 'hidden')} />
+        <Panel id="center" defaultSize={54} minSize={30}>
+          <Group orientation="vertical" id="angkorgit-center">
             <Panel minSize={30}>{graph}</Panel>
             {terminalOpen && (
               <>
-                <PanelResizeHandle className="h-px bg-border-subtle" />
+                <Separator className="h-px bg-border-subtle" />
                 <Panel defaultSize={30} minSize={12} maxSize={60}>
                   <TerminalSlot />
                 </Panel>
               </>
             )}
-          </PanelGroup>
+          </Group>
         </Panel>
-        <PanelResizeHandle className={cn('w-px bg-border-subtle', view.focusMode && 'hidden')} />
+        <Separator className={cn('w-px bg-border-subtle', view.focusMode && 'hidden')} />
         <Panel
-          ref={inspectorPanel}
+          panelRef={inspectorPanel}
           id="inspector"
-          order={3}
           defaultSize={INSPECTOR_DEFAULT_SIZE}
           minSize={INSPECTOR_MIN_SIZE}
           maxSize={45}
@@ -246,7 +217,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
         >
           {!view.focusMode && <Inspector />}
         </Panel>
-      </PanelGroup>
+      </Group>
     </div>
   );
 }
