@@ -19,7 +19,7 @@ pub mod test_api {
     pub use crate::core::branch::{
         can_fast_forward, checkout_branch, cherry_pick, cherry_pick_many, create as branch_create,
         delete as branch_delete, delete_local_and_remote as branch_delete_local_and_remote,
-        list as branches, list_stale_locals, merge, rebase, rebase_commits, rebase_interactive,
+        list as branches, merge, rebase, rebase_commits, rebase_interactive,
         reset,
     };
     pub use crate::core::commit::{amend, commit, merge_message, revert};
@@ -127,7 +127,6 @@ pub fn run() {
             commands::history_file,
             commands::repo_files,
             commands::branch_list,
-            commands::branch_list_stale_locals,
             commands::branch_create,
             commands::branch_delete,
             commands::branch_delete_local_and_remote,

@@ -89,7 +89,7 @@ async function invoke<T>(command: string, args?: Record<string, unknown>): Promi
     return result;
   } catch (error) {
     const duration = performance.now() - start;
-    void logger.cmd(command, args, { duration: Math.round(duration), status: 'error', error: String(error) });
+    void logger.cmd(command, args, { duration: Math.round(duration), status: 'error' });
     throw error;
   }
 }
@@ -312,10 +312,6 @@ export const ipc = {
     if (!isTauri()) return demo.demoBranches;
     return invoke('branch_list', { path });
   },
-  async listStaleLocals(path: string): Promise<string[]> {
-    if (!isTauri()) return [];
-    return invoke('branch_list_stale_locals', { path });
-  },
   async createBranch(path: string, name: string, fromOid: string | null, checkout: boolean): Promise<void> {
     if (!isTauri()) return;
     return invoke('branch_create', { path, name, fromOid, checkout });
@@ -466,7 +462,7 @@ export const ipc = {
     }
     
     try {
-      const result = await invoke('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
+      const result = await invoke<OpOutcome>('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
       await logger.push(attemptId, source ?? 'unknown', { ...meta, status: result.status, result: 'completed' });
       return result;
     } catch (error) {

@@ -2499,29 +2499,6 @@ fn force_with_lease_refuses_when_remote_moved_unexpectedly() {
 }
 
 #[test]
-fn list_stale_locals_detects_branches_with_gone_upstream() {
-    let local = TempRepo::new();
-    local.write("a.txt", "initial\n");
-    commit_all(&local, "initial");
-    
-    let remote = TempRepo::bare_clone(&local);
-    core::remote_edit(local.path(), "origin", "origin", remote.path()).unwrap();
-    
-    core::branch_create(local.path(), "feature", None, false).unwrap();
-    core::checkout_branch(local.path(), "feature").unwrap();
-    local.write("b.txt", "feature\n");
-    commit_all(&local, "feature");
-    core::push(local.path(), "origin", Some("feature"), false, false, true).unwrap();
-    
-    core::checkout_branch(local.path(), "main").unwrap();
-    core::push_delete(local.path(), "origin", "refs/heads/feature").unwrap();
-    core::fetch(local.path(), "origin", false, true).unwrap();
-    
-    let stale = core::list_stale_locals(local.path()).unwrap();
-    assert!(stale.contains(&"feature".to_string()));
-}
-
-#[test]
 fn pull_respects_pull_rebase_config() {
     let local = TempRepo::new();
     local.write("a.txt", "initial\n");

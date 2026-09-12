@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
-import { classifyDeletableLocals, remoteDeleteTarget } from '@angkorgit/core';
-import type { BranchInfo, DeletableLocalRow } from '@angkorgit/core';
+import { eligibleLocals, remoteDeleteTarget } from '@angkorgit/core';
+import type { BranchInfo, EligibleBranch } from '@angkorgit/core';
 import { ipc } from '@/core/ipc';
 import { pickDeleteBranches } from '@/components/deleteBranchesDialog';
 import { useUndo } from '@/features/history/undoStore';
@@ -93,7 +93,7 @@ export async function openDeleteBranches(refresh: () => Promise<void>): Promise<
       .filter((wt) => wt.branch && !wt.isCurrent)
       .map((wt) => [wt.branch as string, wt.name]),
   );
-  const rows: DeletableLocalRow[] = classifyDeletableLocals({ locals: branches, heldBy });
+  const rows: EligibleBranch[] = eligibleLocals({ kind: 'age', locals: branches, heldBy });
   const choice = await pickDeleteBranches(rows, remotes.length > 0);
   if (!choice?.names.length) return;
   const oidOf = Object.fromEntries(rows.map((row) => [row.name, row.oid]));

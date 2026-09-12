@@ -39,7 +39,6 @@ This trade-off requires **deliberate semantic alignment** where libgit2 and git 
 | Clone default branch | Honor `init.defaultBranch` config | ✅ |
 | Reset --keep | Refuse when local changes would be lost | ✅ |
 | Submodule --recursive | Recursively update nested submodules | ✅ |
-| Stale branch detection | `list_stale_locals()` for upstream-gone cleanup | ✅ |
 
 ## Merge/Rebase Strategy
 
@@ -92,6 +91,24 @@ Current approach is **acceptable** — conflicts are rare enough that the size/p
 - Staged discard = `git restore --source=HEAD --worktree --staged <file>`
 
 No gaps found.
+
+## Branch Deletion Eligibility
+
+**Architecture decision** (2026-09): Branch deletion eligibility classification is a **pure TypeScript concern**.
+
+**Rationale**:
+- Rust `list_stale_locals()` was wired to IPC but never called by the frontend
+- Two separate TS classifiers (`staleLocals.ts`, `branchPick.ts`) already existed
+- Classification logic has no server-side effects — it's pure data filtering
+- Consolidating in one TS module (`branchEligibility.ts`) eliminates redundancy
+
+**Current implementation**:
+- `eligibleLocals({ kind: 'stale' | 'age', ... })` — unified interface
+- **Stale detection**: Branches whose upstream is gone after fetch+prune
+- **Age-based cleanup**: Filter by commit timestamp
+- **Skip reasons**: HEAD, worktree, unpushed (for stale branches)
+
+The Rust engine provides only the raw branch list (`branch::list()`). All eligibility decisions happen in TypeScript.
 
 ## Shallow / Sparse / Partial Clone
 
