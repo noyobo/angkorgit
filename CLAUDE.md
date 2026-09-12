@@ -1870,8 +1870,14 @@ plugin can be added), and the Homebrew cask.
 - **Local**: `pnpm tauri:build` → `AngKorGit.app` + `AngKorGit_x.y.z_aarch64.dmg`;
   `pnpm install:mac` installs. Locally-built apps aren't Gatekeeper-quarantined; shared
   dmg recipients need right-click → Open (unsigned).
+- **Branching** (trunk is `main` only — no long-lived `dev`):
+  1. Fetch and start from current `main`.
+  2. Cut a short-lived branch: `feat/<name>`, `fix/<name>`, `chore|docs|refactor/<name>`
+     (cloud agents may use `cursor/<name>-…` — same rules).
+  3. Open a PR **into `main`**; one concern per PR; squash noisy fixups before merge.
+  4. Delete the branch after merge. Do not recreate `dev` or merge through it.
 - **CI** (`.github/workflows/ci.yml`): frontend typecheck+unit+build · Playwright ·
-  Rust fmt/clippy/test on ubuntu+macos+windows. Pushes to `main`/`dev` and
+  Rust fmt/clippy/test on ubuntu+macos+windows. Pushes to `main` and
   `workflow_dispatch` always run. Pull requests do **not** run by default: draft
   PRs are skipped, and a non-draft PR only runs after the `ci` label is added
   (that label is the approval gate — remove it to stop further PR runs).

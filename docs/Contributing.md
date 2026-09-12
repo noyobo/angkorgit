@@ -10,14 +10,18 @@ Thank you for helping make everyday Git delightful! 🙏
 
 ## Workflow
 
-1. Fork and branch from `main`: `feature/<short-name>` or `fix/<short-name>`.
+Trunk is **`main` only** — there is no long-lived `dev` branch.
+
+1. Fork and branch from current `main`: `feat/<short-name>` or `fix/<short-name>`.
 2. Set up per [Development.md](Development.md); make your change following [Coding-Standards.md](Coding-Standards.md).
 3. Make sure the gates pass locally:
    ```bash
    pnpm typecheck && pnpm test
    cd apps/desktop/src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
    ```
-4. Open a PR with a conventional-commit title, a short "why", and screenshots for UI changes.
+4. Open a PR **into `main`** with a conventional-commit title, a short "why", and screenshots for UI changes. Delete the branch after merge.
+
+Agents: branching and project conventions live in [`CLAUDE.md`](../CLAUDE.md) (§10).
 
 ## What makes a good first contribution
 
