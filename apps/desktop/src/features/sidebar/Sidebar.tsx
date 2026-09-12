@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
+import { pushOperation } from '@/features/repository/operations';
 import {
   AlertTriangle,
   Archive,
@@ -1686,8 +1687,7 @@ export function Sidebar() {
                   {branchMenu.branch.behind > 0 && <Badge tone="info">↓{capCount(branchMenu.branch.behind)}</Badge>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => {
-                    const { pushOperation } = require('@/features/repository/operations');
+                  onClick={() =>
                     void act(`Push ${branchMenu.branch.name}`, () => 
                       pushOperation(
                         {
@@ -1698,8 +1698,8 @@ export function Sidebar() {
                         },
                         { branch: branchMenu.branch.name, label: `Push ${branchMenu.branch.name}` }
                       )
-                    );
-                  }}
+                    )
+                  }
                 >
                   <ArrowUpFromLine /> Push
                   {branchMenu.branch.ahead > 0 && <Badge tone="primary">↑{capCount(branchMenu.branch.ahead)}</Badge>}

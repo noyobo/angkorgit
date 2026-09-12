@@ -168,7 +168,7 @@ export async function fetchOperation(
   const remote = selectRemoteForFetch(remotes);
 
   try {
-    await ipc.fetch(path, remote, prune, tags);
+    await ipc.fetch(path, remote, tags, prune);
     toast.success(`${label} complete`);
   } catch (error) {
     toast.error(`${label} failed: ${(error as { message?: string }).message ?? error}`);
