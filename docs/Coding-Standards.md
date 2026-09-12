@@ -1,22 +1,22 @@
-# AngKorGit 编码规范
+# AngKorGit Coding Standards
 
-本文档记录 AngKorGit 项目的编码规范和最佳实践。
+This document outlines coding standards and best practices for the AngKorGit project.
 
-## React / TypeScript 规范
+## React / TypeScript Standards
 
-### Fragment 使用规范
+### Fragment Usage
 
-**规则：明确使用 `<Fragment>` 而不是简写语法 `<>`**
+**Rule: Use explicit `<Fragment>` instead of shorthand `<>`**
 
-#### 原因
+#### Rationale
 
-1. **可读性**：明确的 `<Fragment>` 更清晰地表达意图，特别是在复杂的嵌套结构中
-2. **一致性**：保持代码风格统一，便于维护和审查
-3. **调试友好**：在开发工具中更容易识别和定位
+1. **Readability**: Explicit `<Fragment>` clearly expresses intent, especially in complex nested structures
+2. **Consistency**: Maintains uniform code style for easier maintenance and review
+3. **Debug-friendly**: Easier to identify and locate in development tools
 
-#### 示例
+#### Examples
 
-❌ **错误** - 不要使用简写语法：
+❌ **Incorrect** - Don't use shorthand:
 ```tsx
 return (
   <>
@@ -26,7 +26,7 @@ return (
 );
 ```
 
-✅ **正确** - 使用明确的 Fragment：
+✅ **Correct** - Use explicit Fragment:
 ```tsx
 import { Fragment } from 'react';
 
@@ -38,14 +38,14 @@ return (
 );
 ```
 
-#### 适用场景
+#### Use Cases
 
-- 条件渲染中需要返回多个元素
-- map 循环中需要包裹多个元素
-- 组件返回多个顶层元素
+- Conditional rendering returning multiple elements
+- Wrapping multiple elements in map loops
+- Component returning multiple top-level elements
 
 ```tsx
-// 条件渲染
+// Conditional rendering
 {isVisible && (
   <Fragment>
     <Header />
@@ -53,7 +53,7 @@ return (
   </Fragment>
 )}
 
-// map 循环
+// Map loops
 {items.map(item => (
   <Fragment key={item.id}>
     <ItemHeader title={item.title} />
@@ -62,86 +62,86 @@ return (
 ))}
 ```
 
-## 提交前检查流程
+## Pre-commit Checklist
 
-**在提交代码前，必须在本地运行以下检查，确保全部通过后再提交：**
+**Before committing code, run these checks locally and ensure all pass:**
 
 ```bash
-# 1. Biome 格式化检查
+# 1. Biome formatting check
 bun x @biomejs/biome ci .
 
-# 2. TypeScript 类型检查
+# 2. TypeScript type checking
 bun run typecheck
 
-# 3. Rust 格式化
+# 3. Rust formatting
 cd apps/desktop/src-tauri && cargo fmt
 
-# 4. Rust 格式化检查
+# 4. Rust formatting check
 cd apps/desktop/src-tauri && cargo fmt --check
 
-# 5. Rust Clippy 检查（如果环境支持）
+# 5. Rust Clippy (if environment supports)
 cd apps/desktop/src-tauri && cargo clippy --all-targets -- -D warnings
 
-# 6. Rust 测试（如果环境支持）
+# 6. Rust tests (if environment supports)
 cd apps/desktop/src-tauri && cargo test
 ```
 
-**注意**：
-- 必须确保步骤 1-4 通过才能提交
-- 步骤 5-6 如果本地环境有问题（如 edition2024），可以依赖 CI 检查
-- 这样可以避免多次提交修复 CI 问题，提高效率
+**Notes**:
+- Steps 1-4 must pass before committing
+- Steps 5-6 can rely on CI if local environment has issues (e.g., edition2024)
+- This avoids multiple commits fixing CI issues and improves efficiency
 
-## TypeScript 规范
+## TypeScript Standards
 
-- 使用严格模式
-- 避免使用 `any` 类型
-- 为公共 API 提供明确的类型定义
-- 使用 `interface` 定义对象结构，使用 `type` 定义联合类型和复杂类型
+- Use strict mode
+- Avoid `any` type
+- Provide explicit type definitions for public APIs
+- Use `interface` for object structures, `type` for unions and complex types
 
-## 命名规范
+## Naming Conventions
 
-- 组件使用 PascalCase：`BlamePanel`, `DiffViewer`
-- 函数和变量使用 camelCase：`openBlame`, `fileMenu`
-- 常量使用 UPPER_SNAKE_CASE：`MAX_FILE_SIZE`, `DEFAULT_TIMEOUT`
-- 类型和接口使用 PascalCase：`BlameHunk`, `FileBlame`
+- Components: PascalCase (`BlamePanel`, `DiffViewer`)
+- Functions and variables: camelCase (`openBlame`, `fileMenu`)
+- Constants: UPPER_SNAKE_CASE (`MAX_FILE_SIZE`, `DEFAULT_TIMEOUT`)
+- Types and interfaces: PascalCase (`BlameHunk`, `FileBlame`)
 
-## 注释规范
+## Comment Guidelines
 
-- 代码应该自解释，只在必要时添加注释
-- 注释应该解释"为什么"而不是"做什么"
-- 对于复杂的业务逻辑，添加解释性注释
-- 使用 JSDoc 为公共 API 提供文档
+- Code should be self-explanatory; add comments only when necessary
+- Comments should explain "why" not "what"
+- Add explanatory comments for complex business logic
+- Use JSDoc for public API documentation
 
-## 测试规范
+## Testing Standards
 
-- 新功能必须包含单元测试
-- 用户可见的功能必须包含 E2E 测试
-- 测试文件命名：`*.test.ts` 或 `*.spec.ts`
-- 测试描述应该清晰地说明测试内容
+- New features must include unit tests
+- User-visible features must include E2E tests
+- Test file naming: `*.test.ts` or `*.spec.ts`
+- Test descriptions should clearly state what is being tested
 
-## Git 提交规范
+## Git Commit Convention
 
-- 提交信息使用英文
-- 格式：`<type>: <description>`
-- 类型包括：
-  - `feat`: 新功能
-  - `fix`: 修复问题
-  - `refactor`: 重构代码
-  - `style`: 代码格式调整
-  - `test`: 添加或修改测试
-  - `docs`: 文档更新
-  - `chore`: 构建工具或依赖更新
+- Commit messages in English
+- Format: `<type>: <description>`
+- Types:
+  - `feat`: New feature
+  - `fix`: Bug fix
+  - `refactor`: Code refactoring
+  - `style`: Code formatting
+  - `test`: Add or modify tests
+  - `docs`: Documentation update
+  - `chore`: Build tools or dependency updates
 
-## 性能最佳实践
+## Performance Best Practices
 
-- 大列表使用虚拟化（`@tanstack/react-virtual`）
-- 避免不必要的重渲染，合理使用 `memo`, `useMemo`, `useCallback`
-- 懒加载非关键资源
-- 图片使用合适的格式和尺寸
+- Use virtualization for large lists (`@tanstack/react-virtual`)
+- Avoid unnecessary re-renders with `memo`, `useMemo`, `useCallback`
+- Lazy load non-critical resources
+- Use appropriate image formats and sizes
 
-## 可访问性
+## Accessibility
 
-- 为交互元素提供 `aria-label`
-- 确保键盘可访问性
-- 使用语义化 HTML
-- 提供合适的 ARIA 属性
+- Provide `aria-label` for interactive elements
+- Ensure keyboard accessibility
+- Use semantic HTML
+- Provide appropriate ARIA attributes
