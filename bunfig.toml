@@ -1,3 +1,7 @@
+[test]
+# Only run unit tests, exclude Playwright e2e tests
+preload = []
+
 [install]
 # Equivalent to pnpm's onlyBuiltDependencies
 optional = true
