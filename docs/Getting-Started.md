@@ -28,7 +28,7 @@ after app updates (each unsigned build has a new identity). If a permission
 dialog ever loops endlessly, reset the stale records and try again:
 
 ```sh
-tccutil reset All dev.angkorgit.app
+tccutil reset All dev.angkorgit
 ```
 
 ## Windows & Linux

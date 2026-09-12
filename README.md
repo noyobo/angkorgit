@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/cheat2001/angkorgit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/cheat2001/angkorgit/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://github.com/noyobo/angkorgit/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/noyobo/angkorgit/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-D97706.svg" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-374151.svg" />
   <img alt="Built with Tauri" src="https://img.shields.io/badge/built%20with-Tauri%20v2%20%2B%20Rust-D97706.svg" />
@@ -144,7 +144,7 @@ The builds aren't signed with a paid certificate, so your OS asks once on first 
 If a permission dialog ever loops, reset the stale records and try again:
 
 ```sh
-tccutil reset All dev.angkorgit.app
+tccutil reset All dev.angkorgit
 ```
 
 ### Windows and Linux
@@ -155,33 +155,33 @@ Linux: `chmod +x` the AppImage and run it, or install the `.deb` or `.rpm`. Need
 
 ## Building from source
 
-You need [Node 20+](https://nodejs.org), [pnpm 10+](https://pnpm.io), [Rust stable](https://rustup.rs) and the [Tauri v2 system dependencies](https://v2.tauri.app/start/prerequisites/).
+You need [Bun 1.4.2+](https://bun.sh), [Rust stable](https://rustup.rs) and the [Tauri v2 system dependencies](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
-pnpm install
-pnpm icons          # generate placeholder app icons
-pnpm tauri:dev      # run the desktop app
+bun install
+bun icons          # generate placeholder app icons
+bun tauri:dev      # run the desktop app
 ```
 
 The UI runs in a plain browser on a demo dataset, no Rust toolchain needed:
 
 ```bash
-pnpm dev            # http://localhost:1420
+bun dev            # http://localhost:1420
 ```
 
 The website lives in `apps/website` (Astro, static, GitHub Pages):
 
 ```bash
-pnpm website            # http://localhost:4321/
-pnpm website:images     # regenerate WebP screenshots and og.png
-pnpm website:build      # static build in apps/website/dist
+bun website            # http://localhost:4321/
+bun website:images     # regenerate WebP screenshots and og.png
+bun website:build      # static build in apps/website/dist
 ```
 
 Tests:
 
 ```bash
-pnpm test           # unit tests
-pnpm test:e2e       # Playwright, against demo mode
+bun test           # unit tests (bun:test)
+bun test:e2e       # Playwright, against demo mode
 cd apps/desktop/src-tauri && cargo test   # git engine integration tests on real temp repos
 ```
 
@@ -197,7 +197,7 @@ cd apps/desktop/src-tauri && cargo test   # git engine integration tests on real
 | `tests` | Unit and e2e tests |
 | `scripts` | Icon generation and tooling |
 
-More in [docs/Architecture.md](docs/Architecture.md) and [docs/Development.md](docs/Development.md). Bugs and ideas go in [issues](https://github.com/cheat2001/angkorgit/issues), I read them all.
+More in [docs/Architecture.md](docs/Architecture.md) and [docs/Development.md](docs/Development.md). Bugs and ideas go in [issues](https://github.com/noyobo/angkorgit/issues).
 
 ## License
 

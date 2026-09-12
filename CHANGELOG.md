@@ -7,6 +7,18 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Console errors land in the daily log.** `console.error`, uncaught exceptions,
+  and unhandled promise rejections are written to the same `*.log` file as the
+  rest of the app log (Help → Open Today's Log), so a WebView crash is still
+  there after the window is gone. Browser demo mode has no log file.
+- **Preview layout keeps the graph while you read a diff.** Status bar icons
+  (and the command palette) switch Standard — today's immersive diff that
+  covers the graph — and Preview: compact current-branch graph (single lane, message + date), file list,
+  and diff side by side. Graph display columns stay a Standard preference.
+  Escape still closes the file; ⌘B leaves Preview and brings the sidebar back.
+- **Preview a color theme from the command palette.** ⌘K / ⌘P → Color theme. Arrow
+  through the list (or type a name) to see it on the real UI; Enter keeps it, Esc
+  puts the old one back. Settings still has the swatch grid.
 - **Switch branch from the status bar.** Click the branch name in the bottom-left
   for a filterable list of local branches, with each tip's age on the right. Same
   checkout as the sidebar (uncommitted files that would be lost are refused; the
@@ -16,9 +28,8 @@ All notable changes to AngKorGit are documented here. The format follows
   shows the number on the left of the first nine tabs.
 - **Open or clone a repository from the terminal.** Settings → Git (or the command
   palette) installs an `angkorgit` command. `angkorgit` and `angkorgit open [path]`
-  open a local folder; `angkorgit clone [-b branch] <url>` clones by URL or
-  `owner/repo` (GitHub) into the current directory and opens it. `angkorgit --help`
-  lists the commands.
+  open a local folder; `angkorgit clone [-b branch] <url>` opens the clone dialog
+  with the URL, folder and branch filled in. `angkorgit --help` lists the commands.
 - **Delete a branch or tag on the remote too.** The sidebar's "Delete local and
   remote…" checks the remote with `ls-remote` first: missing names can still be
   deleted locally, a hit asks once, then the local ref and the server copy both go. Regular
@@ -28,13 +39,38 @@ All notable changes to AngKorGit are documented here. The format follows
   palette) fetches as usual, then lists local branches whose upstream on that
   remote is gone. Unpushed or checked-out ones stay visible but cannot be
   selected. Default Fetch is unchanged.
+- **Delete several local branches at once.** The Branches section menu (and the
+  command palette) opens a list of every local branch, none checked. A select
+  picks tips older than 3 months, 6 months, or 1 year; changing a checkbox
+  clears that choice. Delete only removes the
+  local copies; Delete local and remote asks once more, then skips a branch if
+  the push fails and reports a summary. Head and worktree-held rows stay visible
+  but cannot be selected.
 
 ### Changed
+- **Repositories get a two-letter tile instead of the same Angkor mark.** The
+  toolbar, the welcome recent list, and the switcher menu hash the folder name
+  onto a graph color so switching projects is actually visible. The current
+  repo still gets a check.
+- **macOS bundle identifier is `dev.angkorgit`.** It used to end in `.app`,
+  which collides with the application bundle extension. Folder-access prompts
+  may ask once more after this update; if they loop, `tccutil reset All
+  dev.angkorgit`.
 - **⌘W hides the window on macOS.** The Dock icon stays; click it or run
   `angkorgit` and the same screen comes back. ⌘Q still quits. Windows and
   Linux still exit when the last window closes.
 
 ### Fixed
+- **Push said it succeeded when the remote already had the tip.** A second
+  click toasted "Pushed … to origin" and still talked receive-pack to the
+  server (enough for CI to fire). Push now lists the live remote tip first,
+  like `git push`: same SHA is "already up to date" and does not send an
+  update.
+- **Arrowing through changed files only highlighted the row.** ↑/↓ in the
+  working-copy file list now opens that file’s diff, the same as the commit
+  file list.
+- **The Dock icon sat larger than neighboring apps.** The mark now uses the same
+  ~10% inset as system icons.
 - **Deleting or renaming the filtered branch left the filter chip behind.** The
   graph now drops a branch filter when that ref is gone, and follows a rename.
 
@@ -1143,7 +1179,7 @@ The first release. 🏛️
 - AI assistant with pluggable providers (OpenAI, Anthropic, Gemini, Ollama,
   LM Studio): commit messages, diff/conflict explanations, PR descriptions, reviews
 
-[Unreleased]: https://github.com/cheat2001/angkorgit/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/noyobo/angkorgit/compare/v0.12.0...HEAD
 [0.12.0]: https://github.com/cheat2001/angkorgit/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/cheat2001/angkorgit/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/cheat2001/angkorgit/compare/v0.9.0...v0.10.0
