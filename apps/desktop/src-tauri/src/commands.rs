@@ -780,7 +780,11 @@ pub async fn staged_patch(path: String) -> AppResult<String> {
 }
 
 #[tauri::command]
-pub async fn file_blame(path: String, file: String, rev: Option<String>) -> AppResult<blame::FileBlame> {
+pub async fn file_blame(
+    path: String,
+    file: String,
+    rev: Option<String>,
+) -> AppResult<blame::FileBlame> {
     blocking(move || blame::blame_file(&path, &file, rev.as_deref())).await
 }
 

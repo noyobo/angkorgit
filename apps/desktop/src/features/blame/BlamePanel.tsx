@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { Copy, GitCommitHorizontal, History, UserRoundSearch, X } from 'lucide-react';
 import type { BlameHunk, FileBlame } from '@angkorgit/core';
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -16,13 +12,17 @@ import {
   Hint,
   Kbd,
   Spinner,
-  cn,
 } from '@angkorgit/design-system';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { motion } from 'framer-motion';
+import { Copy, GitCommitHorizontal, History, UserRoundSearch, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Avatar } from '@/components/Avatar';
 import { ipc } from '@/core/ipc';
-import { useRepo } from '@/features/repository/store';
 import { useGraph } from '@/features/graph/store';
-import { useUi, type BlameTarget } from '@/features/ui/store';
+import { useRepo } from '@/features/repository/store';
+import { type BlameTarget, useUi } from '@/features/ui/store';
 import { highlightLine, languageOf } from '@/shared/highlight';
 import { basename, dirname, formatDate, timeAgo } from '@/shared/utils';
 
@@ -169,7 +169,9 @@ export function BlamePanel({ target }: { target: BlameTarget }) {
                         data-testid="blame-hunk"
                         className="flex min-w-0 flex-1 items-center gap-2 text-left font-sans disabled:cursor-default"
                         title={`${hunk.summary}\n${hunk.authorName} · ${formatDate(hunk.time)}`}
-                        aria-label={hunk.committed ? `Open commit ${hunk.shortOid}` : 'Not committed yet'}
+                        aria-label={
+                          hunk.committed ? `Open commit ${hunk.shortOid}` : 'Not committed yet'
+                        }
                         disabled={!hunk.committed}
                         onClick={() => openCommit(hunk)}
                       >
@@ -201,7 +203,9 @@ export function BlamePanel({ target }: { target: BlameTarget }) {
                   </span>
                   <span
                     className="min-w-0 flex-1 overflow-hidden pl-2"
-                    dangerouslySetInnerHTML={{ __html: highlightLine(blame.lines[item.index], language) }}
+                    dangerouslySetInnerHTML={{
+                      __html: highlightLine(blame.lines[item.index], language),
+                    }}
                   />
                 </div>
               );

@@ -2909,15 +2909,15 @@ fn blame_file_basic() {
 #[test]
 fn blame_file_multiple_commits() {
     let repo = TempRepo::new();
-    
+
     // First commit
     repo.write("file.txt", "line 1\nline 2\nline 3\n");
     repo.commit("First commit");
-    
+
     // Second commit - modify line 2
     repo.write("file.txt", "line 1\nline 2 modified\nline 3\n");
     repo.commit("Second commit");
-    
+
     // Third commit - add line 4
     repo.write("file.txt", "line 1\nline 2 modified\nline 3\nline 4\n");
     repo.commit("Third commit");
@@ -2925,34 +2925,38 @@ fn blame_file_multiple_commits() {
     let blame = core::blame_file(repo.path(), "file.txt", None).unwrap();
 
     assert_eq!(blame.lines.len(), 4);
-    
-    // Should have 3 hunks: line 1 (first commit), line 2 (second commit), 
+
+    // Should have 3 hunks: line 1 (first commit), line 2 (second commit),
     // line 3 (first commit), line 4 (third commit)
     // But adjacent lines from the same commit are merged into one hunk
     assert!(blame.hunks.len() >= 2);
-    
+
     // Find the hunk for line 2
-    let line2_hunk = blame.hunks.iter().find(|h| {
-        h.start_line <= 2 && h.start_line + h.line_count > 2
-    }).unwrap();
+    let line2_hunk = blame
+        .hunks
+        .iter()
+        .find(|h| h.start_line <= 2 && h.start_line + h.line_count > 2)
+        .unwrap();
     assert_eq!(line2_hunk.summary, "Second commit");
-    
+
     // Find the hunk for line 4
-    let line4_hunk = blame.hunks.iter().find(|h| {
-        h.start_line <= 4 && h.start_line + h.line_count > 4
-    }).unwrap();
+    let line4_hunk = blame
+        .hunks
+        .iter()
+        .find(|h| h.start_line <= 4 && h.start_line + h.line_count > 4)
+        .unwrap();
     assert_eq!(line4_hunk.summary, "Third commit");
 }
 
 #[test]
 fn blame_file_at_specific_commit() {
     let repo = TempRepo::new();
-    
+
     // First commit
     repo.write("file.txt", "line 1\nline 2\n");
     repo.commit("First commit");
     let first_oid = repo.head_oid();
-    
+
     // Second commit
     repo.write("file.txt", "line 1\nline 2\nline 3\n");
     repo.commit("Second commit");
@@ -2961,7 +2965,7 @@ fn blame_file_at_specific_commit() {
     let blame = core::blame_file(repo.path(), "file.txt", Some(&first_oid)).unwrap();
     assert_eq!(blame.lines.len(), 2);
     assert_eq!(blame.rev, Some(first_oid.clone()));
-    
+
     // Blame at HEAD (should have 3 lines)
     let blame_head = core::blame_file(repo.path(), "file.txt", None).unwrap();
     assert_eq!(blame_head.lines.len(), 3);
@@ -2970,11 +2974,11 @@ fn blame_file_at_specific_commit() {
 #[test]
 fn blame_file_working_copy_with_uncommitted_changes() {
     let repo = TempRepo::new();
-    
+
     // Committed content
     repo.write("file.txt", "line 1\nline 2\n");
     repo.commit("Initial commit");
-    
+
     // Uncommitted changes
     repo.write("file.txt", "line 1\nline 2 modified\nline 3 new\n");
 
@@ -2983,12 +2987,13 @@ fn blame_file_working_copy_with_uncommitted_changes() {
     assert_eq!(blame.lines.len(), 3);
     assert_eq!(blame.lines[1], "line 2 modified");
     assert_eq!(blame.lines[2], "line 3 new");
-    
+
     // The uncommitted lines should have committed=false
-    let uncommitted_hunks: Vec<_> = blame.hunks.iter()
-        .filter(|h| !h.committed)
-        .collect();
-    assert!(!uncommitted_hunks.is_empty(), "Should have uncommitted hunks");
+    let uncommitted_hunks: Vec<_> = blame.hunks.iter().filter(|h| !h.committed).collect();
+    assert!(
+        !uncommitted_hunks.is_empty(),
+        "Should have uncommitted hunks"
+    );
 }
 
 #[test]
@@ -3007,8 +3012,9 @@ fn blame_file_binary_file() {
     // Write binary content (with null bytes)
     std::fs::write(
         std::path::Path::new(repo.path()).join("binary.bin"),
-        b"\x00\x01\x02\x03\xFF\xFE"
-    ).unwrap();
+        b"\x00\x01\x02\x03\xFF\xFE",
+    )
+    .unwrap();
     repo.commit("Add binary file");
 
     let result = core::blame_file(repo.path(), "binary.bin", None);
@@ -3019,18 +3025,22 @@ fn blame_file_binary_file() {
 #[test]
 fn blame_file_large_file_rejected() {
     let repo = TempRepo::new();
-    
+
     // Create a file larger than 5MB
     let large_content = "x".repeat(6 * 1024 * 1024); // 6MB
     repo.write("large.txt", &large_content);
     repo.commit("Add large file");
 
     let result = core::blame_file(repo.path(), "large.txt", None);
-    
+
     // Should error on files over MAX_BLAME_BYTES (5MB)
     assert!(result.is_err());
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("too large"), "Error should mention file is too large: {}", err_msg);
+    assert!(
+        err_msg.contains("too large"),
+        "Error should mention file is too large: {}",
+        err_msg
+    );
 }
 
 #[test]
@@ -3042,9 +3052,13 @@ fn blame_file_invalid_revision() {
     // Test with invalid OID
     let result = core::blame_file(repo.path(), "file.txt", Some("invalid-oid"));
     assert!(result.is_err());
-    
+
     // Test with non-existent but valid-looking OID
-    let result = core::blame_file(repo.path(), "file.txt", Some("0123456789abcdef0123456789abcdef01234567"));
+    let result = core::blame_file(
+        repo.path(),
+        "file.txt",
+        Some("0123456789abcdef0123456789abcdef01234567"),
+    );
     assert!(result.is_err());
 }
 
@@ -3055,7 +3069,7 @@ fn blame_file_empty_file() {
     repo.commit("Add empty file");
 
     let blame = core::blame_file(repo.path(), "empty.txt", None).unwrap();
-    
+
     // Empty file should have 0 lines and 0 hunks
     assert_eq!(blame.lines.len(), 0);
     assert_eq!(blame.hunks.len(), 0);
@@ -3068,11 +3082,11 @@ fn blame_file_single_line() {
     repo.commit("Add single line file");
 
     let blame = core::blame_file(repo.path(), "single.txt", None).unwrap();
-    
+
     assert_eq!(blame.lines.len(), 1);
     assert_eq!(blame.lines[0], "only one line");
     assert_eq!(blame.hunks.len(), 1);
-    
+
     let hunk = &blame.hunks[0];
     assert_eq!(hunk.start_line, 1);
     assert_eq!(hunk.line_count, 1);
@@ -3082,7 +3096,7 @@ fn blame_file_single_line() {
 #[test]
 fn blame_file_preserves_line_content() {
     let repo = TempRepo::new();
-    
+
     // Test various line content: whitespace, special chars, unicode
     let content = "  leading spaces\n\
                    trailing spaces  \n\
@@ -3093,7 +3107,7 @@ fn blame_file_preserves_line_content() {
     repo.commit("Add content");
 
     let blame = core::blame_file(repo.path(), "content.txt", None).unwrap();
-    
+
     assert_eq!(blame.lines.len(), 5);
     assert_eq!(blame.lines[0], "  leading spaces");
     assert_eq!(blame.lines[1], "trailing spaces  ");

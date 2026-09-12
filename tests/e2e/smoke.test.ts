@@ -67,7 +67,7 @@ test('opens blame view from working copy file menu', async ({ page }) => {
 
   // Verify blame panel opened
   await expect(page.getByText(/Blame:/)).toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // Should show hunks with author info
   await expect(page.locator('[data-testid="blame-hunk"]').first()).toBeVisible({
     timeout: CI_TIMEOUT,
@@ -94,7 +94,7 @@ test('opens blame at specific commit from commit details', async ({ page }) => {
 
   // Verify blame panel opened
   await expect(page.getByText(/Blame:/)).toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // Should show hunks
   await expect(page.locator('[data-testid="blame-hunk"]').first()).toBeVisible({
     timeout: CI_TIMEOUT,
@@ -140,17 +140,17 @@ test('displays blame hunks with author and commit info', async ({ page }) => {
   // Verify hunk displays required info
   const firstHunk = page.locator('[data-testid="blame-hunk"]').first();
   await expect(firstHunk).toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // Should show commit hash (7 chars, hex)
   await expect(firstHunk.locator('text=/[0-9a-f]{7}/')).toBeVisible({
     timeout: CI_TIMEOUT,
   });
-  
+
   // Should show author name
   await expect(firstHunk.locator('[data-testid="author-name"]')).toBeVisible({
     timeout: CI_TIMEOUT,
   });
-  
+
   // Should have non-empty author text
   const authorText = await firstHunk.locator('[data-testid="author-name"]').textContent();
   expect(authorText).toBeTruthy();
@@ -174,7 +174,7 @@ test('clicks hunk to navigate to commit in graph', async ({ page }) => {
   // Click on first committed hunk (not uncommitted)
   const firstCommittedHunk = page.locator('[data-testid="blame-hunk"]').first();
   await expect(firstCommittedHunk).toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // Get the commit hash before clicking
   const commitHash = await firstCommittedHunk.locator('text=/[0-9a-f]{7}/').textContent();
   expect(commitHash).toBeTruthy();
@@ -185,7 +185,7 @@ test('clicks hunk to navigate to commit in graph', async ({ page }) => {
   // Verify blame panel closed and commit is selected in graph
   await expect(page.getByText(/Blame:/)).not.toBeVisible({ timeout: CI_TIMEOUT });
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // Verify inspector shows commit details
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible({
     timeout: CI_TIMEOUT,
@@ -209,17 +209,17 @@ test('opens blame from diff panel toolbar button', async ({ page }) => {
 
   // Wait for diff panel
   await page.waitForTimeout(500);
-  
+
   // Look for "Blame" or "Blame at this commit" button in toolbar
   const blameButton = page.getByRole('button', { name: /Blame/ });
-  
+
   // If button exists, click it
-  if (await blameButton.count() > 0) {
+  if ((await blameButton.count()) > 0) {
     await blameButton.first().click();
-    
+
     // Verify blame panel opened
     await expect(page.getByText(/Blame:/)).toBeVisible({ timeout: CI_TIMEOUT });
-    
+
     // Should show blame hunks
     await expect(page.locator('[data-testid="blame-hunk"]').first()).toBeVisible({
       timeout: CI_TIMEOUT,
@@ -252,7 +252,7 @@ test('right-click hunk menu provides copy actions', async ({ page }) => {
   // Menu should have items like "Copy commit hash", "Copy author", etc.
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // Check for typical menu items
   const menuItems = page.getByRole('menuitem');
   const itemCount = await menuItems.count();
@@ -269,7 +269,7 @@ test('switches between working copy and specific commit blame', async ({ page })
   await expect(page.getByRole('complementary', { name: 'Inspector' })).toBeVisible({
     timeout: CI_TIMEOUT,
   });
-  
+
   const fileInCommit = page.getByRole('button', { name: /\.tsx?/ }).first();
   await fileInCommit.click({ button: 'right' });
   await page.getByRole('menuitem', { name: /Blame at this commit/ }).click();
@@ -280,9 +280,9 @@ test('switches between working copy and specific commit blame', async ({ page })
 
   // Click "Back to working copy" button
   const backButton = page.getByRole('button', { name: /Back to working copy/ });
-  if (await backButton.count() > 0) {
+  if ((await backButton.count()) > 0) {
     await backButton.click();
-    
+
     // Verify switched to working copy blame
     await expect(page.getByText(/Blame:/)).toBeVisible({ timeout: CI_TIMEOUT });
     await expect(page.getByText('Working copy')).toBeVisible({ timeout: CI_TIMEOUT });
@@ -310,7 +310,7 @@ test('opens file history from blame panel', async ({ page }) => {
 
   // Verify file history panel opened (blame should be replaced)
   await expect(page.getByText(/Blame:/)).not.toBeVisible({ timeout: CI_TIMEOUT });
-  
+
   // File history panel should show commit list
   await page.waitForTimeout(500);
   const commitRows = page.getByRole('row');

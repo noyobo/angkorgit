@@ -1,12 +1,12 @@
 import { cn } from '@angkorgit/design-system';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { Group, Panel, type PanelImperativeHandle, Separator } from 'react-resizable-panels';
+import { BlamePanel } from '@/features/blame/BlamePanel';
 import { DiffPanel } from '@/features/diff/DiffPanel';
 import { RangeDiffPanel } from '@/features/diff/RangeDiffPanel';
 import { EditorPanel } from '@/features/editor/EditorPanel';
 import { CommitGraph } from '@/features/graph/CommitGraph';
 import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
-import { BlamePanel } from '@/features/blame/BlamePanel';
 import { Inspector } from '@/features/inspector/Inspector';
 import { Sidebar } from '@/features/sidebar/Sidebar';
 import { type BlameTarget, type CenterDiffTarget, type RangeDiffTarget, useUi } from './store';
@@ -60,7 +60,9 @@ function GraphPane({
       ) : centerFileHistory ? (
         <FileHistoryPanel key={centerFileHistory} file={centerFileHistory} />
       ) : (
-        centerBlame && <BlamePanel key={`${centerBlame.file}@${centerBlame.rev ?? ''}`} target={centerBlame} />
+        centerBlame && (
+          <BlamePanel key={`${centerBlame.file}@${centerBlame.rev ?? ''}`} target={centerBlame} />
+        )
       )}
     </>
   );
