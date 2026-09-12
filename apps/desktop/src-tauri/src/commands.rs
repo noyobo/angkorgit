@@ -211,6 +211,99 @@ pub async fn open_path(path: String) -> AppResult<()> {
 }
 
 #[tauri::command]
+pub async fn open_in_editor(path: String, editor: String) -> AppResult<()> {
+    blocking(move || {
+        let status = {
+            #[cfg(target_os = "macos")]
+            {
+                match editor.as_str() {
+                    "cursor" => crate::proc::hidden("open")
+                        .args(["-a", "Cursor", &path])
+                        .status(),
+                    "vscode" => crate::proc::hidden("open")
+                        .args(["-a", "Visual Studio Code", &path])
+                        .status(),
+                    "vscode-insiders" => crate::proc::hidden("open")
+                        .args(["-a", "Visual Studio Code - Insiders", &path])
+                        .status(),
+                    "vscodium" => crate::proc::hidden("open")
+                        .args(["-a", "VSCodium", &path])
+                        .status(),
+                    "sublime" => crate::proc::hidden("open")
+                        .args(["-a", "Sublime Text", &path])
+                        .status(),
+                    "atom" => crate::proc::hidden("open")
+                        .args(["-a", "Atom", &path])
+                        .status(),
+                    "zed" => crate::proc::hidden("open")
+                        .args(["-a", "Zed", &path])
+                        .status(),
+                    "fleet" => crate::proc::hidden("open")
+                        .args(["-a", "Fleet", &path])
+                        .status(),
+                    "webstorm" => crate::proc::hidden("open")
+                        .args(["-a", "WebStorm", &path])
+                        .status(),
+                    "phpstorm" => crate::proc::hidden("open")
+                        .args(["-a", "PhpStorm", &path])
+                        .status(),
+                    "idea" => crate::proc::hidden("open")
+                        .args(["-a", "IntelliJ IDEA", &path])
+                        .status(),
+                    _ => crate::proc::hidden("open").arg(&path).status(),
+                }
+            }
+            #[cfg(target_os = "windows")]
+            {
+                match editor.as_str() {
+                    "cursor" => crate::proc::hidden("Cursor.exe").arg(&path).status(),
+                    "vscode" => crate::proc::hidden("Code.exe").arg(&path).status(),
+                    "vscode-insiders" => crate::proc::hidden("Code - Insiders.exe")
+                        .arg(&path)
+                        .status(),
+                    "vscodium" => crate::proc::hidden("VSCodium.exe").arg(&path).status(),
+                    "sublime" => crate::proc::hidden("sublime_text.exe").arg(&path).status(),
+                    "atom" => crate::proc::hidden("atom.exe").arg(&path).status(),
+                    "zed" => crate::proc::hidden("zed.exe").arg(&path).status(),
+                    "fleet" => crate::proc::hidden("fleet.exe").arg(&path).status(),
+                    "webstorm" => crate::proc::hidden("webstorm64.exe").arg(&path).status(),
+                    "phpstorm" => crate::proc::hidden("phpstorm64.exe").arg(&path).status(),
+                    "idea" => crate::proc::hidden("idea64.exe").arg(&path).status(),
+                    _ => crate::proc::hidden("cmd")
+                        .args(["/C", "start", "", &path])
+                        .status(),
+                }
+            }
+            #[cfg(all(unix, not(target_os = "macos")))]
+            {
+                let cmd = match editor.as_str() {
+                    "cursor" => "cursor",
+                    "vscode" => "code",
+                    "vscode-insiders" => "code-insiders",
+                    "vscodium" => "codium",
+                    "sublime" => "subl",
+                    "atom" => "atom",
+                    "zed" => "zed",
+                    "fleet" => "fleet",
+                    "webstorm" => "webstorm",
+                    "phpstorm" => "phpstorm",
+                    "idea" => "idea",
+                    _ => "xdg-open",
+                };
+                crate::proc::hidden(cmd).arg(&path).status()
+            }
+        }?;
+        if !status.success() {
+            return Err(crate::error::AppError::other(
+                "could not open file in editor",
+            ));
+        }
+        Ok(())
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn paths_exist(paths: Vec<String>) -> AppResult<Vec<bool>> {
     blocking(move || {
         Ok(paths
@@ -346,8 +439,14 @@ pub async fn branch_create(
 }
 
 #[tauri::command]
-pub async fn branch_delete(path: String, name: String, remote: bool) -> AppResult<()> {
-    blocking(move || branch::delete(&path, &name, remote)).await
+pub async fn branch_delete(
+    path: String,
+    name: String,
+    remote: bool,
+    force: Option<bool>,
+) -> AppResult<()> {
+    let force = force.unwrap_or(false);
+    blocking(move || branch::delete_with_force(&path, &name, remote, force)).await
 }
 
 #[tauri::command]
@@ -592,8 +691,13 @@ pub async fn submodule_list(path: String) -> AppResult<Vec<SubmoduleInfo>> {
 }
 
 #[tauri::command]
-pub async fn submodule_update(path: String, name: String) -> AppResult<()> {
-    blocking(move || misc::submodule_update(&path, &name)).await
+pub async fn submodule_update(
+    path: String,
+    name: String,
+    recursive: Option<bool>,
+) -> AppResult<()> {
+    let recursive = recursive.unwrap_or(false);
+    blocking(move || misc::submodule_update(&path, &name, recursive)).await
 }
 
 #[tauri::command]
@@ -658,6 +762,16 @@ pub async fn diff_commit_file(
         )
     })
     .await
+}
+
+#[tauri::command]
+pub async fn diff_range(
+    path: String,
+    fromOid: String,
+    toOid: String,
+    contextLines: Option<u32>,
+) -> AppResult<Vec<FileDiff>> {
+    blocking(move || diff::range_diff(&path, &fromOid, &toOid, contextLines.unwrap_or(3))).await
 }
 
 #[tauri::command]
@@ -878,4 +992,20 @@ pub fn cli_install() -> AppResult<crate::cli::CliToolStatus> {
 #[tauri::command]
 pub fn cli_uninstall() -> AppResult<()> {
     crate::cli::uninstall()
+}
+
+// Logging
+#[tauri::command]
+pub fn log_write(entry: crate::logger::LogEntry) -> Result<(), String> {
+    crate::logger::write_log(entry)
+}
+
+#[tauri::command]
+pub fn open_logs_folder() -> Result<(), String> {
+    crate::logger::open_logs_folder()
+}
+
+#[tauri::command]
+pub fn open_today_log() -> Result<(), String> {
+    crate::logger::open_today_log()
 }

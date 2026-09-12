@@ -8,6 +8,8 @@ mod core;
 mod error;
 mod forge;
 mod http;
+mod logger;
+mod menu;
 mod proc;
 mod state;
 mod terminal;
@@ -16,8 +18,8 @@ mod watcher;
 pub mod test_api {
     pub use crate::core::branch::{
         can_fast_forward, checkout_branch, cherry_pick, cherry_pick_many, create as branch_create,
-        delete_local_and_remote as branch_delete_local_and_remote, list as branches, merge, rebase,
-        rebase_commits, rebase_interactive, reset,
+        delete as branch_delete, delete_local_and_remote as branch_delete_local_and_remote,
+        list as branches, merge, rebase, rebase_commits, rebase_interactive, reset,
     };
     pub use crate::core::commit::{amend, commit, merge_message, revert};
     pub use crate::core::conflict::{
@@ -31,9 +33,12 @@ pub mod test_api {
         stash_create, stash_files, stash_list, stash_pop, stash_restore_files, tag_create,
         tag_delete, tag_delete_local_and_remote, tag_list,
     };
-    pub use crate::core::remote::{checkout_remote_ref, fetch, remote_has_ref};
+    pub use crate::core::remote::{
+        checkout_remote_ref, edit as remote_edit, fetch, pull, pull_branch, push, push_delete,
+        push_tag, remote_has_ref,
+    };
     pub use crate::core::repo::{
-        cleanup_state, info as repo_info, init, ref_fingerprint, set_config, status,
+        cleanup_state, discover, info as repo_info, init, ref_fingerprint, set_config, status,
     };
     pub use crate::core::stage::{
         discard_all, discard_line, discard_staged_all, discard_staged_file, stage_all, stage_file,
@@ -61,14 +66,18 @@ pub fn run() {
         .setup(|app| {
             use tauri::Manager;
             if let Ok(dir) = app.path().app_config_dir() {
+                logger::init_logger(dir.clone());
                 let _ = core::accounts::CONFIG_DIR.set(dir);
             }
             let args: Vec<String> = std::env::args().collect();
             if let Some(request) = cli::parse_args(&args, None) {
                 cli::queue(request);
             }
-            #[cfg(target_os = "macos")]
-            cli::attach_app_menu(app)?;
+            let menu = menu::build_menu(app.handle())?;
+            app.set_menu(menu)?;
+            app.on_menu_event(|app, event| {
+                menu::handle_menu_event(app, event.id().as_ref());
+            });
             Ok(())
         })
         .manage(terminal::TerminalState::default())
@@ -99,6 +108,7 @@ pub fn run() {
             commands::unstage_line,
             commands::discard_line,
             commands::open_path,
+            commands::open_in_editor,
             commands::read_file,
             commands::write_file,
             commands::reveal_path,
@@ -162,6 +172,7 @@ pub fn run() {
             commands::diff_commit,
             commands::diff_commit_files,
             commands::diff_commit_file,
+            commands::diff_range,
             commands::staged_patch,
             commands::conflict_list,
             commands::conflict_read,
@@ -193,31 +204,32 @@ pub fn run() {
             commands::cli_status,
             commands::cli_install,
             commands::cli_uninstall,
+            commands::log_write,
+            commands::open_logs_folder,
+            commands::open_today_log,
         ])
         .build(tauri::generate_context!())
         .expect("error while running AngKorGit");
 
-    app.run(|app, event| {
-        match event {
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::Opened { urls } => {
-                for url in urls {
-                    if let Ok(path) = url.to_file_path() {
-                        cli::request_open(app, path.to_string_lossy().into_owned());
-                    }
+    app.run(|_app, event| match event {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Opened { urls } => {
+            for url in urls {
+                if let Ok(path) = url.to_file_path() {
+                    cli::request_open(_app, path.to_string_lossy().into_owned());
                 }
             }
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::Reopen { .. } => cli::focus_main(app),
-            #[cfg(target_os = "macos")]
-            tauri::RunEvent::WindowEvent {
-                event: tauri::WindowEvent::CloseRequested { api, .. },
-                ..
-            } => {
-                api.prevent_close();
-                cli::hide_main(app);
-            }
-            _ => {}
         }
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen { .. } => cli::focus_main(_app),
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::WindowEvent {
+            event: tauri::WindowEvent::CloseRequested { api, .. },
+            ..
+        } => {
+            api.prevent_close();
+            cli::hide_main(_app);
+        }
+        _ => {}
     });
 }

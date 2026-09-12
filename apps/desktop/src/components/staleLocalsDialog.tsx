@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { AlertTriangle } from 'lucide-react';
-import type { StaleLocalRow } from '@angkorgit/core';
+import type { EligibleBranch } from '@angkorgit/core';
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -12,10 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@angkorgit/design-system';
+import { BranchPickList } from './BranchPickList';
 
 interface StaleLocalsState {
-  request: { rows: StaleLocalRow[]; resolve: (names: string[] | null) => void } | null;
-  ask: (rows: StaleLocalRow[]) => Promise<string[] | null>;
+  request: { rows: EligibleBranch[]; resolve: (names: string[] | null) => void } | null;
+  ask: (rows: EligibleBranch[]) => Promise<string[] | null>;
   settle: (names: string[] | null) => void;
 }
 
@@ -32,7 +32,7 @@ const useStaleLocalsStore = create<StaleLocalsState>((set, get) => ({
   },
 }));
 
-export function pickStaleLocals(rows: StaleLocalRow[]): Promise<string[] | null> {
+export function pickStaleLocals(rows: EligibleBranch[]): Promise<string[] | null> {
   return useStaleLocalsStore.getState().ask(rows);
 }
 
@@ -46,8 +46,6 @@ export function StaleLocalsHost() {
     setPicked(new Set(request.rows.filter((row) => !row.skip).map((row) => row.name)));
   }, [request]);
 
-  const deletable = request?.rows.filter((row) => !row.skip) ?? [];
-  const skipped = request?.rows.filter((row) => row.skip) ?? [];
   const count = picked.size;
 
   return (
@@ -68,38 +66,24 @@ export function StaleLocalsHost() {
             These local branches track a remote branch that is gone. Uncheck any you want to keep.
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-64 space-y-1 overflow-y-auto">
-          {deletable.map((row) => (
-            <label
-              key={row.name}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-surface-raised"
-            >
-              <Checkbox
-                checked={picked.has(row.name)}
-                onCheckedChange={(value) => {
-                  setPicked((prev) => {
-                    const next = new Set(prev);
-                    if (value === true) next.add(row.name);
-                    else next.delete(row.name);
-                    return next;
-                  });
-                }}
-                aria-label={`Delete ${row.name}`}
-              />
-              <span className="min-w-0 truncate font-mono text-xs">{row.name}</span>
-            </label>
-          ))}
-          {skipped.map((row) => (
-            <label
-              key={row.name}
-              className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm text-muted"
-            >
-              <Checkbox checked={false} disabled aria-label={`${row.name} kept`} />
-              <span className="min-w-0 flex-1 truncate font-mono text-xs">{row.name}</span>
-              <span className="shrink-0 text-[10px] text-faint">{row.detail}</span>
-            </label>
-          ))}
-        </div>
+        {request && (
+          <BranchPickList
+            items={request.rows.map((row) => ({
+              name: row.name,
+              disabled: Boolean(row.skip),
+              detail: row.detail,
+            }))}
+            picked={picked}
+            onToggle={(name, checked) => {
+              setPicked((prev) => {
+                const next = new Set(prev);
+                if (checked) next.add(name);
+                else next.delete(name);
+                return next;
+              });
+            }}
+          />
+        )}
         <DialogFooter className="flex-wrap">
           <Button variant="ghost" onClick={() => settle(null)}>
             Cancel
