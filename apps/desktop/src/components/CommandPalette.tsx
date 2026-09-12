@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Command } from 'cmdk';
+import { Command, useCommandState } from 'cmdk';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
+import { logger } from '@/core/logger';
 import {
   Archive,
   ArchiveRestore,
@@ -10,6 +11,7 @@ import {
   ArrowUpFromLine,
   Check,
   ChevronsDownUp,
+  Columns3,
   Download,
   FileClock,
   FolderGit2,
@@ -20,6 +22,7 @@ import {
   History,
   Home,
   Moon,
+  Palette,
   PanelLeft,
   Redo2,
   RefreshCw,
@@ -27,7 +30,9 @@ import {
   SquareTerminal,
   Sun,
   Tag as TagIcon,
+  Trash2,
   Undo2,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -36,17 +41,29 @@ import { ipc, openExternal, pickDirectory } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
+import {
+  pushOperation,
+  pullOperation,
+  fetchOperation,
+  viewOnRemoteOperation,
+  type OperationContext,
+} from '@/features/repository/operations';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
+import { openDeleteBranches } from '@/features/repository/deleteBranches';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
-import { themeBase, useSettings } from '@/features/settings/store';
+import { applyTheme, THEMES, useSettings, type Theme } from '@/features/settings/store';
+import { installCliTool } from '@/features/settings/cliTool';
+import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUndo } from '@/features/history/undoStore';
+import { useCommitDraft } from '@/features/commit/draftStore';
 import { useForge } from '@/features/forge/store';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
 import { currentPullRequestUrl, modKey } from '@/shared/utils';
 
 export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const repo = useRepo((s) => s.repo);
+  const busy = useRepo((s) => s.busy);
   const branches = useRepo((s) => s.branches);
   const remotes = useRepo((s) => s.remotes);
   const recents = useRepo((s) => s.recents);
@@ -57,6 +74,8 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   const setPaletteOpen = useUi((s) => s.setPaletteOpen);
   const toggleTerminal = useUi((s) => s.toggleTerminal);
   const toggleSidebar = useUi((s) => s.toggleSidebar);
+  const layout = useUi((s) => s.layout);
+  const setLayout = useUi((s) => s.setLayout);
   const sidebarOpen = useUi(sidebarVisible);
   const openDialog = useUi((s) => s.openDialog);
   const theme = useSettings((s) => s.theme);
@@ -72,24 +91,49 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
 
   const path = repo?.path ?? '';
   const repoState = repo?.state ?? 'clean';
-  const remote = remotes[0]?.name ?? 'origin';
-  const locals = useMemo(() => branches.filter((b) => !b.isRemote && !b.isHead), [branches]);
   const otherRepos = useMemo(() => recents.filter((r) => r.path !== path).slice(0, 8), [recents, path]);
   const nextUndo = useMemo(() => [...undoStack].reverse().find((e) => e.repoPath === path), [undoStack, path]);
   const nextRedo = useMemo(() => [...redoStack].reverse().find((e) => e.repoPath === path), [redoStack, path]);
 
-  const [mode, setMode] = useState<'commands' | 'fileHistory'>('commands');
+  const makeContext = (): OperationContext => ({
+    path,
+    branches,
+    remotes,
+    source: 'command-palette',
+  });
+
+  const [mode, setMode] = useState<'commands' | 'fileHistory' | 'theme'>('commands');
   const [search, setSearch] = useState('');
+  const themeOrigin = useRef<Theme | null>(null);
+  const themeCommitted = useRef(false);
   const [files, setFiles] = useState<string[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState(false);
   const filesRequest = useRef(0);
 
+  const abandonThemePreview = () => {
+    if (!themeCommitted.current && themeOrigin.current) applyTheme(themeOrigin.current);
+    themeCommitted.current = false;
+    themeOrigin.current = null;
+  };
+
   useEffect(() => {
-    if (!paletteOpen) return;
-    setMode('commands');
-    setSearch('');
+    if (paletteOpen) {
+      setMode('commands');
+      setSearch('');
+      return;
+    }
+    if (!themeCommitted.current && themeOrigin.current) applyTheme(themeOrigin.current);
+    themeCommitted.current = false;
+    themeOrigin.current = null;
   }, [paletteOpen]);
+
+  const enterThemeMode = () => {
+    themeOrigin.current = useSettings.getState().theme;
+    themeCommitted.current = false;
+    setMode('theme');
+    setSearch('');
+  };
 
   const enterFileHistory = () => {
     setMode('fileHistory');
@@ -121,16 +165,15 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     return matches.slice(0, 50);
   }, [mode, files, search]);
 
-  const visibleBranches = useMemo(() => {
-    if (mode !== 'commands') return [];
-    const q = search.trim().toLowerCase();
-    const matches = q ? locals.filter((b) => b.name.toLowerCase().includes(q)) : locals;
-    return matches.slice(0, 100);
-  }, [mode, locals, search]);
+  const themeChoices = useMemo(() => {
+    if (mode !== 'theme') return [];
+    return [...THEMES].sort((a, b) => Number(b.id === theme) - Number(a.id === theme));
+  }, [mode, theme]);
 
   const close = () => setPaletteOpen(false);
 
   const run = (label: string, op: () => Promise<unknown>) => {
+    void logger.click(label, 'command-palette');
     close();
     void (async () => {
       try {
@@ -144,6 +187,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const runHistory = (direction: 'undo' | 'redo') => {
+    void logger.click(direction, 'command-palette');
     close();
     const fn = direction === 'undo' ? useUndo.getState().undo : useUndo.getState().redo;
     void fn(path).then((ok) => {
@@ -163,6 +207,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const continueRebase = () => {
+    void logger.click('continue-rebase', 'command-palette');
     close();
     void (async () => {
       try {
@@ -176,6 +221,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const abortRebase = () => {
+    void logger.click('abort-rebase', 'command-palette');
     close();
     void (async () => {
       const ok = await confirmDialog({
@@ -197,11 +243,13 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   };
 
   const abortMerge = () => {
+    void logger.click('abort-merge', 'command-palette');
     close();
     void abortMergeFlow(path);
   };
 
   const clearState = () => {
+    void logger.click('clear-state', 'command-palette');
     close();
     void (async () => {
       const ok = await confirmDialog({
@@ -221,13 +269,69 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     })();
   };
 
+  useEffect(() => {
+    if (!paletteOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = parseInt(e.key) - 1;
+        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const item = items[index];
+        if (item instanceof HTMLElement) item.click();
+      }
+      
+      // Tab navigation: input to first item, or between items
+      if (e.key === 'Tab') {
+        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        if (items.length === 0) return;
+        
+        if (e.target instanceof HTMLInputElement) {
+          // From input to first item
+          if (!e.shiftKey && items[0] instanceof HTMLElement) {
+            e.preventDefault();
+            items[0].focus();
+          }
+        } else if (e.target instanceof HTMLElement && e.target.hasAttribute('cmdk-item')) {
+          // Between items
+          e.preventDefault();
+          const currentIndex = items.indexOf(e.target);
+          if (currentIndex === -1) return;
+          
+          if (e.shiftKey) {
+            // Shift+Tab: move backward
+            if (currentIndex > 0) {
+              const prev = items[currentIndex - 1];
+              if (prev instanceof HTMLElement) prev.focus();
+            } else {
+              // Back to input
+              const input = document.querySelector('[cmdk-input]') as HTMLInputElement | null;
+              input?.focus();
+            }
+          } else {
+            // Tab: move forward
+            if (currentIndex < items.length - 1) {
+              const next = items[currentIndex + 1];
+              if (next instanceof HTMLElement) next.focus();
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => document.removeEventListener('keydown', handleKeyDown, { capture: true });
+  }, [paletteOpen]);
+
   return (
     <Command.Dialog
       open={paletteOpen}
       onOpenChange={setPaletteOpen}
       label="Command palette"
-      shouldFilter={mode === 'commands'}
+      shouldFilter={mode !== 'fileHistory'}
       className="fixed left-1/2 top-24 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-overlay shadow-soft"
+      data-command-palette-open={paletteOpen || undefined}
     >
       <Command.Input
         value={search}
@@ -235,17 +339,33 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         placeholder={
           mode === 'fileHistory'
             ? 'Search a file to see who changed it…'
-            : 'Type a command or branch name…'
+            : mode === 'theme'
+              ? 'Search themes…'
+              : 'Type a command or branch name…'
         }
         onKeyDown={(e) => {
-          if (mode === 'fileHistory' && e.key === 'Backspace' && search === '') {
+          if ((mode === 'fileHistory' || mode === 'theme') && e.key === 'Backspace' && search === '') {
             e.preventDefault();
+            if (mode === 'theme') abandonThemePreview();
             setMode('commands');
+          }
+          if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            e.currentTarget.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+            );
+          }
+          if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+            e.preventDefault();
+            e.currentTarget.dispatchEvent(
+              new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+            );
           }
         }}
         className="h-11 w-full border-b border-border-subtle bg-transparent px-4 text-sm text-foreground outline-none placeholder:text-faint"
       />
-      <Command.List className="max-h-80 overflow-y-auto p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint">
+      {mode === 'theme' && <ThemePreviewSync />}
+      <Command.List className="max-h-96 overflow-y-auto p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint">
         {!(mode === 'fileHistory' && (filesLoading || filesError)) && (
           <Command.Empty className="py-8 text-center text-sm text-faint">No results.</Command.Empty>
         )}
@@ -274,44 +394,110 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           </Command.Group>
         )}
 
+        {mode === 'theme' && (
+          <Command.Group heading="Color theme">
+            {themeChoices.map((t) => (
+              <PaletteItem
+                key={t.id}
+                value={t.id}
+                keywords={[t.label]}
+                icon={t.base === 'dark' ? <Moon /> : <Sun />}
+                label={t.label}
+                active={t.id === theme}
+                onSelect={() => {
+                  themeCommitted.current = true;
+                  setTheme(t.id);
+                  close();
+                }}
+              />
+            ))}
+          </Command.Group>
+        )}
+
         {mode === 'commands' && (
         <>
         <Command.Group heading="Actions">
-          <PaletteItem icon={<History />} label="File history…" onSelect={enterFileHistory} />
-          <PaletteItem icon={<ArrowDownToLine />} label="Pull" onSelect={() => run('Pull', () => ipc.pull(path, remote))} />
-          <PaletteItem icon={<ArrowUpFromLine />} label="Push" onSelect={() => run('Push', () => ipc.push(path, remote, false, false, true))} />
-          {(() => {
-            const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
-            const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);
-            const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
-            const inApp = forgeCurrent && forgeKind !== null && forgeAccount;
-            return prUrl ? (
-              <PaletteItem
-                icon={<GitPullRequest />}
-                label={`Create ${forgeNoun(forgeCurrent ? forgeKind : null)}`}
-                onSelect={() => {
-                  close();
-                  if (inApp) openDialog('createPullRequest');
-                  else void openExternal(prUrl);
-                }}
-              />
-            ) : null;
-          })()}
-          <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
+          <QuickKeyItems>
+            <PaletteItem icon={<Palette />} label="Go to Panel…" hint={`${modKey()}⇧?`} onSelect={() => {
+              close();
+              useUi.getState().setPanelsOpen(true);
+            }} />
+            <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" hint={`${modKey()}B`} onSelect={() => {
+              close();
+              useUi.getState().setBranchSwitcherOpen(true);
+            }} />
+            <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} onSelect={enterFileHistory} />
+            <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} onSelect={() => {
+              if (busy) {
+                toast.info('Pull already in progress');
+                return;
+              }
+              close();
+              void pullOperation(makeContext());
+            }} />
+            <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} onSelect={() => {
+              if (busy) {
+                toast.info('Push already in progress');
+                return;
+              }
+              close();
+              void pushOperation(makeContext());
+            }} />
+            <PaletteItem
+              icon={<Download />}
+              label="View on remote"
+              hint={`${modKey()}⇧G`}
+              onSelect={() => {
+                close();
+                void viewOnRemoteOperation(makeContext());
+              }}
+            />
+            {(() => {
+              const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
+              const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);
+              const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
+              const inApp = forgeCurrent && forgeKind !== null && forgeAccount;
+              return prUrl ? (
+                <PaletteItem
+                  icon={<GitPullRequest />}
+                  label={`Create ${forgeNoun(forgeCurrent ? forgeKind : null)}`}
+                  onSelect={() => {
+                    close();
+                    if (inApp) openDialog('createPullRequest');
+                    else void openExternal(prUrl);
+                  }}
+                />
+              ) : null;
+            })()}
+            <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} onSelect={() => {
+              close();
+              void fetchOperation(makeContext());
+            }} />
+            <PaletteItem
+              icon={<RefreshCw />}
+              label="Fetch and clear local branches…"
+              onSelect={() => {
+                close();
+                const ctx = makeContext();
+                void fetchAndClearLocalBranches(ctx.path, ctx.remotes[0]?.name ?? 'origin', onRefresh);
+              }}
+            />
+            <PaletteItem
+              icon={<GitBranchPlus />}
+              label="Create branch…"
+              hint={`${modKey()}⇧N`}
+              onSelect={() => {
+                close();
+                openDialog('createBranch');
+              }}
+            />
+          </QuickKeyItems>
           <PaletteItem
-            icon={<RefreshCw />}
-            label="Fetch and clear local branches…"
+            icon={<Trash2 />}
+            label="Delete branches…"
             onSelect={() => {
               close();
-              void fetchAndClearLocalBranches(path, remote, onRefresh);
-            }}
-          />
-          <PaletteItem
-            icon={<GitBranchPlus />}
-            label="Create branch…"
-            onSelect={() => {
-              close();
-              openDialog('createBranch');
+              void openDeleteBranches(onRefresh);
             }}
           />
           <PaletteItem
@@ -333,6 +519,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<Archive />}
             label="Stash changes…"
+            hint={`${modKey()}⇧S`}
             onSelect={() => {
               close();
               openDialog('createStash');
@@ -345,15 +532,35 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               onSelect={() => run('Pop stash', () => ipc.stashPop(path, 0))}
             />
           )}
+          <PaletteItem
+            icon={<Undo2 />}
+            label="Amend last commit"
+            onSelect={() => {
+              close();
+              const draft = useCommitDraft.getState();
+              if (draft.drafts[path] || draft.amendFor === path) return;
+              draft.setAmend(path, true);
+            }}
+          />
+          <PaletteItem
+            icon={<Archive />}
+            label="Go to commit summary"
+            hint={`${modKey()}G`}
+            onSelect={() => {
+              close();
+              useUi.getState().focusCommitSummary();
+            }}
+          />
           {nextUndo && (
-            <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} shortcut="Z" onSelect={() => runHistory('undo')} />
+            <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} hint={`${modKey()}Z`} onSelect={() => runHistory('undo')} />
           )}
           {nextRedo && (
-            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} onSelect={() => runHistory('redo')} />
+            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} hint={`${modKey()}⇧Z`} onSelect={() => runHistory('redo')} />
           )}
           <PaletteItem
             icon={<RefreshCw />}
             label="Refresh"
+            hint={`${modKey()}R`}
             onSelect={() => {
               close();
               void onRefresh();
@@ -384,6 +591,19 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             onSelect={() => {
               close();
               openDialog('clone');
+            }}
+          />
+          <PaletteItem
+            icon={<X />}
+            label="Close all tabs"
+            hint={`${modKey()}⇧W`}
+            onSelect={() => {
+              close();
+              const tabs = useUi.getState().repoTabs;
+              tabs.forEach((path) => killTerminalSession(path));
+              useUi.getState().closeAllTabs();
+              useRepo.getState().close();
+              navigate('/welcome');
             }}
           />
           <PaletteItem
@@ -434,31 +654,11 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           </Command.Group>
         )}
 
-        <Command.Group heading="Checkout branch">
-          {visibleBranches.map((branch) => (
-            <PaletteItem
-              key={branch.name}
-              icon={<Check />}
-              label={branch.name}
-              onSelect={() =>
-                run(`Checkout ${branch.name}`, () =>
-                  useUndo.getState().tracked({
-                    path,
-                    kind: 'checkout',
-                    label: `Checkout ${branch.name}`,
-                    action: () => ipc.checkout(path, branch.name),
-                  }),
-                )
-              }
-            />
-          ))}
-        </Command.Group>
-
         <Command.Group heading="View">
           <PaletteItem
             icon={<SquareTerminal />}
             label="Toggle terminal"
-            shortcut="`"
+            hint="Ctrl+`"
             onSelect={() => {
               close();
               toggleTerminal();
@@ -467,10 +667,18 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<PanelLeft />}
             label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            shortcut="B"
+            hint={`${modKey()}L`}
             onSelect={() => {
               close();
               toggleSidebar();
+            }}
+          />
+          <PaletteItem
+            icon={layout === 'preview' ? <PanelLeft /> : <Columns3 />}
+            label={layout === 'preview' ? 'Standard layout' : 'Preview layout'}
+            onSelect={() => {
+              close();
+              setLayout(layout === 'preview' ? 'standard' : 'preview');
             }}
           />
           <PaletteItem
@@ -484,7 +692,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<ZoomIn />}
             label="Zoom in"
-            shortcut="+"
+            hint={`${modKey()}+`}
             onSelect={() => {
               close();
               zoomIn();
@@ -493,24 +701,22 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<ZoomOut />}
             label="Zoom out"
-            shortcut="-"
+            hint={`${modKey()}-`}
             onSelect={() => {
               close();
               zoomOut();
             }}
           />
           <PaletteItem
-            icon={themeBase(theme) === 'dark' ? <Sun /> : <Moon />}
-            label={themeBase(theme) === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            onSelect={() => {
-              close();
-              setTheme(themeBase(theme) === 'dark' ? 'light' : 'dark');
-            }}
+            icon={<Palette />}
+            label="Color theme"
+            keywords={['theme', 'appearance', 'dark', 'light']}
+            onSelect={enterThemeMode}
           />
           <PaletteItem
             icon={<Settings />}
             label="Settings"
-            shortcut=","
+            hint={`${modKey()},`}
             onSelect={() => {
               close();
               openDialog('settings');
@@ -521,20 +727,11 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             label="Install command line tool"
             onSelect={() => {
               close();
-              void ipc
-                .cliInstall()
-                .then((status) =>
-                  toast.success(
-                    status.onPath
-                      ? 'Installed. Run angkorgit --help for usage.'
-                      : `Installed at ${status.path}. Add that folder to your PATH.`,
-                  ),
-                )
-                .catch((error) =>
-                  toast.error(
-                    `Could not install: ${(error as { message?: string }).message ?? error}`,
-                  ),
-                );
+              void installCliTool().catch((error) =>
+                toast.error(
+                  `Could not install: ${(error as { message?: string }).message ?? error}`,
+                ),
+              );
             }}
           />
           <PaletteItem
@@ -548,6 +745,25 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             }}
           />
         </Command.Group>
+
+        <Command.Group heading="Help">
+          <PaletteItem
+            icon={<Download />}
+            label="Documentation"
+            onSelect={async () => {
+              close();
+              await openExternal('https://github.com/noyobo/angkorgit');
+            }}
+          />
+          <PaletteItem
+            icon={<Download />}
+            label="Report Issue…"
+            onSelect={async () => {
+              close();
+              await openExternal('https://github.com/noyobo/angkorgit/issues/new');
+            }}
+          />
+        </Command.Group>
         </>
         )}
       </Command.List>
@@ -555,28 +771,91 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
   );
 }
 
+function ThemePreviewSync() {
+  const value = useCommandState((s) => s.value);
+  useEffect(() => {
+    if (THEMES.some((t) => t.id === value)) applyTheme(value as Theme);
+  }, [value]);
+  return null;
+}
+
+function QuickKeyItems({ children }: { children: React.ReactNode }) {
+  const [quickKeys, setQuickKeys] = React.useState<Map<number, number>>(new Map());
+
+  React.useEffect(() => {
+    const updateQuickKeys = () => {
+      const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+      const newQuickKeys = new Map<number, number>();
+      items.forEach((item, index) => {
+        if (index < 9 && item instanceof HTMLElement) {
+          const itemIndex = parseInt(item.getAttribute('data-item-index') ?? '-1');
+          if (itemIndex >= 0) {
+            newQuickKeys.set(itemIndex, index + 1);
+          }
+        }
+      });
+      setQuickKeys(newQuickKeys);
+    };
+
+    const timer = setTimeout(updateQuickKeys, 0);
+    return () => clearTimeout(timer);
+  });
+
+  let itemIndex = 0;
+  return (
+    <>
+      {React.Children.map(children, (child) => {
+        if (!React.isValidElement(child)) return child;
+        const currentIndex = itemIndex++;
+        const quickKey = quickKeys.get(currentIndex);
+        return React.cloneElement(child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>, {
+          quickKey,
+          'data-item-index': currentIndex,
+        });
+      })}
+    </>
+  );
+}
+
 function PaletteItem({
   icon,
   label,
-  shortcut,
+  hint,
+  quickKey,
+  value,
+  keywords,
+  active,
   onSelect,
+  ...rest
 }: {
   icon: React.ReactNode;
   label: string;
-  shortcut?: string;
+  hint?: string;
+  quickKey?: number;
+  value?: string;
+  keywords?: string[];
+  active?: boolean;
   onSelect: () => void;
+  'data-item-index'?: number;
 }) {
   return (
     <Command.Item
-      onSelect={onSelect}
-      className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-2 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
+      value={value ?? label}
+      keywords={keywords}
+      onSelect={() => {
+        onSelect();
+      }}
+      className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
+      {...rest}
     >
       {icon}
-      <span className="flex-1">{label}</span>
-      {shortcut && (
-        <span className="flex items-center gap-0.5">
-          <Kbd>{modKey()}</Kbd>
-          <Kbd>{shortcut}</Kbd>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {hint && <span className="shrink-0 text-[11px] text-muted/70">{hint}</span>}
+      {active && <Check className="size-3.5 shrink-0 text-primary" />}
+      {quickKey !== undefined && (
+        <span className="flex shrink-0 items-center gap-0.5 opacity-60">
+          <Kbd className="text-[10px]">{modKey()}</Kbd>
+          <Kbd className="text-[10px]">{quickKey}</Kbd>
         </span>
       )}
     </Command.Item>
