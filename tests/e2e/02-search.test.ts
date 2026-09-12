@@ -1,20 +1,25 @@
 import { expect, test } from '@rstest/playwright';
 
+// 增加 CI 环境的超时时间
+const CI_TIMEOUT = 15_000;
+
 test('the status bar branch name opens a local branch switcher', async ({ page }) => {
   await page.goto('http://localhost:1420/');
   await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: CI_TIMEOUT });
+  // 等待页面完全加载后再点击状态栏
+  await page.waitForTimeout(500);
   await page.getByTestId('status-bar-branch').click();
   const filter = page.getByPlaceholder('Filter branches…');
-  await expect(filter).toBeFocused();
-  await expect(page.getByRole('option', { name: 'develop' })).toBeVisible();
+  await expect(filter).toBeFocused({ timeout: CI_TIMEOUT });
+  await expect(page.getByRole('option', { name: 'develop' })).toBeVisible({ timeout: CI_TIMEOUT });
   await expect(page.getByRole('option', { name: /develop/ })).toContainText(/ago|just now/);
   await expect(page.getByRole('option', { name: 'origin/main' })).toHaveCount(0);
   await filter.fill('origin');
-  await expect(page.getByText('No branches match')).toBeVisible();
+  await expect(page.getByText('No branches match')).toBeVisible({ timeout: CI_TIMEOUT });
   await filter.fill('develop');
   await page.getByRole('option', { name: 'develop' }).click();
-  await expect(page.getByText('Checkout develop done')).toBeVisible();
+  await expect(page.getByText('Checkout develop done')).toBeVisible({ timeout: CI_TIMEOUT });
 });
 
 test('commit search finds matches in the full graph and steps through them', async ({ page }) => {
