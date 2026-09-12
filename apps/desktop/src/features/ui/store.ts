@@ -251,8 +251,11 @@ export const useUi = create<UiState>()(
       closeRangeDiff: () => set({ rangeDiff: null }),
       openEditor: (centerEditor) => set({ centerEditor }),
       closeEditor: () => set({ centerEditor: null }),
-      openFileHistory: (centerFileHistory) => set({ centerFileHistory, centerDiff: null }),
+      openFileHistory: (centerFileHistory) => set({ centerFileHistory, centerBlame: null, centerDiff: null }),
       closeFileHistory: () => set({ centerFileHistory: null }),
+      openBlame: (file, rev = null) =>
+        set({ centerBlame: { file, rev }, centerFileHistory: null, centerDiff: null }),
+      closeBlame: () => set({ centerBlame: null }),
       openConflict: (conflictFile) => set({ conflictFile }),
       addRepoTab: (path) =>
         set((s) => (s.repoTabs.includes(path) ? s : { repoTabs: [...s.repoTabs, path] })),
