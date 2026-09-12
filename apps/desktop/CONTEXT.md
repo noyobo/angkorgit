@@ -7,7 +7,7 @@ Desktop's Changes / History tabs are not our surfaces. ⌘1–9 switch Repositor
 ## Surfaces
 
 **Graph**:
-The commit history drawn as lanes. In Standard it is the center of the window; in Preview it is a compact commit list (message and date only).
+The commit history drawn as lanes. In Standard it is the center of the window; in Preview it is the current branch as a single lane (message and date).
 _Avoid_: History tab（历史标签）, commit list（提交列表）, CommitGraph, 历史视图
 
 **Working copy**:
@@ -78,7 +78,7 @@ Graph-centered. Opening a Diff covers the Graph and hides the Sidebar.
 _Avoid_: immersive（沉浸式）
 
 **Preview**:
-The Graph stays visible as a compact commit list; the Diff docks on the right. Graph display columns are a Standard preference and do not apply here.
+The Graph stays visible as the current branch's single-lane commit list; the Diff docks on the right. Graph display columns are a Standard preference and do not apply here.
 _Avoid_: Preview diff（预览 diff — 那是操作）, Preview PR, 预览模式（当指 PR 预览）
 
 ## Operations

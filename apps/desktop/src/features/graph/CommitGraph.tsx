@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
 import { Archive, ArchiveRestore, ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, Combine, Copy, Filter, FolderTree, GitBranchPlus, Settings2, GitMerge, ListOrdered, ListRestart, RotateCcw, Search, Tag as TagIcon, Trash2, Undo2, User, X } from 'lucide-react';
-import type { CommitInfo, RefInfo } from '@angkorgit/core';
+import { flatGraphRows, type CommitInfo, type RefInfo } from '@angkorgit/core';
 import {
   Button,
   DropdownMenu,
@@ -24,7 +24,7 @@ import { useRepo } from '@/features/repository/store';
 import { useGraph } from './store';
 import { useUi } from '@/features/ui/store';
 import { useUndo, type UndoKind } from '@/features/history/undoStore';
-import { AUTHOR_COL_WIDTH, CommitRow, GUTTER_GAP, GraphTailDefs, REF_COL_WIDTH, ROW_HEIGHT, gutterWidthFor, laneWidthFor } from './GraphRow';
+import { AUTHOR_COL_WIDTH, CommitRow, GUTTER_GAP, GraphTailDefs, LANE_WIDTH, REF_COL_WIDTH, ROW_HEIGHT, gutterWidthFor, laneWidthFor } from './GraphRow';
 import { WipRow } from './WipRow';
 import { confirmDialog } from '@/components/confirm';
 import { useShortcuts } from '@/shared/useShortcuts';
@@ -66,6 +66,7 @@ export function CommitGraph() {
   const storedTail = useUi((s) => s.graphTail);
   const graphColumns = compact ? PREVIEW_COLUMNS : storedColumns;
   const graphTail = compact ? false : storedTail;
+  const displayRows = compact ? flatGraphRows(commits, 0, hasMore) : rows;
   const setGraphTail = useUi((s) => s.setGraphTail);
   const setGraphColumn = useUi((s) => s.setGraphColumn);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -134,8 +135,8 @@ export function CommitGraph() {
     clearPendingScroll();
   }, [pendingScrollIndex, rows.length, virtualizer, clearPendingScroll]);
 
-  const laneWidth = laneWidthFor(maxLane);
-  const gutterWidth = gutterWidthFor(maxLane, laneWidth);
+  const laneWidth = compact ? LANE_WIDTH : laneWidthFor(maxLane);
+  const gutterWidth = compact ? gutterWidthFor(0, LANE_WIDTH) : gutterWidthFor(maxLane, laneWidth);
   const filtersActive = Boolean(filters.branch);
 
   const moveSelection = useCallback(
@@ -507,11 +508,9 @@ export function CommitGraph() {
             Branch / tag
           </span>
         )}
-        {!compact && (
-          <span className="shrink-0 truncate" style={{ width: gutterWidth, marginRight: GUTTER_GAP }}>
-            Graph
-          </span>
-        )}
+        <span className="shrink-0 truncate" style={{ width: gutterWidth, marginRight: GUTTER_GAP }}>
+          {compact ? null : 'Graph'}
+        </span>
         {graphColumns.message && (
           <span className="min-w-0 flex-1 truncate">
             Message
@@ -531,7 +530,7 @@ export function CommitGraph() {
         {!graphColumns.message && <span className="min-w-0 flex-1" />}
       </div>
       <div ref={scrollRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto outline-none" role="table" aria-label="Commits">
-        <WipRow gutterWidth={gutterWidth} showRefs={graphColumns.refs} showGutter={!compact} />
+        <WipRow gutterWidth={gutterWidth} showRefs={graphColumns.refs} />
         {rows.length === 0 && !loading ? (
           error ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-sm text-danger">
@@ -557,7 +556,7 @@ export function CommitGraph() {
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
             {items.map((item) => {
-              const row = rows[item.index];
+              const row = displayRows[item.index];
               const commit = commits[item.index];
               if (!row || !commit) return null;
               return (
@@ -585,7 +584,6 @@ export function CommitGraph() {
                     selected={selectedOid === commit.oid || selectedOids.includes(commit.oid)}
                     laneWidth={laneWidth}
                     columns={graphColumns}
-                    showGutter={!compact}
                     showTail={graphTail}
                     worktrees={worktreeBranches}
                     resettableBranches={localBranchNames}

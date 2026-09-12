@@ -7,9 +7,13 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Console errors land in the daily log.** `console.error`, uncaught exceptions,
+  and unhandled promise rejections are written to the same `*.log` file as the
+  rest of the app log (Help → Open Today's Log), so a WebView crash is still
+  there after the window is gone. Browser demo mode has no log file.
 - **Preview layout keeps the graph while you read a diff.** Status bar icons
   (and the command palette) switch Standard — today's immersive diff that
-  covers the graph — and Preview: compact commits (message + date, no graph), file list,
+  covers the graph — and Preview: compact current-branch graph (single lane, message + date), file list,
   and diff side by side. Graph display columns stay a Standard preference.
   Escape still closes the file; ⌘B leaves Preview and brings the sidebar back.
 - **Preview a color theme from the command palette.** ⌘K / ⌘P → Color theme. Arrow

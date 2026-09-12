@@ -1,8 +1,8 @@
-import { ArrowDown, ArrowUp, GitBranch } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, GitBranch } from 'lucide-react';
 import { Badge, Hint, cn } from '@angkorgit/design-system';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { capCount, isMac } from '@/shared/utils';
+import { capCount } from '@/shared/utils';
 
 export function BranchChip() {
   const repo = useRepo((s) => s.repo);
@@ -11,8 +11,8 @@ export function BranchChip() {
 
   if (!repo) return null;
 
-  const branch = repo.isDetached 
-    ? `detached @ ${repo.headOid?.slice(0, 8) ?? '?'}` 
+  const branch = repo.isDetached
+    ? `detached @ ${repo.headOid?.slice(0, 8) ?? '?'}`
     : repo.headBranch;
   const ahead = status?.ahead ?? 0;
   const behind = status?.behind ?? 0;
@@ -23,14 +23,13 @@ export function BranchChip() {
       <button
         type="button"
         className={cn(
-          'group flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-surface-raised',
-          isMac && 'pointer-events-auto',
+          'no-drag group flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs transition-colors hover:bg-surface-raised',
         )}
         aria-label="Switch branch"
         data-testid="title-bar-branch-chip"
         onClick={() => setBranchSwitcherOpen(true)}
       >
-        <GitBranch className="size-3 shrink-0 text-muted group-hover:text-foreground" />
+        <GitBranch className="size-3.5 shrink-0 text-muted group-hover:text-foreground" />
         <span className="max-w-44 select-none truncate font-mono text-foreground">{branch ?? '—'}</span>
         {hasDivergence && (
           <span className="flex shrink-0 items-center gap-1">
@@ -48,6 +47,7 @@ export function BranchChip() {
             )}
           </span>
         )}
+        <ChevronDown className="size-3 shrink-0 text-faint" />
       </button>
     </Hint>
   );

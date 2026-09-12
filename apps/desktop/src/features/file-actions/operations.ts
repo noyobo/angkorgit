@@ -3,7 +3,7 @@ import { ipc, openExternal } from '@/core/ipc';
 import { fileManagerLabel } from '@/shared/utils';
 import { externalEditorLabel, type ExternalEditor } from '@/features/settings/store';
 import { logger } from '@/core/logger';
-import type { RemoteInfo } from '@angkorgit/core';
+import { pickForgeRemote, webUrl, type RemoteInfo } from '@angkorgit/core';
 
 /**
  * operations.ts - Shared file actions
@@ -106,33 +106,10 @@ export function buildFileRemoteUrl(
   remotes: RemoteInfo[],
   headBranch: string | null,
 ): string | null {
-  if (remotes.length === 0 || !headBranch) return null;
-  
-  // Use the first remote as the primary (matches existing behavior)
-  const remote = remotes[0];
+  if (!headBranch) return null;
+  const remote = pickForgeRemote(remotes, null);
   if (!remote?.url) return null;
-  
-  // Parse remote URL to build file browse URL
-  const { parseRemote } = require('@angkorgit/core');
-  const parsed = parseRemote(remote.url);
-  if (!parsed) return null;
-  
-  const { host, owner, repo } = parsed;
-  
-  // Build URLs per forge type
-  // GitHub/GitLab/Bitbucket all support /blob/ or /src/ patterns
-  if (host.includes('github')) {
-    return `https://${host}/${owner}/${repo}/blob/${headBranch}/${filePath}`;
-  }
-  if (host.includes('gitlab')) {
-    return `https://${host}/${owner}/${repo}/-/blob/${headBranch}/${filePath}`;
-  }
-  if (host.includes('bitbucket')) {
-    return `https://${host}/${owner}/${repo}/src/${headBranch}/${filePath}`;
-  }
-  
-  // Generic fallback
-  return `https://${host}/${owner}/${repo}/blob/${headBranch}/${filePath}`;
+  return webUrl(remote.url, { kind: 'file', filePath, branch: headBranch });
 }
 
 /**

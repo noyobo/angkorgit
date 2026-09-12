@@ -1208,8 +1208,8 @@ test('preview layout keeps the commit list visible while a diff is open', async 
   await page.getByRole('button', { name: 'Preview layout' }).click();
   await expect(page.locator('[data-workspace-layout="preview"]')).toBeVisible();
   await expect(page.getByText('Branch / tag')).toHaveCount(0);
-  await expect(page.getByText('Graph', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Graph display options' })).toHaveCount(0);
+  await expect(page.getByRole('table', { name: 'Commits' }).locator('[data-graph-gutter]').first()).toBeVisible();
   await page.getByText('ipc.ts', { exact: true }).first().click();
   await expect(page.locator('section[aria-label^="Diff for"]')).toBeVisible();
   await expect(page.getByPlaceholder('Search commits…')).toBeVisible();

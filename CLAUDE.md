@@ -418,6 +418,9 @@ app/globals.css               ← tokens import (RELATIVE path!), scrollbars, hl
 core/ipc.ts                   ← THE typed IPC boundary — only place calling invoke();
                                 demo-mode fallback (browser) per command; openExternal;
                                 listen() wrapper for Tauri events
+core/logger.ts                ← daily *.log under the app config dir; Tauri only.
+                                console.error + window error + unhandledrejection are
+                                mirrored in (browser demo has no file)
 core/demo.ts                  ← deterministic 400-commit synthetic repo for demo mode
 components/                   ← RepoTabs (tab strip is overflow-x-auto with the
                                 scrollbar HIDDEN via .scrollbar-none — a visible 8px
@@ -540,7 +543,8 @@ features/
 │                           cleared by every select/toggleSelect, so the glow follows the
 │                           selection without component state;
 │                           pagination, filters {branch} — the only filter left,
-│   │                           it narrows the walk; reload drops the filter when that
+│   │                           it narrows the walk; Preview with no filter walks HEAD;
+│   │                           reload drops the filter when that
 │   │                           branch is gone (delete / watcher); rename retargets it
 │   │                           (retargetBranchFilter, incl. undo/redo);
 │   │                           SEARCH AND AUTHOR ARE FIND, NOT FILTER
@@ -590,8 +594,9 @@ features/
 │                           (persisted; the persist `merge` fills new keys from
 │                           DEFAULT_GRAPH_COLUMNS so an older saved object never hides a
 │                           column that did not exist yet). Preview layout ignores that
-│                           preference and renders PREVIEW_COLUMNS (message + date only,
-│                           no graph gutter / lane band) so the left pane stays a compact commit list;
+│                           preference and renders PREVIEW_COLUMNS (message + date only)
+│                           plus a single-lane graph of the current branch (flatGraphRows,
+│                           HEAD walk, no lane band) so the left pane stays compact;
 │                           the Graph display menu is hidden there so toggling cannot
 │                           leak into Standard — `author` is an AUTHOR NAME
 │                           column (AUTHOR_COL_WIDTH, after the message), NOT an avatar
@@ -1333,7 +1338,7 @@ features/
                                 openCenterDiff only sets centerDiff; in standard that
                                 covers the graph and hides the sidebar, in preview the
                                 graph stays and DiffPanel docks on the right (CommitGraph
-                                uses message+date columns only, no graph gutter; Graph display menu hidden);
+                                uses message+date columns plus a single-lane current-branch graph; Graph display menu hidden);
                                 toggleSidebar goes through sidebarToggle: Preview →
                                 Standard + sidebar + clear diff, immersive diff → close
                                 diff + sidebar, else flip sidebarOpen;

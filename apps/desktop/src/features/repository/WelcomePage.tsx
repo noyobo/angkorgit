@@ -31,7 +31,7 @@ import {
   cn,
 } from '@angkorgit/design-system';
 import type { RecentRepository } from '@angkorgit/core';
-import { appVersion, ipc, pickDirectory } from '@/core/ipc';
+import { appVersion, ipc, pickDirectory, startWindowDrag } from '@/core/ipc';
 import { useRepo } from './store';
 import { useUi } from '@/features/ui/store';
 import { CloneDialog } from './CloneDialog';
@@ -129,6 +129,7 @@ export function WelcomePage() {
         <div
           data-tauri-drag-region
           className="absolute left-0 right-0 top-0 h-16 bg-transparent"
+          onPointerDown={startWindowDrag}
         />
       )}
       <TemplePattern className="[mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_75%)]" />

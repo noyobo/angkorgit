@@ -106,7 +106,7 @@ function GraphGutter({
   const nx = Math.min(x(node.lane), width - AVATAR_SIZE / 2 - NODE_RING - NODE_HALO - 1);
   const total = width + GUTTER_GAP;
   return (
-    <div className="relative shrink-0 overflow-hidden" style={{ width: total, height: ROW_HEIGHT }}>
+    <div data-graph-gutter className="relative shrink-0 overflow-hidden" style={{ width: total, height: ROW_HEIGHT }}>
       <svg width={total} height={ROW_HEIGHT} aria-hidden>
         {showTail && (
           <>

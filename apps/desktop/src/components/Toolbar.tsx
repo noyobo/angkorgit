@@ -39,6 +39,7 @@ import {
 import { ipc } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
 import { RepoMark } from '@/components/RepoMark';
+import { BranchChip } from '@/components/BranchChip';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
 import {
@@ -416,6 +417,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         </Button>
       </Hint>
       <RepoSwitcher />
+      <BranchChip />
       <ProfileButton />
       <StateActions onRefresh={onRefresh} />
 

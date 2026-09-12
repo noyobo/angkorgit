@@ -2,16 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { FolderTree, Plus, X } from 'lucide-react';
 import { Button, Hint, cn } from '@angkorgit/design-system';
-import { pickDirectory } from '@/core/ipc';
+import { pickDirectory, startWindowDrag } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { modKey, isMac } from '@/shared/utils';
-import { BranchChip } from './BranchChip';
 
 const TAB_HINT_DELAY_MS = 200;
-const TRAFFIC_LIGHT_WIDTH = 80;
+const TRAFFIC_LIGHT_INSET = 78;
 
 function overlayBlocksTabs(): boolean {
   const ui = useUi.getState();
@@ -129,23 +128,19 @@ export function TitleBarOverlay() {
   if (!repo) return null;
 
   return (
-    <div className="relative flex h-9 shrink-0 items-center gap-2 border-b border-border-subtle bg-surface px-2">
-      {isMac && (
-        <>
-          {/* Drag region for window dragging */}
-          <div
-            data-tauri-drag-region
-            className="pointer-events-none absolute left-0 right-0 top-0 h-9 bg-transparent"
-          />
-          {/* Traffic light spacer */}
-          <div className="shrink-0" style={{ width: `${TRAFFIC_LIGHT_WIDTH}px` }} />
-        </>
+    <div
+      className={cn(
+        'flex h-[38px] shrink-0 items-stretch gap-2 border-b border-border-subtle bg-surface py-[3px] pr-2',
+        !isMac && 'pl-2',
       )}
-      
-      {/* Repository tabs */}
+      onPointerDown={startWindowDrag}
+    >
+      {isMac && (
+        <div data-tauri-drag-region className="h-full shrink-0" style={{ width: TRAFFIC_LIGHT_INSET }} />
+      )}
       <div
         ref={stripRef}
-        className="scrollbar-none relative flex min-w-0 flex-1 items-end gap-0.5 overflow-x-auto"
+        className="scrollbar-none flex min-w-0 items-stretch gap-0.5 overflow-x-auto"
         data-tab-hints={showHints || undefined}
         onWheel={(e) => {
           if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -192,11 +187,10 @@ export function TitleBarOverlay() {
                 if (e.button === 1) close(path);
               }}
               className={cn(
-                'group relative flex h-8 min-w-0 max-w-44 shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-t-md border border-b-0 px-3 text-xs',
-                isMac && 'pointer-events-auto',
+                'no-drag group relative flex h-full min-w-0 max-w-44 shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-md px-2.5 text-xs',
                 active
-                  ? 'border-border-subtle bg-background text-foreground'
-                  : 'border-transparent text-muted hover:bg-surface-raised hover:text-foreground',
+                  ? 'bg-surface-raised text-foreground'
+                  : 'text-muted hover:bg-surface-raised/70 hover:text-foreground',
                 draggingTab === path && 'opacity-40',
                 dropTab === path && 'ring-1 ring-inset ring-primary/60',
               )}
@@ -205,8 +199,8 @@ export function TitleBarOverlay() {
                 <span
                   aria-hidden
                   className={cn(
-                    'pointer-events-none absolute inset-y-0 left-0 z-[1] flex items-center whitespace-nowrap rounded-tl-md bg-gradient-to-r to-transparent pl-2.5 pr-7 text-[11px] font-medium tabular-nums text-primary transition-opacity duration-150',
-                    active ? 'from-background from-[45%]' : 'from-surface from-[45%]',
+                    'pointer-events-none absolute inset-y-0 left-0 z-[1] flex items-center whitespace-nowrap rounded-md bg-gradient-to-r from-surface-raised from-[45%] to-transparent pl-2 pr-7 text-[11px] font-medium tabular-nums text-primary transition-opacity duration-150',
+                    !active && 'from-surface',
                     showHints ? 'opacity-100' : 'opacity-0',
                   )}
                 >
@@ -238,22 +232,18 @@ export function TitleBarOverlay() {
           );
         })}
       </div>
-
-      {/* Add new tab button */}
       <Hint label="Open another repository">
         <Button
           variant="ghost"
           size="icon-sm"
-          className={cn('shrink-0', isMac && 'pointer-events-auto')}
+          className="no-drag shrink-0 self-center"
           aria-label="Open another repository"
           onClick={addNew}
         >
           <Plus className="size-4" />
         </Button>
       </Hint>
-
-      {/* Branch chip */}
-      <BranchChip />
+      <div data-tauri-drag-region className="min-w-4 h-full flex-1" />
     </div>
   );
 }

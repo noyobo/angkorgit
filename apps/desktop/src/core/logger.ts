@@ -2,7 +2,7 @@ const isTauri = (): boolean =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 export type LogLayer = 'ui' | 'menu' | 'ipc' | 'git' | 'rust' | 'system';
-export type LogType = 'key' | 'click' | 'cmd' | 'stdout' | 'stderr' | 'push' | 'lifecycle';
+export type LogType = 'key' | 'click' | 'cmd' | 'stdout' | 'stderr' | 'push' | 'lifecycle' | 'console';
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
@@ -48,8 +48,48 @@ async function initLogger() {
   logCommand = (entry: LogEntry) => invoke('log_write', { entry });
 }
 
+function formatConsoleArgs(args: unknown[]): string {
+  return args
+    .map((arg) => {
+      if (arg instanceof Error) return `${arg.name}: ${arg.message}${arg.stack ? `\n${arg.stack}` : ''}`;
+      if (typeof arg === 'string') return arg;
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    })
+    .join(' ')
+    .slice(0, 10000);
+}
+
+function captureConsole() {
+  const origError = console.error.bind(console);
+  console.error = (...args: unknown[]) => {
+    origError(...args);
+    void writeLog('ui', 'console', 'error', formatConsoleArgs(args)).catch(() => {});
+  };
+  window.addEventListener('error', (event) => {
+    if (!(event instanceof ErrorEvent) || !event.message) return;
+    void writeLog('ui', 'console', 'error', event.message, {
+      filename: event.filename,
+      line: event.lineno,
+      col: event.colno,
+      stack: event.error instanceof Error ? event.error.stack : undefined,
+    }).catch(() => {});
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const message = reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason);
+    void writeLog('ui', 'console', 'error', message, {
+      stack: reason instanceof Error ? reason.stack : undefined,
+    }).catch(() => {});
+  });
+}
+
 if (isTauri()) {
   loggerReady = initLogger();
+  captureConsole();
 }
 
 async function writeLog(layer: LogLayer, type: LogType, level: LogLevel, message: string, meta?: Record<string, unknown>) {

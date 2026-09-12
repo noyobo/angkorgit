@@ -75,6 +75,19 @@ export interface AccountCheckResult {
 export const isTauri = (): boolean =>
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+let windowApi: typeof import('@tauri-apps/api/window') | null = null;
+if (isTauri()) {
+  void import('@tauri-apps/api/window').then((mod) => {
+    windowApi = mod;
+  });
+}
+
+export function startWindowDrag(event: { button: number; target: EventTarget | null }): void {
+  if (event.button !== 0 || !windowApi) return;
+  if (event.target instanceof Element && event.target.closest('.no-drag')) return;
+  void windowApi.getCurrentWindow().startDragging();
+}
+
 if (!isTauri()) {
   demo = await import('./demo');
 }
