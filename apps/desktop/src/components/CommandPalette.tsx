@@ -41,6 +41,14 @@ import { ipc, openExternal, pickDirectory } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
+import {
+  pushOperation,
+  pullOperation,
+  fetchOperation,
+  viewOnRemoteOperation,
+  checkoutOperation,
+  type OperationContext,
+} from '@/features/repository/operations';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { openDeleteBranches } from '@/features/repository/deleteBranches';
 import { sidebarVisible, useUi } from '@/features/ui/store';
@@ -84,11 +92,17 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
 
   const path = repo?.path ?? '';
   const repoState = repo?.state ?? 'clean';
-  const remote = remotes[0]?.name ?? 'origin';
   const locals = useMemo(() => branches.filter((b) => !b.isRemote && !b.isHead), [branches]);
   const otherRepos = useMemo(() => recents.filter((r) => r.path !== path).slice(0, 8), [recents, path]);
   const nextUndo = useMemo(() => [...undoStack].reverse().find((e) => e.repoPath === path), [undoStack, path]);
   const nextRedo = useMemo(() => [...redoStack].reverse().find((e) => e.repoPath === path), [redoStack, path]);
+
+  const makeContext = (): OperationContext => ({
+    path,
+    branches,
+    remotes,
+    source: 'command-palette',
+  });
 
   const [mode, setMode] = useState<'commands' | 'fileHistory' | 'theme'>('commands');
   const [search, setSearch] = useState('');
@@ -427,7 +441,8 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
                 toast.info('Pull already in progress');
                 return;
               }
-              run('Pull', () => ipc.pull(path, remote));
+              close();
+              void pullOperation(makeContext());
             }} />
             <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} onSelect={() => {
               if (busy) {
@@ -435,43 +450,15 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
                 return;
               }
               close();
-              void (async () => {
-                const { ensureRepoProfile } = await import('@/features/settings/profiles');
-                await ensureRepoProfile(path);
-                try {
-                  const result = await ipc.push(path, remote, false, false, true, undefined, 'command-palette');
-                  toastOutcome(result, 'Push done');
-                  await onRefresh();
-                  void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
-                } catch (error) {
-                  toast.error(`Push failed: ${(error as { message?: string }).message ?? error}`);
-                }
-              })();
+              void pushOperation(makeContext());
             }} />
             <PaletteItem
               icon={<Download />}
               label="View on remote"
               hint={`${modKey()}⇧G`}
-              onSelect={async () => {
+              onSelect={() => {
                 close();
-                const repo = useRepo.getState().repo;
-                if (!repo) return;
-                const remotes = useRepo.getState().remotes;
-                if (remotes.length === 0) {
-                  toast.error('No remotes configured');
-                  return;
-                }
-                const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
-                const branches = useRepo.getState().branches;
-                const headBranch = branches.find((b) => b.isHead && !b.isRemote);
-                const headUpstream = headBranch?.upstream ?? null;
-                const remote = pickForgeRemote(remotes, headUpstream);
-                const url = buildBrowseUrl(remote?.url ?? remotes[0].url, repo.headBranch);
-                if (!url) {
-                  toast.error('Could not parse remote URL');
-                  return;
-                }
-                await openExternal(url);
+                void viewOnRemoteOperation(makeContext());
               }}
             />
             {(() => {
@@ -491,13 +478,17 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
                 />
               ) : null;
             })()}
-            <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} onSelect={() => run('Fetch', () => ipc.fetch(path, remote, true, true))} />
+            <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} onSelect={() => {
+              close();
+              void fetchOperation(makeContext());
+            }} />
             <PaletteItem
               icon={<RefreshCw />}
               label="Fetch and clear local branches…"
               onSelect={() => {
                 close();
-                void fetchAndClearLocalBranches(path, remote, onRefresh);
+                const ctx = makeContext();
+                void fetchAndClearLocalBranches(ctx.path, ctx.remotes[0]?.name ?? 'origin', onRefresh);
               }}
             />
             <PaletteItem
@@ -678,16 +669,10 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               key={branch.name}
               icon={<Check />}
               label={branch.name}
-              onSelect={() =>
-                run(`Checkout ${branch.name}`, () =>
-                  useUndo.getState().tracked({
-                    path,
-                    kind: 'checkout',
-                    label: `Checkout ${branch.name}`,
-                    action: () => ipc.checkout(path, branch.name),
-                  }),
-                )
-              }
+              onSelect={() => {
+                close();
+                void checkoutOperation(makeContext(), branch.name);
+              }}
             />
           ))}
         </Command.Group>

@@ -6,6 +6,13 @@ import { useGraph } from '@/features/graph/store';
 import { useUi } from '@/features/ui/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
 import { ipc, openExternal } from '@/core/ipc';
+import {
+  pushOperation,
+  pullOperation,
+  fetchOperation,
+  viewOnRemoteOperation,
+  type OperationContext,
+} from '@/features/repository/operations';
 import { toast } from 'sonner';
 import { toastOutcome } from '@/shared/toastOutcome';
 import { logger } from '@/core/logger';
@@ -156,13 +163,12 @@ export async function handleMenuEvent(
           toast.info('Push already in progress');
           return;
         }
-        const pushRemote = useRepo.getState().remotes[0]?.name ?? 'origin';
-        const { ensureRepoProfile } = await import('@/features/settings/profiles');
-        await ensureRepoProfile(repoPath);
-        const pushResult = await ipc.push(repoPath, pushRemote, false, false, true, undefined, 'menu-repository-push');
-        toastOutcome(pushResult, 'Push complete');
-        await useRepo.getState().refresh();
-        void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
+        await pushOperation({
+          path: repoPath,
+          branches: useRepo.getState().branches,
+          remotes: useRepo.getState().remotes,
+          source: 'menu-repository-push',
+        });
         break;
 
       case 'pull':
@@ -171,11 +177,12 @@ export async function handleMenuEvent(
           toast.info('Pull already in progress');
           return;
         }
-        const pullRemote = useRepo.getState().remotes[0]?.name ?? 'origin';
-        const pullResult = await ipc.pull(repoPath, pullRemote);
-        toastOutcome(pullResult, 'Pull complete');
-        await useRepo.getState().refresh();
-        await useGraph.getState().reload(repoPath);
+        await pullOperation({
+          path: repoPath,
+          branches: useRepo.getState().branches,
+          remotes: useRepo.getState().remotes,
+          source: 'menu-repository-pull',
+        });
         break;
 
       case 'fetch':
@@ -184,11 +191,12 @@ export async function handleMenuEvent(
           toast.info('Fetch already in progress');
           return;
         }
-        const fetchRemote = useRepo.getState().remotes[0]?.name ?? 'origin';
-        await ipc.fetch(repoPath, fetchRemote, true, true);
-        toast.success('Fetch complete');
-        await useRepo.getState().refresh();
-        await useGraph.getState().reload(repoPath);
+        await fetchOperation({
+          path: repoPath,
+          branches: useRepo.getState().branches,
+          remotes: useRepo.getState().remotes,
+          source: 'menu-repository-fetch',
+        });
         break;
 
       case 'open-in-terminal':
@@ -209,22 +217,12 @@ export async function handleMenuEvent(
 
       case 'view-on-forge': {
         if (!repo) return;
-        const remotes = useRepo.getState().remotes;
-        if (remotes.length === 0) {
-          toast.error('No remotes configured');
-          return;
-        }
-        const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
-        const branches = useRepo.getState().branches;
-        const headBranch = branches.find((b) => b.isHead && !b.isRemote);
-        const headUpstream = headBranch?.upstream ?? null;
-        const remote = pickForgeRemote(remotes, headUpstream);
-        const url = buildBrowseUrl(remote?.url ?? remotes[0].url, repo.headBranch);
-        if (!url) {
-          toast.error('Could not parse remote URL');
-          return;
-        }
-        await openExternal(url);
+        await viewOnRemoteOperation({
+          path: repoPath!,
+          branches: useRepo.getState().branches,
+          remotes: useRepo.getState().remotes,
+          source: 'menu-repository-view-on-forge',
+        });
         break;
       }
 

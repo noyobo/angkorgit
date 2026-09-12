@@ -20,6 +20,7 @@ import {
 } from '@angkorgit/design-system';
 import { ipc } from '@/core/ipc';
 import { ensureRepoProfile } from '@/features/settings/profiles';
+import { pushOperation, type OperationContext } from '@/features/repository/operations';
 import { useRepo } from '@/features/repository/store';
 import { useGraph } from './store';
 import { useUi } from '@/features/ui/store';
@@ -233,9 +234,13 @@ export function CommitGraph() {
   };
 
   const pushBranch = async (branch: string) => {
-    await ensureRepoProfile(path);
-    await act(`Push ${branch}`, () => ipc.push(path, pushRemoteFor(branch), false, false, true, branch, 'graph-commit-menu'));
-    void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
+    const makeContext = (): OperationContext => ({
+      path,
+      branches,
+      remotes,
+      source: 'graph-commit-menu',
+    });
+    await pushOperation(makeContext(), { branch, label: `Push ${branch}` });
   };
 
   const aheadOf = (branch: string): number => branches.find((b) => !b.isRemote && b.name === branch)?.ahead ?? 0;
