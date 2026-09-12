@@ -130,4 +130,5 @@ export default defineConfig({
   target: 'web',
   mode: isDev ? 'development' : 'production',
   devtool: isDev ? 'cheap-module-source-map' : false,
+  performance: { hints: false },
 });
