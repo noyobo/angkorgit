@@ -313,8 +313,12 @@ jobs:
 
   rust-lint:
     name: Rust Lint
-    needs: [changes]
-    if: needs.changes.outputs.rust == 'true'
+    needs: [changes, e2e, build]
+    if: |
+      always() &&
+      needs.changes.outputs.rust == 'true' &&
+      (needs.changes.outputs.frontend != 'true' || 
+       (needs.build.result == 'success' && needs.e2e.result != 'failure'))
     runs-on: ubuntu-latest
     defaults:
       run:
