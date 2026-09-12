@@ -437,10 +437,10 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
     prime_account_bindings(Some(&repo));
     let mut remote = repo.find_remote(remote_name)?;
     
-    let mut received_objects = 0usize;
+    let received_objects = std::cell::Cell::new(0usize);
     let mut callbacks = make_callbacks();
     callbacks.transfer_progress(|stats| {
-        received_objects = stats.received_objects();
+        received_objects.set(stats.received_objects());
         true
     });
     
@@ -454,7 +454,7 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
     }
     remote.fetch(&[] as &[&str], Some(&mut opts), None)?;
     
-    if received_objects == 0 {
+    if received_objects.get() == 0 {
         Ok(OpOutcome {
             status: "up_to_date".into(),
             message: format!("Already up to date with {remote_name}"),
