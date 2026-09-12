@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { create } from 'zustand';
 import { AlertTriangle, Search } from 'lucide-react';
-import { namesOlderThan, type DeletableLocalRow } from '@angkorgit/core';
+import { namesOlderThan, type EligibleBranch } from '@angkorgit/core';
 import {
   Button,
   Dialog,
@@ -31,11 +31,11 @@ const AGE_OPTIONS = [
 
 interface DeleteBranchesState {
   request: {
-    rows: DeletableLocalRow[];
+    rows: EligibleBranch[];
     hasRemote: boolean;
     resolve: (choice: DeleteBranchesChoice | null) => void;
   } | null;
-  ask: (rows: DeletableLocalRow[], hasRemote: boolean) => Promise<DeleteBranchesChoice | null>;
+  ask: (rows: EligibleBranch[], hasRemote: boolean) => Promise<DeleteBranchesChoice | null>;
   settle: (choice: DeleteBranchesChoice | null) => void;
 }
 
@@ -53,16 +53,16 @@ const useDeleteBranchesStore = create<DeleteBranchesState>((set, get) => ({
 }));
 
 export function pickDeleteBranches(
-  rows: DeletableLocalRow[],
+  rows: EligibleBranch[],
   hasRemote: boolean,
 ): Promise<DeleteBranchesChoice | null> {
   return useDeleteBranchesStore.getState().ask(rows, hasRemote);
 }
 
-function rowMeta(row: DeletableLocalRow): string | undefined {
+function rowMeta(row: EligibleBranch): string | undefined {
   const parts: string[] = [];
-  if (row.time > 0) parts.push(timeAgo(row.time));
-  if (row.ahead > 0) parts.push(`↑${capCount(row.ahead)}`);
+  if (row.time && row.time > 0) parts.push(timeAgo(row.time));
+  if (row.ahead && row.ahead > 0) parts.push(`↑${capCount(row.ahead)}`);
   return parts.length ? parts.join(' · ') : undefined;
 }
 
