@@ -1,5 +1,5 @@
-import { Button, cn, Hint } from '@angkorgit/design-system';
-import { FolderTree, Plus, X } from 'lucide-react';
+import { Button, cn, Hint, TabStrip } from '@angkorgit/design-system';
+import { FolderTree, Plus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { pickDirectory, startWindowDrag } from '@/core/ipc';
@@ -7,7 +7,7 @@ import { useRepo } from '@/features/repository/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
-import { isMac, modKey } from '@/shared/utils';
+import { isMac } from '@/shared/utils';
 
 const TAB_HINT_DELAY_MS = 200;
 const TRAFFIC_LIGHT_INSET = 78;
@@ -15,6 +15,11 @@ const TRAFFIC_LIGHT_INSET = 78;
 function overlayBlocksTabs(): boolean {
   const ui = useUi.getState();
   return Boolean(ui.dialog || ui.paletteOpen || ui.conflictFile);
+}
+
+function terminalPanelHasFocus(): boolean {
+  if (typeof document === 'undefined') return false;
+  return !!document.querySelector('[data-terminal-focused="true"]');
 }
 
 function activate(path: string) {
@@ -52,7 +57,7 @@ export function TitleBarOverlay() {
       Array.from({ length: 9 }, (_, i) => ({
         combo: `mod+${i + 1}`,
         handler: () => {
-          if (overlayBlocksTabs()) return;
+          if (overlayBlocksTabs() || terminalPanelHasFocus()) return;
           const path = useUi.getState().repoTabs[i];
           if (path) activate(path);
         },
@@ -71,7 +76,7 @@ export function TitleBarOverlay() {
       setShowHints(false);
     };
     const onDown = (event: KeyboardEvent) => {
-      if (overlayBlocksTabs()) {
+      if (overlayBlocksTabs() || terminalPanelHasFocus()) {
         hide();
         return;
       }
@@ -80,7 +85,7 @@ export function TitleBarOverlay() {
         if (timer !== undefined) return;
         timer = setTimeout(() => {
           timer = undefined;
-          if (!overlayBlocksTabs()) setShowHints(true);
+          if (!overlayBlocksTabs() && !terminalPanelHasFocus()) setShowHints(true);
         }, TAB_HINT_DELAY_MS);
         return;
       }
@@ -142,99 +147,56 @@ export function TitleBarOverlay() {
           style={{ width: TRAFFIC_LIGHT_INSET }}
         />
       )}
-      <div
-        ref={stripRef}
-        className="scrollbar-none flex min-w-0 items-stretch gap-0.5 overflow-x-auto"
-        data-tab-hints={showHints || undefined}
-        onWheel={(e) => {
-          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-            e.currentTarget.scrollLeft += e.deltaY;
-          }
-        }}
-      >
-        {tabs.map((path, index) => {
-          const active = path === repo?.path;
-          return (
-            <div
-              key={path}
-              role="tab"
-              aria-selected={active}
-              data-tab-path={path}
-              title={worktreeTabs.includes(path) ? `${path} (worktree)` : path}
-              draggable
-              onDragStart={(e) => {
-                setDraggingTab(path);
-                e.dataTransfer.setData('text/angkorgit-repo-tab', path);
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragEnd={() => {
-                setDraggingTab(null);
-                setDropTab(null);
-              }}
-              onDragOver={(e) => {
-                if (draggingTab && draggingTab !== path) {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                  setDropTab(path);
-                }
-              }}
-              onDragLeave={() => setDropTab((t) => (t === path ? null : t))}
-              onDrop={(e) => {
-                e.preventDefault();
-                const source = e.dataTransfer.getData('text/angkorgit-repo-tab');
-                setDraggingTab(null);
-                setDropTab(null);
-                if (source && source !== path) useUi.getState().moveRepoTab(source, path);
-              }}
-              onClick={() => activate(path)}
-              onAuxClick={(e) => {
-                if (e.button === 1) close(path);
-              }}
-              className={cn(
-                'no-drag group relative flex h-full min-w-0 max-w-44 shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-md px-2.5 text-xs',
-                active
-                  ? 'bg-surface-raised text-foreground'
-                  : 'text-muted hover:bg-surface-raised/70 hover:text-foreground',
-                draggingTab === path && 'opacity-40',
-                dropTab === path && 'ring-1 ring-inset ring-primary/60',
-              )}
-            >
-              {index < 9 && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    'pointer-events-none absolute inset-y-0 left-0 z-[1] flex items-center whitespace-nowrap rounded-md bg-gradient-to-r from-surface-raised from-[45%] to-transparent pl-2 pr-7 text-[11px] font-medium tabular-nums text-primary transition-opacity duration-150',
-                    !active && 'from-surface',
-                    showHints ? 'opacity-100' : 'opacity-0',
-                  )}
-                >
-                  {modKey()} {index + 1}
-                </span>
-              )}
-              {worktreeTabs.includes(path) && (
-                <FolderTree
-                  className={cn('size-3 shrink-0', active ? 'text-primary' : 'text-faint')}
-                  aria-label="Worktree"
-                />
-              )}
-              <span className="min-w-0 select-none truncate">{label(path)}</span>
-              <button
-                type="button"
-                aria-label={`Close ${label(path)}`}
-                className={cn(
-                  'relative z-[2] shrink-0 rounded-sm p-0.5 hover:bg-surface-overlay hover:text-foreground',
-                  active ? 'text-muted' : 'text-transparent group-hover:text-muted',
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  close(path);
-                }}
-              >
-                <X className="size-3" />
-              </button>
-            </div>
-          );
-        })}
+      <div ref={stripRef} className="min-w-0 flex-1">
+        <TabStrip
+          items={tabs.map((path) => ({
+            id: path,
+            label: label(path),
+            title: worktreeTabs.includes(path) ? `${path} (worktree)` : path,
+            icon: worktreeTabs.includes(path) ? <FolderTree className="size-3" /> : undefined,
+          }))}
+          activeId={repo?.path ?? null}
+          onSelect={activate}
+          onClose={close}
+          showHints={showHints}
+          hintContent={(index) => `${isMac ? '⌘' : 'Ctrl+'} ${index + 1}`}
+          size="md"
+          draggable
+          onDragStart={(path, e) => {
+            setDraggingTab(path);
+            e.dataTransfer.setData('text/angkorgit-repo-tab', path);
+            e.dataTransfer.effectAllowed = 'move';
+          }}
+          onDragEnd={() => {
+            setDraggingTab(null);
+            setDropTab(null);
+          }}
+          onDragOver={(path, e) => {
+            if (draggingTab && draggingTab !== path) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDropTab(path);
+            }
+          }}
+          onDragLeave={(path) => setDropTab((t) => (t === path ? null : t))}
+          onDrop={(path, e) => {
+            e.preventDefault();
+            const source = e.dataTransfer.getData('text/angkorgit-repo-tab');
+            setDraggingTab(null);
+            setDropTab(null);
+            if (source && source !== path) useUi.getState().moveRepoTab(source, path);
+          }}
+          onAuxClick={(path, e) => {
+            if (e.button === 1) close(path);
+          }}
+          onWheel={(e) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }}
+          draggingId={draggingTab}
+          dropTargetId={dropTab}
+        />
       </div>
       <Hint label="Open another repository">
         <Button

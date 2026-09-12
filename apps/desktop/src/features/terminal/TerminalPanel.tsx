@@ -1,14 +1,23 @@
-import { Button, Hint } from '@angkorgit/design-system';
+import { Button, Hint, TabStrip } from '@angkorgit/design-system';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
-import { X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { Plus, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import '@xterm/xterm/css/xterm.css';
 import { ipc, isTauri, listen } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
 import { useUi } from '@/features/ui/store';
-import { killTerminalSession, sessions, type TerminalSession } from './sessions';
+import { useShortcuts } from '@/shared/useShortcuts';
+import {
+  addTab,
+  createTabId,
+  getRepoTabs,
+  getTab,
+  removeTab,
+  type TerminalSession,
+  type TerminalTab,
+} from './sessions';
 import { terminalThemeFromTokens } from './theme';
 
 function newSession(): TerminalSession {
@@ -90,27 +99,87 @@ export function TerminalPanel() {
   const theme = useSettings((s) => s.theme);
   const accent = useSettings((s) => s.accent);
   const hostRef = useRef<HTMLDivElement>(null!);
+  const panelRef = useRef<HTMLDivElement>(null!);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [tabs, setTabs] = useState<TerminalTab[]>([]);
+  const [showHints, setShowHints] = useState(false);
 
   useEffect(() => {
     const next = terminalThemeFromTokens();
-    for (const session of sessions.values()) session.terminal.options.theme = next;
-  }, [theme, accent]);
+    if (!repoPath) return;
+    const currentTabs = getRepoTabs(repoPath);
+    for (const tab of currentTabs) {
+      tab.session.terminal.options.theme = next;
+    }
+  }, [theme, accent, repoPath]);
+
+  const createNewTab = () => {
+    if (!repoPath) return;
+    const tabId = createTabId();
+    const session = newSession();
+    const tab: TerminalTab = {
+      id: tabId,
+      session,
+      title: `Terminal ${getRepoTabs(repoPath).length + 1}`,
+    };
+    addTab(repoPath, tab);
+    setActiveTabId(tabId);
+    setTabs(getRepoTabs(repoPath));
+  };
+
+  const closeTab = (tabId: string) => {
+    if (!repoPath) return;
+    const currentTabs = getRepoTabs(repoPath);
+    const tabIndex = currentTabs.findIndex((t) => t.id === tabId);
+    removeTab(repoPath, tabId);
+    const remaining = getRepoTabs(repoPath);
+    setTabs(remaining);
+
+    if (activeTabId === tabId) {
+      if (remaining.length > 0) {
+        const nextIndex = Math.min(tabIndex, remaining.length - 1);
+        setActiveTabId(remaining[nextIndex].id);
+      } else {
+        setActiveTabId(null);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!repoPath) {
+      setTabs([]);
+      setActiveTabId(null);
+      return;
+    }
+
+    let currentTabs = getRepoTabs(repoPath);
+    if (currentTabs.length === 0) {
+      createNewTab();
+      currentTabs = getRepoTabs(repoPath);
+    }
+
+    setTabs(currentTabs);
+    if (!activeTabId || !currentTabs.find((t) => t.id === activeTabId)) {
+      setActiveTabId(currentTabs[0]?.id ?? null);
+    }
+  }, [repoPath]);
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || !repoPath) return;
+    if (!host || !repoPath || !activeTabId) return;
 
-    let session = sessions.get(repoPath);
-    if (session?.exited) {
-      killTerminalSession(repoPath);
-      session = undefined;
+    const tab = getTab(repoPath, activeTabId);
+    if (!tab) return;
+
+    const { session } = tab;
+    if (session.exited) {
+      closeTab(activeTabId);
+      return;
     }
-    const fresh = !session;
-    if (!session) {
-      session = newSession();
-      sessions.set(repoPath, session);
-    }
+
+    const fresh = !session.container.parentElement;
     host.appendChild(session.container);
+
     if (fresh) {
       session.terminal.open(session.container);
       session.fit.fit();
@@ -129,22 +198,131 @@ export function TerminalPanel() {
       observer.disconnect();
       attached.container.remove();
     };
-  }, [repoPath]);
+  }, [repoPath, activeTabId]);
+
+  const isFocused = () => {
+    const panel = panelRef.current;
+    if (!panel) return false;
+    const active = document.activeElement;
+    return panel.contains(active);
+  };
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const updateFocusState = () => {
+      if (isFocused()) {
+        panel.setAttribute('data-terminal-focused', 'true');
+      } else {
+        panel.removeAttribute('data-terminal-focused');
+      }
+    };
+
+    const onFocus = () => updateFocusState();
+    const onBlur = () => updateFocusState();
+
+    panel.addEventListener('focusin', onFocus);
+    panel.addEventListener('focusout', onBlur);
+    updateFocusState();
+
+    return () => {
+      panel.removeEventListener('focusin', onFocus);
+      panel.removeEventListener('focusout', onBlur);
+    };
+  }, []);
+
+  const tabShortcuts = Array.from({ length: 9 }, (_, i) => ({
+    combo: `mod+${i + 1}`,
+    handler: () => {
+      if (!isFocused()) return;
+      const tab = tabs[i];
+      if (tab) setActiveTabId(tab.id);
+    },
+    label: `terminal-tab-${i + 1}`,
+  }));
+
+  useShortcuts(tabShortcuts);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const hide = () => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      setShowHints(false);
+    };
+    const onDown = (event: KeyboardEvent) => {
+      if (!isFocused()) {
+        hide();
+        return;
+      }
+      const isMod = event.key === 'Meta' || event.key === 'Control';
+      if (isMod && !event.altKey && !event.shiftKey) {
+        if (timer !== undefined) return;
+        timer = setTimeout(() => {
+          timer = undefined;
+          if (isFocused()) setShowHints(true);
+        }, 200);
+        return;
+      }
+      hide();
+    };
+    const onUp = (event: KeyboardEvent) => {
+      if (event.key === 'Meta' || event.key === 'Control') hide();
+    };
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', hide);
+    return () => {
+      hide();
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', hide);
+    };
+  }, [tabs, activeTabId]);
+
+  const tabItems = tabs.map((tab) => ({
+    id: tab.id,
+    label: tab.title,
+  }));
 
   return (
-    <div className="flex h-full flex-col bg-surface">
-      <div className="flex h-7 shrink-0 items-center border-b border-border-subtle px-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-          Terminal
-        </span>
-        <span className="ml-2 min-w-0 flex-1 truncate font-mono text-[10px] text-faint">
+    <div
+      ref={panelRef}
+      className="flex h-full flex-col bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+      tabIndex={-1}
+    >
+      <div className="flex h-7 shrink-0 items-center border-b border-border-subtle bg-surface">
+        <TabStrip
+          items={tabItems}
+          activeId={activeTabId}
+          onSelect={setActiveTabId}
+          onClose={closeTab}
+          showHints={showHints}
+          hintContent={(index) => `⌘ ${index + 1}`}
+          size="sm"
+          className="px-2"
+        />
+        <Hint label="New terminal tab">
+          <button
+            type="button"
+            aria-label="New terminal tab"
+            className="flex h-full shrink-0 items-center rounded-md px-1.5 text-muted hover:bg-surface-raised/70 hover:text-foreground"
+            onClick={createNewTab}
+          >
+            <Plus className="size-3" />
+          </button>
+        </Hint>
+        <span className="ml-2 mr-2 min-w-0 flex-shrink truncate font-mono text-[10px] text-faint">
           {repoPath}
         </span>
         <Hint label="Close terminal">
           <Button
             variant="ghost"
             size="icon-sm"
-            className="ml-auto shrink-0"
+            className="mr-2 shrink-0"
             aria-label="Close terminal"
             onClick={toggleTerminal}
           >

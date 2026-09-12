@@ -4,6 +4,7 @@ export * from './components/DropdownMenu';
 export * from './components/Input';
 export * from './components/Logo';
 export * from './components/misc';
+export * from './components/TabStrip';
 export * from './components/Tabs';
 export * from './components/TemplePattern';
 export * from './components/Tooltip';
