@@ -1,7 +1,9 @@
 use tauri::{AppHandle, Emitter, State};
 
 use crate::core::types::*;
-use crate::core::{blame, branch, commit, conflict, diff, history, misc, remote, repo, stage, worktree};
+use crate::core::{
+    blame, branch, commit, conflict, diff, history, misc, remote, repo, stage, worktree,
+};
 use crate::error::AppResult;
 use crate::terminal::TerminalState;
 
