@@ -1,5 +1,5 @@
-import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
+import type { Terminal } from '@xterm/xterm';
 import { ipc } from '@/core/ipc';
 
 export interface TerminalSession {
@@ -49,12 +49,12 @@ export function removeTab(repoPath: string, tabId: string): void {
   if (!tabs) return;
   const tab = tabs.get(tabId);
   if (!tab) return;
-  
+
   tabs.delete(tabId);
   if (tabs.size === 0) {
     repoSessions.delete(repoPath);
   }
-  
+
   const { session } = tab;
   session.killed = true;
   session.unlisteners.forEach((fn) => fn());
@@ -66,7 +66,7 @@ export function removeTab(repoPath: string, tabId: string): void {
 export function killTerminalSession(repoPath: string): void {
   const tabs = repoSessions.get(repoPath);
   if (!tabs) return;
-  
+
   for (const tabId of Array.from(tabs.keys())) {
     removeTab(repoPath, tabId);
   }

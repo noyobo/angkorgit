@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { Plus, X } from 'lucide-react';
 import { Button, cn, Hint } from '@angkorgit/design-system';
-import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { Plus, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import '@xterm/xterm/css/xterm.css';
 import { ipc, isTauri, listen } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
@@ -135,7 +135,7 @@ export function TerminalPanel() {
     removeTab(repoPath, tabId);
     const remaining = getRepoTabs(repoPath);
     setTabs(remaining);
-    
+
     if (activeTabId === tabId) {
       if (remaining.length > 0) {
         const nextIndex = Math.min(tabIndex, remaining.length - 1);
@@ -158,7 +158,7 @@ export function TerminalPanel() {
       createNewTab();
       currentTabs = getRepoTabs(repoPath);
     }
-    
+
     setTabs(currentTabs);
     if (!activeTabId || !currentTabs.find((t) => t.id === activeTabId)) {
       setActiveTabId(currentTabs[0]?.id ?? null);
@@ -262,7 +262,10 @@ export function TerminalPanel() {
   return (
     <div ref={panelRef} className="flex h-full flex-col bg-surface" tabIndex={-1}>
       <div className="flex h-7 shrink-0 items-center border-b border-border-subtle bg-surface">
-        <div className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-2" data-tab-hints={showHints || undefined}>
+        <div
+          className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-2"
+          data-tab-hints={showHints || undefined}
+        >
           {tabs.map((tab, index) => (
             <div
               key={tab.id}
@@ -316,9 +319,17 @@ export function TerminalPanel() {
             </button>
           </Hint>
         </div>
-        <span className="ml-2 mr-2 min-w-0 flex-shrink truncate font-mono text-[10px] text-faint">{repoPath}</span>
+        <span className="ml-2 mr-2 min-w-0 flex-shrink truncate font-mono text-[10px] text-faint">
+          {repoPath}
+        </span>
         <Hint label="Close terminal">
-          <Button variant="ghost" size="icon-sm" className="mr-2 shrink-0" aria-label="Close terminal" onClick={toggleTerminal}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="mr-2 shrink-0"
+            aria-label="Close terminal"
+            onClick={toggleTerminal}
+          >
             <X className="size-3" />
           </Button>
         </Hint>
