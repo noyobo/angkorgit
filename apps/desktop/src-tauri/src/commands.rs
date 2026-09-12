@@ -440,7 +440,12 @@ pub async fn branch_create(
 }
 
 #[tauri::command]
-pub async fn branch_delete(path: String, name: String, remote: bool, force: Option<bool>) -> AppResult<()> {
+pub async fn branch_delete(
+    path: String,
+    name: String,
+    remote: bool,
+    force: Option<bool>,
+) -> AppResult<()> {
     let force = force.unwrap_or(false);
     blocking(move || branch::delete_with_force(&path, &name, remote, force)).await
 }
@@ -687,7 +692,11 @@ pub async fn submodule_list(path: String) -> AppResult<Vec<SubmoduleInfo>> {
 }
 
 #[tauri::command]
-pub async fn submodule_update(path: String, name: String, recursive: Option<bool>) -> AppResult<()> {
+pub async fn submodule_update(
+    path: String,
+    name: String,
+    recursive: Option<bool>,
+) -> AppResult<()> {
     let recursive = recursive.unwrap_or(false);
     blocking(move || misc::submodule_update(&path, &name, recursive)).await
 }

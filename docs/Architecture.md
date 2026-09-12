@@ -56,6 +56,8 @@ AngKorGit follows Clean Architecture with feature-based folders. Dependencies po
 
 **Verified destructive operations.** Discard (file or all) re-checks status afterwards and reports what could *not* be discarded, so cases libgit2 silently skips (submodule pointer changes) surface as actionable messages instead of silent no-ops.
 
+**Module seams are validated by real consumers.** `remote.rs` extracted its pull-policy logic (`PullPolicy`, `AutoStash`, `apply_pull_policy`) when two functions needed it; credentials and ls-remote stay unified until a second adapter requires extraction. Principle: don't split the bag for sport. [ADR 0005](./adr/0005-remote-pull-policy-seam.md) documents this decision.
+
 ## Extension points (future features)
 
 - **Plugins** — the command palette, sidebar sections and inspector tabs are list-driven; a plugin host can contribute entries without touching feature internals. The IPC layer is a single object that can be wrapped/instrumented.

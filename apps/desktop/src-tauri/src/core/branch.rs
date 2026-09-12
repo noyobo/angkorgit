@@ -97,30 +97,33 @@ pub fn delete_with_force(path: &str, name: &str, remote: bool, force: bool) -> A
         BranchType::Local
     };
     let mut branch = repo.find_branch(name, kind)?;
-    
+
     if !force && !remote {
         let branch_oid = branch
             .get()
             .target()
             .ok_or_else(|| AppError::other("branch has no target"))?;
-        
+
         let is_merged = if let Ok(head) = repo.head() {
             if let Some(head_oid) = head.target() {
-                branch_oid == head_oid || repo.graph_descendant_of(head_oid, branch_oid).unwrap_or(false)
+                branch_oid == head_oid
+                    || repo
+                        .graph_descendant_of(head_oid, branch_oid)
+                        .unwrap_or(false)
             } else {
                 false
             }
         } else {
             false
         };
-        
+
         if !is_merged {
             return Err(AppError::other(format!(
                 "branch '{name}' is not fully merged — use force delete if you're sure"
             )));
         }
     }
-    
+
     branch.delete()?;
     Ok(())
 }
@@ -679,18 +682,18 @@ pub fn reset(path: &str, oid: &str, mode: &str) -> AppResult<()> {
         "keep" => {
             let head = repo.head()?.peel_to_commit()?;
             let target = obj.peel_to_commit()?;
-            
+
             let mut opts = git2::StatusOptions::new();
             opts.include_untracked(false).include_ignored(false);
             let statuses = repo.statuses(Some(&mut opts))?;
-            
+
             for entry in statuses.iter() {
                 let status = entry.status();
                 if status.is_wt_modified() || status.is_wt_deleted() {
                     let path = entry.path().unwrap_or("");
                     let head_entry = head.tree()?.get_path(std::path::Path::new(path)).ok();
                     let target_entry = target.tree()?.get_path(std::path::Path::new(path)).ok();
-                    
+
                     if head_entry.map(|e| e.id()) != target_entry.map(|e| e.id()) {
                         return Err(AppError::other(format!(
                             "Cannot reset --keep: local changes to '{}' would be overwritten",
@@ -699,7 +702,7 @@ pub fn reset(path: &str, oid: &str, mode: &str) -> AppResult<()> {
                     }
                 }
             }
-            
+
             ResetType::Mixed
         }
         _ => return Err(AppError::other(format!("unknown reset mode: {mode}"))),

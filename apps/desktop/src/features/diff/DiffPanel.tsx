@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns2, Copy, FileText, History, Minus, Plus, Rows3, TextSelect, Trash2, WholeWord, WrapText, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns2, Copy, FileText, History, Menu, Minus, Plus, Rows3, TextSelect, Trash2, WholeWord, WrapText, X } from 'lucide-react';
 import type { CommitFileInfo, FileDiff } from '@angkorgit/core';
 import {
   Badge,
@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Hint,
@@ -21,6 +22,7 @@ import { confirmDialog } from '@/components/confirm';
 import type { LineMenuInfo } from './VirtualDiff';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
+import { useSettings } from '@/features/settings/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { captureSelectionRanges, useKeepSelection } from '@/shared/useKeepSelection';
 import { useUi, type CenterDiffTarget } from '@/features/ui/store';
@@ -29,15 +31,18 @@ import { wrapUnavailable } from './diffShared';
 import { useDiffFind } from './diffSearch';
 import { useDiffSelectAll } from './diffCopy';
 import { changeBlocks, DiffMinimap, scrollToFraction } from './DiffMinimap';
+import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 
 export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const repo = useRepo((s) => s.repo);
+  const remotes = useRepo((s) => s.remotes);
   const status = useRepo((s) => s.status);
   const statusVersion = useRepo((s) => s.statusVersion);
   const refreshStatus = useRepo((s) => s.refreshStatus);
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
   const openCenterDiff = useUi((s) => s.openCenterDiff);
   const openFileHistory = useUi((s) => s.openFileHistory);
+  const externalEditor = useSettings((s) => s.externalEditor);
   const diffView = useUi((s) => s.diffView);
   const setDiffView = useUi((s) => s.setDiffView);
   const wordDiff = useUi((s) => s.wordDiff);
@@ -309,6 +314,25 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
           </Button>
         </Hint>
         <span className="min-w-0 flex-1 select-none truncate font-mono text-xs">{target.path}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="File actions">
+              <Menu className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom">
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">{target.path}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <FileActionsMenu
+              repoPath={path}
+              filePath={target.path}
+              source="diff-panel"
+              externalEditor={externalEditor}
+              remotes={remotes}
+              headBranch={repo?.headBranch ?? null}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
         {isRange ? (
           <Badge tone="neutral" className="font-mono text-[10px]">
             {target.fromOid!.slice(0, 7)}..{target.toOid!.slice(0, 7)}

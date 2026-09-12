@@ -84,7 +84,7 @@ pub fn run_pre_push(
         let workdir = repo
             .workdir()
             .ok_or_else(|| AppError::other("cannot run pre-push in a bare repository"))?;
-        
+
         let stdin_content = refspecs
             .iter()
             .filter_map(|spec| {

@@ -8,8 +8,10 @@ import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
 import { modKey, isMac } from '@/shared/utils';
+import { BranchChip } from './BranchChip';
 
 const TAB_HINT_DELAY_MS = 200;
+const TRAFFIC_LIGHT_WIDTH = 80;
 
 function overlayBlocksTabs(): boolean {
   const ui = useUi.getState();
@@ -28,7 +30,7 @@ function activate(path: string) {
     });
 }
 
-export function RepoTabs() {
+export function TitleBarOverlay() {
   const repo = useRepo((s) => s.repo);
   const tabs = useUi((s) => s.repoTabs);
   const worktreeTabs = useUi((s) => s.worktreeTabs);
@@ -124,14 +126,23 @@ export function RepoTabs() {
 
   const label = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
+  if (!repo) return null;
+
   return (
-    <div className="relative flex h-9 shrink-0 items-end gap-0.5 border-b border-border-subtle bg-surface px-2">
+    <div className="relative flex h-9 shrink-0 items-center gap-2 border-b border-border-subtle bg-surface px-2">
       {isMac && (
-        <div
-          data-tauri-drag-region
-          className="pointer-events-none absolute left-0 right-0 top-0 h-9 bg-transparent"
-        />
+        <>
+          {/* Drag region for window dragging */}
+          <div
+            data-tauri-drag-region
+            className="pointer-events-none absolute left-0 right-0 top-0 h-9 bg-transparent"
+          />
+          {/* Traffic light spacer */}
+          <div className="shrink-0" style={{ width: `${TRAFFIC_LIGHT_WIDTH}px` }} />
+        </>
       )}
+      
+      {/* Repository tabs */}
       <div
         ref={stripRef}
         className="scrollbar-none relative flex min-w-0 flex-1 items-end gap-0.5 overflow-x-auto"
@@ -227,17 +238,22 @@ export function RepoTabs() {
           );
         })}
       </div>
+
+      {/* Add new tab button */}
       <Hint label="Open another repository">
         <Button
           variant="ghost"
           size="icon-sm"
-          className={cn('mb-0.5 shrink-0', isMac && 'pointer-events-auto')}
+          className={cn('shrink-0', isMac && 'pointer-events-auto')}
           aria-label="Open another repository"
           onClick={addNew}
         >
           <Plus className="size-4" />
         </Button>
       </Hint>
+
+      {/* Branch chip */}
+      <BranchChip />
     </div>
   );
 }
