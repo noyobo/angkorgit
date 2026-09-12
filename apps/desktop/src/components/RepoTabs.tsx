@@ -7,7 +7,7 @@ import { useRepo } from '@/features/repository/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
-import { modKey } from '@/shared/utils';
+import { modKey, isMac } from '@/shared/utils';
 
 const TAB_HINT_DELAY_MS = 200;
 
@@ -125,10 +125,16 @@ export function RepoTabs() {
   const label = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
   return (
-    <div className="flex h-9 shrink-0 items-end gap-0.5 border-b border-border-subtle bg-surface px-2">
+    <div className="relative flex h-9 shrink-0 items-end gap-0.5 border-b border-border-subtle bg-surface px-2">
+      {isMac && (
+        <div
+          data-tauri-drag-region
+          className="pointer-events-none absolute left-0 right-0 top-0 h-9 bg-transparent"
+        />
+      )}
       <div
         ref={stripRef}
-        className="scrollbar-none flex min-w-0 flex-1 items-end gap-0.5 overflow-x-auto"
+        className="scrollbar-none relative flex min-w-0 flex-1 items-end gap-0.5 overflow-x-auto"
         data-tab-hints={showHints || undefined}
         onWheel={(e) => {
           if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -176,6 +182,7 @@ export function RepoTabs() {
               }}
               className={cn(
                 'group relative flex h-8 min-w-0 max-w-44 shrink-0 cursor-default items-center gap-1.5 overflow-hidden rounded-t-md border border-b-0 px-3 text-xs',
+                isMac && 'pointer-events-auto',
                 active
                   ? 'border-border-subtle bg-background text-foreground'
                   : 'border-transparent text-muted hover:bg-surface-raised hover:text-foreground',
@@ -224,7 +231,7 @@ export function RepoTabs() {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="mb-0.5 shrink-0"
+          className={cn('mb-0.5 shrink-0', isMac && 'pointer-events-auto')}
           aria-label="Open another repository"
           onClick={addNew}
         >

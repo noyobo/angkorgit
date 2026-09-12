@@ -125,6 +125,12 @@ export function WelcomePage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
+      {isMac && (
+        <div
+          data-tauri-drag-region
+          className="absolute left-0 right-0 top-0 h-16 bg-transparent"
+        />
+      )}
       <TemplePattern className="[mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_75%)]" />
       <div className="relative w-full max-w-3xl">
         <div className="mb-10 flex items-center gap-4">
