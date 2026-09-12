@@ -63,14 +63,15 @@ import { Avatar } from '@/components/Avatar';
 import { confirmDialog } from '@/components/confirm';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { ACCENTS, THEMES, useSettings, ZOOM_MAX, ZOOM_MIN, type IdentityProfile } from './store';
+import { ACCENTS, THEMES, THEME_PAIRS, useSettings, ZOOM_MAX, ZOOM_MIN, EXTERNAL_EDITORS, type IdentityProfile, type ExternalEditor } from './store';
 import { applyProfileToRepo } from './profiles';
+import { installCliTool } from './cliTool';
 import { AccountsTab, providerIcon } from './AccountsTab';
 import { Field, SettingCard, SettingEmpty, SettingRow } from './SettingCard';
 import { getAiProvider } from '@/features/ai/client';
 import { modKey } from '@/shared/utils';
 
-type SectionId = 'appearance' | 'git' | 'accounts' | 'ai' | 'shortcuts';
+type SectionId = 'appearance' | 'git' | 'integrations' | 'accounts' | 'ai' | 'shortcuts';
 
 const SECTIONS: Array<{
   id: SectionId;
@@ -80,6 +81,7 @@ const SECTIONS: Array<{
 }> = [
   { id: 'appearance', label: 'Appearance', description: 'Theme, accent color, zoom and motion', icon: Palette },
   { id: 'git', label: 'Git', description: 'Auto fetch, pull requests, command line, identity and profiles', icon: User },
+  { id: 'integrations', label: 'Integrations', description: 'External editor and shell', icon: UserRound },
   { id: 'accounts', label: 'Authentication', description: 'https:// remotes use accounts · git@ remotes use SSH keys', icon: Github },
   { id: 'ai', label: 'AI Assistant', description: 'Provider, connection and message style', icon: Sparkles },
   { id: 'shortcuts', label: 'Shortcuts', description: 'Keyboard reference', icon: Keyboard },
@@ -544,13 +546,7 @@ function CliToolCard() {
   const install = async () => {
     setBusy(true);
     try {
-      const next = await ipc.cliInstall();
-      setStatus(next);
-      toast.success(
-        next.onPath
-          ? 'Installed. Run angkorgit --help for usage.'
-          : `Installed at ${next.path}. Add that folder to your PATH.`,
-      );
+      setStatus(await installCliTool());
     } catch (error) {
       toast.error(`Could not install: ${(error as { message?: string }).message ?? error}`);
     } finally {
@@ -593,10 +589,7 @@ angkorgit open [path]
 angkorgit clone [-b branch] <url>`}
       </pre>
       {status && (
-        <p className="mt-1 text-[11px] leading-relaxed text-faint">
-          {status.path}
-          {!status.onPath && ' — add this folder to your PATH'}
-        </p>
+        <p className="mt-1 text-[11px] leading-relaxed text-faint">{status.path}</p>
       )}
     </SettingCard>
   );
@@ -633,7 +626,7 @@ function ReviewStyleCard() {
 const SHORTCUTS: Array<[string, string[]]> = [
   ['Command palette', ['mod', 'K / P']],
   ['Switch repository tab', ['mod', '1–9']],
-  ['Toggle terminal', ['mod', '`']],
+  ['Toggle terminal', ['Ctrl', '`']],
   ['Toggle sidebar', ['mod', 'B']],
   ['Undo / redo operation', ['mod', 'Z / ⇧Z']],
   ['Refresh repository', ['mod', 'R']],
@@ -816,55 +809,132 @@ export function SettingsDialog() {
               {section === 'appearance' && (
                 <div className="flex flex-col gap-4">
                   <SettingCard
-                    title="Theme"
+                    title="Color Theme"
                     description="Popular editor palettes — surfaces and syntax colors follow the theme."
+                    action={
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted">Follow system</span>
+                        <Switch
+                          checked={settings.followSystem}
+                          onCheckedChange={settings.setFollowSystem}
+                        />
+                      </div>
+                    }
                   >
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {THEMES.map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => settings.setTheme(t.id)}
-                          aria-label={`Theme: ${t.label}`}
-                          className={cn(
-                            'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
-                            settings.theme === t.id
-                              ? 'border-primary ring-1 ring-primary'
-                              : 'border-border hover:border-muted',
-                          )}
-                        >
-                          <span
-                            className="flex h-14 flex-col justify-center gap-1.5 px-3"
-                            style={{ backgroundColor: t.swatch.bg }}
-                          >
-                            <span className="flex items-center gap-1">
-                              {t.swatch.dots.map((dot) => (
-                                <span
-                                  key={dot}
-                                  className="size-2 rounded-full"
-                                  style={{ backgroundColor: dot }}
-                                />
-                              ))}
-                            </span>
-                            <span
-                              className="h-1.5 w-3/4 rounded-full opacity-60"
-                              style={{ backgroundColor: t.swatch.fg }}
-                            />
-                            <span
-                              className="h-1.5 w-1/2 rounded-full opacity-30"
-                              style={{ backgroundColor: t.swatch.fg }}
-                            />
-                          </span>
-                          <span
-                            className={cn(
-                              'flex items-center justify-between px-3 py-1.5 text-xs',
-                              settings.theme === t.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
-                            )}
-                          >
-                            {t.label}
-                            {t.base === 'dark' ? <Moon className="size-3" /> : <Sun className="size-3" />}
-                          </span>
-                        </button>
-                      ))}
+                    <div className="flex flex-col gap-3">
+                      {THEME_PAIRS.map((pair) => {
+                        const lightTheme = pair.light ? THEMES.find((t) => t.id === pair.light) : null;
+                        const darkTheme = pair.dark ? THEMES.find((t) => t.id === pair.dark) : null;
+                        const isPairActive = settings.followSystem && settings.themePairId === pair.id;
+                        
+                        return (
+                          <div key={pair.id} className="flex flex-col gap-1.5">
+                            <span className="text-xs font-medium text-muted">{pair.label}</span>
+                            <div className={cn(
+                              "grid grid-cols-2 gap-2 rounded-lg p-1.5 transition-colors",
+                              isPairActive && "bg-primary/5 ring-1 ring-primary/30"
+                            )}>
+                              {lightTheme ? (
+                                <button
+                                  onClick={() => settings.setTheme(lightTheme.id)}
+                                  aria-label={`Theme: ${lightTheme.label}`}
+                                  className={cn(
+                                    'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
+                                    settings.theme === lightTheme.id
+                                      ? 'border-primary ring-1 ring-primary'
+                                      : 'border-border hover:border-muted',
+                                  )}
+                                >
+                                  <span
+                                    className="flex h-14 flex-col justify-center gap-1.5 px-3"
+                                    style={{ backgroundColor: lightTheme.swatch.bg }}
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      {lightTheme.swatch.dots.map((dot) => (
+                                        <span
+                                          key={dot}
+                                          className="size-2 rounded-full"
+                                          style={{ backgroundColor: dot }}
+                                        />
+                                      ))}
+                                    </span>
+                                    <span
+                                      className="h-1.5 w-3/4 rounded-full opacity-60"
+                                      style={{ backgroundColor: lightTheme.swatch.fg }}
+                                    />
+                                    <span
+                                      className="h-1.5 w-1/2 rounded-full opacity-30"
+                                      style={{ backgroundColor: lightTheme.swatch.fg }}
+                                    />
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'flex items-center justify-between px-3 py-1.5 text-xs',
+                                      settings.theme === lightTheme.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
+                                    )}
+                                  >
+                                    Light
+                                    <Sun className="size-3" />
+                                  </span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-center rounded-lg border border-dashed border-border-subtle bg-surface-raised/20 p-3 text-xs text-faint">
+                                  No light variant
+                                </div>
+                              )}
+                              
+                              {darkTheme ? (
+                                <button
+                                  onClick={() => settings.setTheme(darkTheme.id)}
+                                  aria-label={`Theme: ${darkTheme.label}`}
+                                  className={cn(
+                                    'group flex flex-col overflow-hidden rounded-lg border text-left transition-colors',
+                                    settings.theme === darkTheme.id
+                                      ? 'border-primary ring-1 ring-primary'
+                                      : 'border-border hover:border-muted',
+                                  )}
+                                >
+                                  <span
+                                    className="flex h-14 flex-col justify-center gap-1.5 px-3"
+                                    style={{ backgroundColor: darkTheme.swatch.bg }}
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      {darkTheme.swatch.dots.map((dot) => (
+                                        <span
+                                          key={dot}
+                                          className="size-2 rounded-full"
+                                          style={{ backgroundColor: dot }}
+                                        />
+                                      ))}
+                                    </span>
+                                    <span
+                                      className="h-1.5 w-3/4 rounded-full opacity-60"
+                                      style={{ backgroundColor: darkTheme.swatch.fg }}
+                                    />
+                                    <span
+                                      className="h-1.5 w-1/2 rounded-full opacity-30"
+                                      style={{ backgroundColor: darkTheme.swatch.fg }}
+                                    />
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'flex items-center justify-between px-3 py-1.5 text-xs',
+                                      settings.theme === darkTheme.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
+                                    )}
+                                  >
+                                    Dark
+                                    <Moon className="size-3" />
+                                  </span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center justify-center rounded-lg border border-dashed border-border-subtle bg-surface-raised/20 p-3 text-xs text-faint">
+                                  No dark variant
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </SettingCard>
 
@@ -1190,6 +1260,33 @@ export function SettingsDialog() {
                         </div>
                       )}
                     </div>
+                  </SettingCard>
+                </div>
+              )}
+
+              {section === 'integrations' && (
+                <div className="flex flex-col gap-4">
+                  <SettingCard
+                    title="External Editor"
+                    description="Opens files when you select 'Open in {editor}' from the file context menu."
+                  >
+                    <Field label="Editor">
+                      <Select
+                        value={settings.externalEditor}
+                        onValueChange={(value) => settings.setExternalEditor(value as ExternalEditor)}
+                      >
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EXTERNAL_EDITORS.map((editor) => (
+                            <SelectItem key={editor.id} value={editor.id}>
+                              {editor.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
                   </SettingCard>
                 </div>
               )}
