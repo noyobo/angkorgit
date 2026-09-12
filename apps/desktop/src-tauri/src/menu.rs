@@ -10,9 +10,11 @@
 // - Cmd+I: Desktop = create issue; AngKorGit leaves unbound (forge-dependent)
 // - Cmd+Alt+W: Desktop = show worktrees; AngKorGit leaves unbound
 
+#[cfg(debug_assertions)]
+use tauri::Manager;
 use tauri::{
     menu::{Menu, MenuBuilder, MenuItem, PredefinedMenuItem, SubmenuBuilder},
-    AppHandle, Emitter, Manager, Runtime,
+    AppHandle, Emitter, Runtime,
 };
 
 const IS_MACOS: bool = cfg!(target_os = "macos");

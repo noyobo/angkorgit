@@ -18,10 +18,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "bun --filter @angkorgit/desktop dev",
-    "tauri": "bun --filter @angkorgit/desktop tauri",
-    "tauri:dev": "bun --filter @angkorgit/desktop tauri dev",
-    "tauri:build": "bun --filter @angkorgit/desktop tauri build",
+    "dev": "bun run --cwd apps/desktop dev",
+    "tauri": "bun run --cwd apps/desktop tauri",
+    "tauri:dev": "bun run --cwd apps/desktop tauri dev",
+    "tauri:build": "make build-app",
     "release:mac": "bun tauri:build && open apps/desktop/src-tauri/target/release/bundle/dmg",
     "install:mac": "rm -rf /Applications/AngKorGit.app && ditto apps/desktop/src-tauri/target/release/bundle/macos/AngKorGit.app /Applications/AngKorGit.app && open -a /Applications/AngKorGit.app",
     "build": "bun run --filter '*' build",
@@ -30,10 +30,10 @@
     "test": "bun test ./tests/unit",
     "test:watch": "bun test ./tests/unit --watch",
     "test:e2e": "bunx playwright test -c tests/e2e/playwright.config.ts",
-    "website": "bun --filter @angkorgit/website dev",
-    "website:build": "bun --filter @angkorgit/website build",
-    "website:preview": "bun --filter @angkorgit/website preview",
-    "website:images": "bun --filter @angkorgit/website images",
+    "website": "bun run --cwd apps/website dev",
+    "website:build": "bun run --cwd apps/website build",
+    "website:preview": "bun run --cwd apps/website preview",
+    "website:images": "bun run --cwd apps/website images",
     "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {

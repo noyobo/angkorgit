@@ -156,7 +156,7 @@ no build step for packages).
 | `bun typecheck` / `bun test` | TS across packages / bun:test unit tests |
 | `bun test:e2e` | Playwright against demo mode |
 | `cd apps/desktop/src-tauri && cargo test` | **git engine integration tests** (real temp repos) |
-| `bun tauri:build` | release bundles (.app + .dmg in `src-tauri/target/release/bundle/`) |
+| `make build-app` / `bun tauri:build` | local .app + .dmg; skips updater signing when no key is present |
 | `bun install:mac` | copy built .app → /Applications and launch |
 | `bun release:mac` | build then open the dmg folder |
 | `bun website` | dev-server the marketing site (http://localhost:4321/) |
@@ -167,10 +167,10 @@ no build step for packages).
 **Build gotchas (important):**
 - **Quit the running app before `tauri:build`** — the `.dmg` bundler script is flaky while the app runs (the `.app` itself still builds).
 - `source ~/.cargo/env` before cargo commands (rustup-installed toolchain).
-- With updater `createUpdaterArtifacts` on, `tauri build` exits 1 AFTER producing the
- .app unless `TAURI_SIGNING_PRIVATE_KEY=$(cat ~/.tauri/angkorgit.key)` (+ empty
- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) is exported — for local installs the .app is
- still usable via `bun install:mac`.
+- Updater artifacts need `TAURI_SIGNING_PRIVATE_KEY` (or `~/.tauri/angkorgit.key`).
+ `make build-app` loads that key when present, otherwise builds with
+ `createUpdaterArtifacts: false` so a local .app/.dmg still exits 0. Do not call
+ `tauri build` raw for local installs. Release CI still signs via GitHub secrets.
 - Root bun scripts must run **from repo root**; background shells don't persist `cd`.
 - Rust fmt/clippy are CI gates: `cargo fmt --check && cargo clippy --all-targets -- -D warnings`.
 
