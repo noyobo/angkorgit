@@ -18,8 +18,9 @@ mod watcher;
 pub mod test_api {
     pub use crate::core::branch::{
         can_fast_forward, checkout_branch, cherry_pick, cherry_pick_many, create as branch_create,
-        delete_local_and_remote as branch_delete_local_and_remote, list as branches, merge, rebase,
-        rebase_commits, rebase_interactive, reset,
+        delete as branch_delete, delete_local_and_remote as branch_delete_local_and_remote,
+        list as branches, list_stale_locals, merge, rebase, rebase_commits, rebase_interactive,
+        reset,
     };
     pub use crate::core::commit::{amend, commit, merge_message, revert};
     pub use crate::core::conflict::{
@@ -33,7 +34,10 @@ pub mod test_api {
         stash_create, stash_files, stash_list, stash_pop, stash_restore_files, tag_create,
         tag_delete, tag_delete_local_and_remote, tag_list,
     };
-    pub use crate::core::remote::{checkout_remote_ref, fetch, push, remote_has_ref};
+    pub use crate::core::remote::{
+        checkout_remote_ref, edit as remote_edit, fetch, pull, pull_branch, push, push_delete,
+        push_tag, remote_has_ref,
+    };
     pub use crate::core::repo::{
         cleanup_state, discover, info as repo_info, init, ref_fingerprint, set_config, status,
     };

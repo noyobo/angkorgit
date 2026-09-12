@@ -260,6 +260,7 @@ pub struct ConflictFile {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct OpOutcome {
     pub status: String, // "ok" | "conflicts" | "up_to_date" | "fast_forward"
     pub message: String,
