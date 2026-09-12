@@ -62,11 +62,34 @@ return (
 ))}
 ```
 
-## 代码格式化
+## 提交前检查流程
 
-- 使用 Biome 进行代码格式化：`bun x @biomejs/biome format --write .`
-- 在提交前运行格式化检查
-- CI 会自动检查代码格式
+**在提交代码前，必须在本地运行以下检查，确保全部通过后再提交：**
+
+```bash
+# 1. Biome 格式化检查
+bun x @biomejs/biome ci .
+
+# 2. TypeScript 类型检查
+bun run typecheck
+
+# 3. Rust 格式化
+cd apps/desktop/src-tauri && cargo fmt
+
+# 4. Rust 格式化检查
+cd apps/desktop/src-tauri && cargo fmt --check
+
+# 5. Rust Clippy 检查（如果环境支持）
+cd apps/desktop/src-tauri && cargo clippy --all-targets -- -D warnings
+
+# 6. Rust 测试（如果环境支持）
+cd apps/desktop/src-tauri && cargo test
+```
+
+**注意**：
+- 必须确保步骤 1-4 通过才能提交
+- 步骤 5-6 如果本地环境有问题（如 edition2024），可以依赖 CI 检查
+- 这样可以避免多次提交修复 CI 问题，提高效率
 
 ## TypeScript 规范
 
