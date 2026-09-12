@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { GraphLayout, flatGraphRows, layoutGraph, type CommitInfo } from '@angkorgit/core';
 
 const sig = { name: 'Test', email: 't@example.com', time: 0 };

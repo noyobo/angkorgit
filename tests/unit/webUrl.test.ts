@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'bun:test';
 import { webUrl, type WebUrlOptions } from '@angkorgit/core';
 
 describe('webUrl - unified forge URL builder', () => {

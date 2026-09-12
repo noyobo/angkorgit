@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { buildStagedReviewSignature, hashText } from '@angkorgit/core';
 
 const file = (path: string, staged: string | null, unstaged: string | null) => ({

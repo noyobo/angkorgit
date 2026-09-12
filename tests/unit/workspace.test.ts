@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { sidebarToggle, workspaceView, type WorkspaceInput } from '../../apps/desktop/src/features/ui/workspace';
 
 const base: WorkspaceInput = {
