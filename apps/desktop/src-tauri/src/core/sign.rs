@@ -269,8 +269,25 @@ fn sign_with_gpg(config: &SigningConfig, content: &str) -> AppResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Once;
+
+    fn isolate_from_host_gitconfig() {
+        static INIT: Once = Once::new();
+        INIT.call_once(|| {
+            let dir = std::env::temp_dir().join("angkorgit-empty-gitconfig-dir");
+            let _ = std::fs::create_dir_all(&dir);
+            let _ = std::fs::write(dir.join("gitconfig"), "");
+            // libgit2 ignores GIT_CONFIG_GLOBAL; point search paths at an empty dir.
+            unsafe {
+                let _ = git2::opts::set_search_path(git2::ConfigLevel::System, &dir);
+                let _ = git2::opts::set_search_path(git2::ConfigLevel::Global, &dir);
+                let _ = git2::opts::set_search_path(git2::ConfigLevel::XDG, &dir);
+            }
+        });
+    }
 
     fn temp_repo() -> (PathBuf, Repository) {
+        isolate_from_host_gitconfig();
         let dir = std::env::temp_dir().join(format!(
             "angkorgit-sign-test-{}-{}",
             std::process::id(),

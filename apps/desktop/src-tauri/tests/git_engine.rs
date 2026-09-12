@@ -29,6 +29,7 @@ impl TempRepo {
         core::set_config(Some(path), "user.name", "Test User", false).unwrap();
         core::set_config(Some(path), "user.email", "test@angkorgit.dev", false).unwrap();
         core::set_config(Some(path), "core.autocrlf", "false", false).unwrap();
+        core::set_config(Some(path), "commit.gpgsign", "false", false).unwrap();
         Self { dir }
     }
 
@@ -2424,7 +2425,7 @@ fn branch_delete_refuses_unmerged_branch_without_force() {
     repo.write("b.txt", "feature\n");
     commit_all(&repo, "feature commit");
 
-    core::checkout_branch(repo.path(), "main").unwrap();
+    core::checkout_branch(repo.path(), "master").unwrap();
 
     let err = core::branch_delete(repo.path(), "feature", false).unwrap_err();
     assert!(err.to_string().contains("not fully merged"));

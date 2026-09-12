@@ -78,7 +78,7 @@ pub fn open_logs_folder() -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
+        crate::proc::hidden("open")
             .arg(dir)
             .spawn()
             .map_err(|e| format!("Failed to open logs folder: {}", e))?;
@@ -86,7 +86,7 @@ pub fn open_logs_folder() -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("explorer")
+        crate::proc::hidden("explorer")
             .arg(dir)
             .spawn()
             .map_err(|e| format!("Failed to open logs folder: {}", e))?;
@@ -94,7 +94,7 @@ pub fn open_logs_folder() -> Result<(), String> {
 
     #[cfg(target_os = "linux")]
     {
-        std::process::Command::new("xdg-open")
+        crate::proc::hidden("xdg-open")
             .arg(dir)
             .spawn()
             .map_err(|e| format!("Failed to open logs folder: {}", e))?;
@@ -112,7 +112,7 @@ pub fn open_today_log() -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
+        crate::proc::hidden("open")
             .arg(&path)
             .spawn()
             .map_err(|e| format!("Failed to open log file: {}", e))?;
@@ -120,7 +120,7 @@ pub fn open_today_log() -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("notepad")
+        crate::proc::hidden("notepad")
             .arg(&path)
             .spawn()
             .map_err(|e| format!("Failed to open log file: {}", e))?;
@@ -128,7 +128,7 @@ pub fn open_today_log() -> Result<(), String> {
 
     #[cfg(target_os = "linux")]
     {
-        std::process::Command::new("xdg-open")
+        crate::proc::hidden("xdg-open")
             .arg(&path)
             .spawn()
             .map_err(|e| format!("Failed to open log file: {}", e))?;

@@ -17,11 +17,15 @@ const getGitHash = () => {
 };
 
 const isDev = process.env.NODE_ENV !== 'production';
+const isCi = Boolean(process.env.CI);
 
 export default defineConfig({
   entry: {
     main: './src/main.tsx',
   },
+  // CI e2e: a mid-run rebuild with HMR/liveReload off leaves a blank page
+  // ("Waiting for process restart…"). Compile once and serve that.
+  watch: isDev && !isCi,
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].[contenthash].js',
@@ -69,7 +73,7 @@ export default defineConfig({
                   react: {
                     runtime: 'automatic',
                     development: isDev,
-                    refresh: isDev,
+                    refresh: isDev && !isCi,
                   },
                 },
               },
@@ -88,7 +92,7 @@ export default defineConfig({
       template: './index.html',
       filename: 'index.html',
     }),
-    isDev && new ReactRefreshRspackPlugin(),
+    isDev && !isCi && new ReactRefreshRspackPlugin(),
     new rspack.DefinePlugin({
       __GIT_HASH__: JSON.stringify(getGitHash()),
       'process.env.VITE_DEV': JSON.stringify(isDev ? 'true' : 'false'),
@@ -100,11 +104,11 @@ export default defineConfig({
   ].filter(Boolean),
   devServer: {
     port: 1420,
-    hot: true,
+    hot: isDev && !isCi,
+    liveReload: isDev && !isCi,
     historyApiFallback: true,
-    // CI/e2e: never let the error overlay steal pointer events from Playwright
     client: {
-      overlay: process.env.CI ? false : { errors: true, warnings: false },
+      overlay: isCi ? false : { errors: true, warnings: false },
     },
     headers: {
       'Access-Control-Allow-Origin': '*',

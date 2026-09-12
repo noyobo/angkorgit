@@ -52,7 +52,7 @@ function Shell() {
 
   useEffect(() => {
     const splashStart = Date.now();
-    const splashFloor = useSettings.getState().reduceMotion ? 0 : 600;
+    const splashFloor = useSettings.getState().reduceMotion ? 0 : 1400;
     let finished = false;
     let readyTimer: number | undefined;
     let cancelled = false;
