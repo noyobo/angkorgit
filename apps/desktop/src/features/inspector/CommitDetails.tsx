@@ -100,7 +100,7 @@ function VirtualFileRows({
   scrollRef: React.RefObject<HTMLDivElement>;
   renderRow: (diff: CommitFileInfo) => React.ReactNode;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null!);
   const [scrollMargin, setScrollMargin] = useState(0);
   useLayoutEffect(() => {
     const el = listRef.current;
@@ -206,8 +206,8 @@ export function CommitDetails({
     });
   };
   const longBody = commit.body.split('\n').length > 8 || commit.body.length > 600;
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const filesRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null!);
+  const filesRef = useRef<HTMLDivElement>(null!);
   const activeIndex = shownDiffs.findIndex(
     (d) => centerDiff?.path === d.path && centerDiff.oid === (d.sourceOid ?? commit.oid),
   );

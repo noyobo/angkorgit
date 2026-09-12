@@ -178,7 +178,7 @@ function VirtualFileList({
   rowHeight: (file: FileStatus) => number;
   renderRow: (file: FileStatus) => React.ReactNode;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null!);
   const [scrollMargin, setScrollMargin] = useState(0);
   useLayoutEffect(() => {
     const el = listRef.current;
@@ -272,7 +272,7 @@ export function WorkingCopyPanel() {
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; file: FileStatus; staged: boolean } | null>(null);
   const [multi, setMulti] = useState<{ staged: boolean; paths: string[] } | null>(null);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
-  const listScrollRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null!);
 
   const applyBoxHeight = (el: HTMLTextAreaElement, fixed: number | null) => {
     if (fixed !== null) {

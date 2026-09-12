@@ -1,3 +1,9 @@
+[test]
+# React Testing Library setup with DOM environment
+preload = ["./tests/setup.ts"]
+# Use happy-dom for faster DOM emulation
+env = { NODE_ENV = "test" }
+
 [install]
 # Equivalent to pnpm's onlyBuiltDependencies
 optional = true

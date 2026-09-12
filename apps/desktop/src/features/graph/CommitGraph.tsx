@@ -69,7 +69,7 @@ export function CommitGraph() {
   const displayRows = compact ? flatGraphRows(commits, 0, hasMore) : rows;
   const setGraphTail = useUi((s) => s.setGraphTail);
   const setGraphColumn = useUi((s) => s.setGraphColumn);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null!);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [refMenu, setRefMenu] = useState<RefMenuState | null>(null);
   const [searchDraft, setSearchDraft] = useState(find?.text ?? '');

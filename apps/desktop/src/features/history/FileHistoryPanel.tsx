@@ -85,8 +85,8 @@ export function FileHistoryPanel({ file }: { file: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [diff, setDiff] = useState<FileDiff | null>(null);
   const [diffLoading, setDiffLoading] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const listScrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null!);
+  const listScrollRef = useRef<HTMLDivElement>(null!);
   const textDiff = diff && !diff.isBinary && !diff.isImage ? diff : null;
   const { findBar, search } = useDiffFind(textDiff, scrollRef);
   const { selectAllOverlay, selectSide } = useDiffSelectAll(textDiff, scrollRef);

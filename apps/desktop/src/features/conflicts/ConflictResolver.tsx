@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Panel, Group, Separator } from 'react-resizable-panels';
 import { basename, dirname, modKey } from '@/shared/utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
@@ -186,7 +186,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   const repo = useRepo((s) => s.repo);
   const conflicts = useRepo((s) => s.conflicts);
   const openConflict = useUi((s) => s.openConflict);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null!);
   useEffect(() => {
     overlayRef.current?.focus({ preventScroll: true });
   }, []);
@@ -210,10 +210,10 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   } | null>(null);
   const blockRefs = useRef(new Map<number, HTMLDivElement>());
   const outputBlockRefs = useRef(new Map<number, HTMLDivElement>());
-  const topScrollRef = useRef<HTMLDivElement>(null);
-  const topListRef = useRef<HTMLDivElement>(null);
-  const outputScrollRef = useRef<HTMLDivElement>(null);
-  const outputListRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null!);
+  const topListRef = useRef<HTMLDivElement>(null!);
+  const outputScrollRef = useRef<HTMLDivElement>(null!);
+  const outputListRef = useRef<HTMLDivElement>(null!);
 
   const path = repo?.path ?? '';
   const repoState = repo?.state;
@@ -1225,7 +1225,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           <Spinner className="size-6" />
         </div>
       ) : (
-        <PanelGroup direction="vertical" autoSaveId="angkorgit-conflict" className="min-h-0 flex-1">
+        <Group orientation="vertical" id="angkorgit-conflict" className="min-h-0 flex-1">
           <Panel defaultSize={60} minSize={25} className="relative">
             <div ref={topScrollRef} className="relative h-full overflow-y-auto pb-6">
               <div className="sticky top-0 z-10 grid grid-cols-2 border-b border-border-subtle bg-surface">
@@ -1308,9 +1308,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
               </div>
             )}
           </Panel>
-          <PanelResizeHandle className="group relative h-1.5 shrink-0 cursor-row-resize">
+          <Separator className="group relative h-1.5 shrink-0 cursor-row-resize">
             <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border transition-colors group-hover:bg-primary/60 group-data-[resize-handle-state=drag]:bg-primary" />
-          </PanelResizeHandle>
+          </Separator>
           <Panel defaultSize={40} minSize={20} className="relative flex flex-col">
             <div className="flex items-center gap-2 border-b border-border-subtle bg-surface px-3 py-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Result</span>
@@ -1440,7 +1440,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
               </div>
             )}
           </Panel>
-        </PanelGroup>
+        </Group>
       )}
     </motion.div>
   );

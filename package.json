@@ -29,17 +29,22 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test ./tests/unit",
     "test:watch": "bun test ./tests/unit --watch",
-    "test:e2e": "bunx playwright test -c tests/e2e/playwright.config.ts",
-    "website": "bun run --cwd apps/website dev",
-    "website:build": "bun run --cwd apps/website build",
-    "website:preview": "bun run --cwd apps/website preview",
-    "website:images": "bun run --cwd apps/website images",
+    "test:e2e": "rstest tests/e2e/smoke.test.ts",
+    "test:e2e:server": "bun --filter @angkorgit/desktop dev",
     "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
+    "@happy-dom/global-registrator": "^20.14.5",
+    "@rstest/adapter-rspack": "^0.11.12",
+    "@rstest/core": "^0.11.12",
+    "@rstest/playwright": "^0.11.12",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/bun": "^1.4.2",
-    "@types/node": "^22.10.0",
+    "@types/node": "^22.20.2",
+    "happy-dom": "^20.14.5",
+    "playwright": "^1.63.0",
     "typescript": "^7.0.2"
   }
 }

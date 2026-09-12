@@ -4,8 +4,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   ExternalLink,
-  Github,
-  Gitlab,
   Globe,
   KeyRound,
   MoreHorizontal,
@@ -14,6 +12,7 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
+import { GithubIcon, GitlabIcon } from '@/components/BrandIcons';
 import {
   Badge,
   Button,
@@ -91,8 +90,8 @@ const PROVIDERS: Record<ProviderKind, ProviderPreset> = {
 };
 
 export function providerIcon(provider: string) {
-  if (provider === 'github') return <Github className="size-4" />;
-  if (provider.startsWith('gitlab')) return <Gitlab className="size-4" />;
+  if (provider === 'github') return <GithubIcon className="size-4" />;
+  if (provider.startsWith('gitlab')) return <GitlabIcon className="size-4" />;
   return <Globe className="size-4" />;
 }
 

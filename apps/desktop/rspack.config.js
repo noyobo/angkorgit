@@ -19,6 +19,11 @@ const getGitHash = () => {
 const isDev = process.env.NODE_ENV !== 'production';
 const isCi = Boolean(process.env.CI);
 
+// Note: Lazy compilation is enabled by default in dev mode
+// This is fine for local development but causes issues in E2E tests
+// E2E tests use production builds to avoid lazy compilation problems
+// See docs/E2E-TESTING.md for details
+
 export default defineConfig({
   entry: {
     main: './src/main.tsx',
@@ -37,6 +42,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
       '@angkorgit/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
       '@angkorgit/design-system': path.resolve(__dirname, '../../packages/design-system/src/index.ts'),
+      // Ensure all modules use the same React instance (fixes "Invalid hook call")
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
   },
   module: {

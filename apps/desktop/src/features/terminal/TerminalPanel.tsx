@@ -89,7 +89,7 @@ export function TerminalPanel() {
   const toggleTerminal = useUi((s) => s.toggleTerminal);
   const theme = useSettings((s) => s.theme);
   const accent = useSettings((s) => s.accent);
-  const hostRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null!);
 
   useEffect(() => {
     const next = terminalThemeFromTokens();

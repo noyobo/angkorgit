@@ -36,7 +36,7 @@ export function TitleBarOverlay() {
   const [draggingTab, setDraggingTab] = useState<string | null>(null);
   const [dropTab, setDropTab] = useState<string | null>(null);
   const [showHints, setShowHints] = useState(false);
-  const stripRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null!);
 
   const activePath = repo?.path ?? null;
   useEffect(() => {

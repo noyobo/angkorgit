@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Copy,
   FolderOpen,
-  Github,
   Keyboard,
   KeyRound,
   Minus,
@@ -23,6 +22,7 @@ import {
   UsersRound,
   Wifi,
 } from 'lucide-react';
+import { GithubIcon } from '@/components/BrandIcons';
 import {
   AI_PROVIDER_PRESETS,
   COMMIT_STYLE_PRESETS,
@@ -82,7 +82,7 @@ const SECTIONS: Array<{
   { id: 'appearance', label: 'Appearance', description: 'Theme, accent color, zoom and motion', icon: Palette },
   { id: 'git', label: 'Git', description: 'Auto fetch, pull requests, command line, identity and profiles', icon: User },
   { id: 'integrations', label: 'Integrations', description: 'External editor and shell', icon: UserRound },
-  { id: 'accounts', label: 'Authentication', description: 'https:// remotes use accounts · git@ remotes use SSH keys', icon: Github },
+  { id: 'accounts', label: 'Authentication', description: 'https:// remotes use accounts · git@ remotes use SSH keys', icon: GithubIcon },
   { id: 'ai', label: 'AI Assistant', description: 'Provider, connection and message style', icon: Sparkles },
   { id: 'shortcuts', label: 'Shortcuts', description: 'Keyboard reference', icon: Keyboard },
 ];
