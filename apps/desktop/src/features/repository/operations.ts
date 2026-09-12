@@ -194,7 +194,7 @@ export async function fetchOperation(
  * 5. Open in external browser
  */
 export async function viewOnRemoteOperation(ctx: OperationContext): Promise<void> {
-  const { path, branches, remotes, source } = ctx;
+  const { branches, remotes, source } = ctx;
 
   void logger.click('view-on-remote', source);
 

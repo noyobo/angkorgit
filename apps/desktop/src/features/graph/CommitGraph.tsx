@@ -19,7 +19,6 @@ import {
   cn,
 } from '@angkorgit/design-system';
 import { ipc } from '@/core/ipc';
-import { ensureRepoProfile } from '@/features/settings/profiles';
 import { pushOperation, type OperationContext } from '@/features/repository/operations';
 import { useRepo } from '@/features/repository/store';
 import { useGraph } from './store';
@@ -223,15 +222,6 @@ export function CommitGraph() {
     },
     [refresh, reload, path, busy],
   );
-
-  const pushRemoteFor = (branch: string): string => {
-    const upstream = branches.find((b) => !b.isRemote && b.name === branch)?.upstream;
-    if (upstream) {
-      const remoteName = upstream.split('/')[0];
-      if (remotes.some((r) => r.name === remoteName)) return remoteName;
-    }
-    return remotes[0]?.name ?? 'origin';
-  };
 
   const pushBranch = async (branch: string) => {
     const makeContext = (): OperationContext => ({
