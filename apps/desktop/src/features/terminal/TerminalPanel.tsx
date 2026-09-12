@@ -1,4 +1,4 @@
-import { Button, cn, Hint } from '@angkorgit/design-system';
+import { Button, Hint, TabStrip } from '@angkorgit/design-system';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import { Plus, X } from 'lucide-react';
@@ -9,7 +9,6 @@ import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
 import { useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
-import { modKey } from '@/shared/utils';
 import {
   addTab,
   createTabId,
@@ -284,6 +283,11 @@ export function TerminalPanel() {
     };
   }, [tabs, activeTabId]);
 
+  const tabItems = tabs.map((tab) => ({
+    id: tab.id,
+    label: tab.title,
+  }));
+
   return (
     <div
       ref={panelRef}
@@ -291,63 +295,26 @@ export function TerminalPanel() {
       tabIndex={-1}
     >
       <div className="flex h-7 shrink-0 items-center border-b border-border-subtle bg-surface">
-        <div
-          className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-2"
-          data-tab-hints={showHints || undefined}
-        >
-          {tabs.map((tab, index) => (
-            <div
-              key={tab.id}
-              role="tab"
-              aria-selected={tab.id === activeTabId}
-              onClick={() => setActiveTabId(tab.id)}
-              className={cn(
-                'group relative flex h-full min-w-0 max-w-32 shrink-0 cursor-default items-center gap-1 overflow-hidden rounded-md px-2 text-[10px]',
-                tab.id === activeTabId
-                  ? 'bg-surface-raised text-foreground'
-                  : 'text-muted hover:bg-surface-raised/70 hover:text-foreground',
-              )}
-            >
-              {index < 9 && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    'pointer-events-none absolute inset-y-0 left-0 z-[1] flex items-center whitespace-nowrap rounded-md bg-gradient-to-r from-surface-raised from-[45%] to-transparent pl-1.5 pr-6 text-[10px] font-medium tabular-nums text-primary transition-opacity duration-150',
-                    tab.id !== activeTabId && 'from-surface',
-                    showHints ? 'opacity-100' : 'opacity-0',
-                  )}
-                >
-                  {modKey()} {index + 1}
-                </span>
-              )}
-              <span className="min-w-0 select-none truncate">{tab.title}</span>
-              <button
-                type="button"
-                aria-label={`Close ${tab.title}`}
-                className={cn(
-                  'relative z-[2] shrink-0 rounded-sm p-0.5 hover:bg-surface-overlay hover:text-foreground',
-                  tab.id === activeTabId ? 'text-muted' : 'text-transparent group-hover:text-muted',
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeTab(tab.id);
-                }}
-              >
-                <X className="size-2.5" />
-              </button>
-            </div>
-          ))}
-          <Hint label="New terminal tab">
-            <button
-              type="button"
-              aria-label="New terminal tab"
-              className="flex h-full shrink-0 items-center rounded-md px-1.5 text-muted hover:bg-surface-raised/70 hover:text-foreground"
-              onClick={createNewTab}
-            >
-              <Plus className="size-3" />
-            </button>
-          </Hint>
-        </div>
+        <TabStrip
+          items={tabItems}
+          activeId={activeTabId}
+          onSelect={setActiveTabId}
+          onClose={closeTab}
+          showHints={showHints}
+          hintContent={(index) => `⌘ ${index + 1}`}
+          size="sm"
+          className="px-2"
+        />
+        <Hint label="New terminal tab">
+          <button
+            type="button"
+            aria-label="New terminal tab"
+            className="flex h-full shrink-0 items-center rounded-md px-1.5 text-muted hover:bg-surface-raised/70 hover:text-foreground"
+            onClick={createNewTab}
+          >
+            <Plus className="size-3" />
+          </button>
+        </Hint>
         <span className="ml-2 mr-2 min-w-0 flex-shrink truncate font-mono text-[10px] text-faint">
           {repoPath}
         </span>
