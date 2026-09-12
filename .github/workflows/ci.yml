@@ -11,8 +11,68 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.select.outputs.frontend }}
+      e2e: ${{ steps.select.outputs.e2e }}
+      rust: ${{ steps.select.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Full suite on main/dev push or manual dispatch
+        id: force
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: echo "full=true" >> "$GITHUB_OUTPUT"
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: steps.force.outputs.full != 'true'
+        with:
+          filters: |
+            frontend:
+              - 'apps/desktop/src/**'
+              - 'apps/desktop/package.json'
+              - 'apps/desktop/rspack.config.*'
+              - 'apps/desktop/tsconfig*'
+              - 'apps/desktop/index.html'
+              - 'packages/**'
+              - 'tests/unit/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bun.lockb'
+            e2e:
+              - 'apps/desktop/src/**'
+              - 'apps/desktop/package.json'
+              - 'apps/desktop/rspack.config.*'
+              - 'apps/desktop/tsconfig*'
+              - 'packages/**'
+              - 'tests/e2e/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bun.lockb'
+            rust:
+              - 'apps/desktop/src-tauri/**'
+            ci:
+              - '.github/workflows/ci.yml'
+      - name: Select jobs
+        id: select
+        run: |
+          if [ "${{ steps.force.outputs.full }}" = "true" ] || [ "${{ steps.filter.outputs.ci }}" = "true" ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+            echo "Selection: full suite"
+          else
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> "$GITHUB_OUTPUT"
+            echo "e2e=${{ steps.filter.outputs.e2e }}" >> "$GITHUB_OUTPUT"
+            echo "rust=${{ steps.filter.outputs.rust }}" >> "$GITHUB_OUTPUT"
+            echo "Selection: frontend=${{ steps.filter.outputs.frontend }} e2e=${{ steps.filter.outputs.e2e }} rust=${{ steps.filter.outputs.rust }}"
+          fi
+
   frontend:
     name: Typecheck, unit tests & build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,13 +80,14 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
-      # Engineering CI only — skip the marketing site package.
       - run: bun run --filter '!@angkorgit/website' typecheck
       - run: bun run test
       - run: bun --filter @angkorgit/desktop build
 
   e2e:
     name: Playwright (demo mode)
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,12 +99,16 @@ jobs:
       - run: bun run test:e2e
 
   rust:
-    name: Rust engine (check, clippy, git integration tests)
+    name: Rust (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      # Mac first, then Linux, then Windows — one platform at a time.
+      fail-fast: true
+      max-parallel: 1
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     defaults:
       run:
         working-directory: apps/desktop/src-tauri
@@ -63,3 +128,37 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
+
+  ci:
+    name: CI
+    if: always()
+    needs: [changes, frontend, e2e, rust]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected jobs
+        env:
+          WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
+          WANT_E2E: ${{ needs.changes.outputs.e2e }}
+          WANT_RUST: ${{ needs.changes.outputs.rust }}
+          FRONTEND: ${{ needs.frontend.result }}
+          E2E: ${{ needs.e2e.result }}
+          RUST: ${{ needs.rust.result }}
+        run: |
+          fail=0
+          require() {
+            local want=$1 result=$2 label=$3
+            if [ "$want" = "true" ]; then
+              if [ "$result" != "success" ]; then
+                echo "::error::$label was required but finished as '$result'"
+                fail=1
+              else
+                echo "$label ok"
+              fi
+            else
+              echo "$label skipped (not selected)"
+            fi
+          }
+          require "$WANT_FRONTEND" "$FRONTEND" frontend
+          require "$WANT_E2E" "$E2E" e2e
+          require "$WANT_RUST" "$RUST" rust
+          exit "$fail"
