@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
       rust: ${{ steps.select.outputs.rust }}
     steps:
       - uses: actions/checkout@v4
-      - name: Full suite on main/dev push or manual dispatch
+      - name: Full suite on main push or manual dispatch
         id: force
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: echo "full=true" >> "$GITHUB_OUTPUT"
