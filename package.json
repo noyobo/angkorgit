@@ -33,7 +33,11 @@
     "test:watch": "bun test ./tests/unit --watch",
     "test:e2e": "rstest tests/e2e/smoke.test.ts",
     "test:e2e:server": "bun --filter @angkorgit/desktop dev",
-    "icons": "bun scripts/generate-icons.mjs"
+    "icons": "bun scripts/generate-icons.mjs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*": "biome format --write --no-errors-on-unmatched"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
@@ -47,6 +51,8 @@
     "@types/bun": "^1.4.2",
     "@types/node": "^22.20.2",
     "happy-dom": "^20.14.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
     "playwright": "^1.63.0",
     "typescript": "^7.0.2"
   }

@@ -4,15 +4,15 @@ This document outlines coding standards and best practices for the AngKorGit pro
 
 ## Setup
 
-### Install Git Hooks (Recommended)
+### Git Hooks (Auto-configured)
 
-Install pre-commit hooks to automatically format code before each commit:
+The project uses **husky + lint-staged** to automatically format staged files before commit:
 
-```bash
-./scripts/install-git-hooks.sh
-```
+- **Automatic setup**: `bun install` automatically configures git hooks
+- **Only staged files**: lint-staged formats only the files you're committing (fast!)
+- **No manual action needed**: works out of the box after `bun install`
 
-This prevents format-related CI failures by auto-formatting code with Biome.
+This prevents format-related CI failures.
 
 ## React / TypeScript Standards
 
