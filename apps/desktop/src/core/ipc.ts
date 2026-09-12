@@ -1,4 +1,5 @@
 import type {
+  BlameHunk,
   BranchInfo,
   CliAgentInfo,
   CliRunRequest,
@@ -6,6 +7,7 @@ import type {
   CommitFileInfo,
   CommitInfo,
   ConflictFile,
+  FileBlame,
   FileDiff,
   HistoryPage,
   HistoryPosition,
@@ -665,6 +667,11 @@ export const ipc = {
   async stagedPatch(path: string): Promise<string> {
     if (!isTauri()) return '--- demo staged patch ---';
     return invoke('staged_patch', { path });
+  },
+
+  async fileBlame(path: string, file: string, rev: string | null): Promise<FileBlame> {
+    if (!isTauri()) return demo.demoFileBlame(file);
+    return invoke('file_blame', { path, file, rev });
   },
 
   async conflicts(path: string): Promise<string[]> {

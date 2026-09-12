@@ -6,6 +6,7 @@ export interface WorkspaceInput {
   centerDiff: unknown;
   centerEditor: unknown;
   centerFileHistory: unknown;
+  centerBlame: unknown;
 }
 
 export interface WorkspaceView {
@@ -18,10 +19,10 @@ export interface WorkspaceView {
 }
 
 export function workspaceView(s: WorkspaceInput): WorkspaceView {
-  const takeover = !!(s.centerEditor || s.centerFileHistory);
+  const takeover = !!(s.centerEditor || s.centerFileHistory || s.centerBlame);
   const hasDiff = !!s.centerDiff;
   const preview = s.layout === 'preview';
-  const focusMode = !!s.centerFileHistory && !s.centerEditor && !s.centerDiff;
+  const focusMode = !!(s.centerFileHistory || s.centerBlame) && !s.centerEditor && !s.centerDiff;
   const diffInCenter = hasDiff && !takeover && !preview;
   const showDiffDock = preview && !takeover;
   return {

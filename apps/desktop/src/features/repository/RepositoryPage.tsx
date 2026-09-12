@@ -11,6 +11,8 @@ import { InteractiveRebaseDialog } from '@/features/graph/InteractiveRebaseDialo
 import { useGraph } from '@/features/graph/store';
 import { useUi } from '@/features/ui/store';
 import { WorkspaceLayout } from '@/features/ui/WorkspaceLayout';
+import { BlamePanel } from '@/features/blame/BlamePanel';
+import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
 import { useRepo } from './store';
 
 const ConflictResolver = lazy(() =>
@@ -361,6 +363,7 @@ export function RepositoryPage() {
           if (ui.centerEditor) editorCloseShortcut.current?.();
           else if (ui.rangeDiff) closeRangeDiff();
           else if (ui.centerDiff) closeCenterDiff();
+          else if (ui.centerBlame) ui.closeBlame();
           else if (ui.centerFileHistory) ui.closeFileHistory();
         },
       },

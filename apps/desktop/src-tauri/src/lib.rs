@@ -174,6 +174,7 @@ pub fn run() {
             commands::diff_commit_file,
             commands::diff_range,
             commands::staged_patch,
+            commands::file_blame,
             commands::conflict_list,
             commands::conflict_read,
             commands::conflict_resolve,
