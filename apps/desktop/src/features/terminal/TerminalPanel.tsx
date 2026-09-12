@@ -285,7 +285,11 @@ export function TerminalPanel() {
   }, [tabs, activeTabId]);
 
   return (
-    <div ref={panelRef} className="flex h-full flex-col bg-surface" tabIndex={-1}>
+    <div
+      ref={panelRef}
+      className="flex h-full flex-col bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+      tabIndex={-1}
+    >
       <div className="flex h-7 shrink-0 items-center border-b border-border-subtle bg-surface">
         <div
           className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-2"
