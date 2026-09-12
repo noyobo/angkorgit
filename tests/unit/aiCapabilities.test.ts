@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { aiCapabilities, type AiCompletionRequest, type AiProvider } from '@angkorgit/core';
 
 function capturingProvider(capture: (req: AiCompletionRequest) => void): AiProvider {

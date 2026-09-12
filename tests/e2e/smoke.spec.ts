@@ -1,42 +1,91 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function openDemoRepo(page: Page) {
+  await page.goto('/');
+  await expect(page.getByText('Recent repositories')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('folder missing')).toBeVisible({ timeout: 10_000 });
+  const row = page.locator('[data-testid="recent-repo"][data-path$="/angkorgit"]');
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 15_000 });
+}
+
+async function openConflictFile(page: Page, fileRe: RegExp = /drawGraph\.ts/) {
+  const file = page.getByRole('button', { name: fileRe }).first();
+  await expect(file).toBeVisible({ timeout: 10_000 });
+  await file.click();
+  await expect(page.getByText('0 of 1 resolved')).toBeVisible({ timeout: 10_000 });
+}
+
 
 test('splash fades into the welcome screen', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByText('Strength. Simplicity. Craftsmanship.')).toBeVisible();
-  await expect(page.getByText('Recent repositories')).toBeVisible({ timeout: 10_000 });
+  // Land before the splash floor expires so the tagline is still mounted.
+  await page.goto('/', { waitUntil: 'commit' });
+  await expect(page.getByText('Strength. Simplicity. Craftsmanship.')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Recent repositories')).toBeVisible({ timeout: 15_000 });
 });
 
 test('opens the demo repository and shows the commit graph', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect(page.getByText('main', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Working copy')).toBeVisible();
 });
 
 test('selecting a commit opens the inspector', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('row').first().click();
   await expect(page.getByRole('complementary', { name: 'Inspector' }).getByLabel('4 modified')).toBeVisible();
 });
 
 test('command palette opens with keyboard shortcut', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.keyboard.press('ControlOrMeta+k');
   await expect(page.getByPlaceholder('Type a command or branch name…')).toBeVisible();
 });
 
+test('command palette previews a color theme and keeps it only on enter', async ({ page }) => {
+  await openDemoRepo(page);
+  const html = page.locator('html');
+  await expect(html).toHaveClass(/theme-angkor-dusk/);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('color theme');
+  await page.getByRole('option', { name: 'Color theme' }).click();
+  const search = page.getByPlaceholder('Search themes…');
+  await expect(search).toBeVisible();
+
+  await search.fill('dracula');
+  await expect(page.getByRole('option', { name: 'Dracula' })).toBeVisible();
+  await expect(html).toHaveClass(/theme-dracula/);
+  await page.keyboard.press('Escape');
+  await expect(search).toHaveCount(0);
+  await expect(html).toHaveClass(/theme-angkor-dusk/);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('color theme');
+  await page.getByRole('option', { name: 'Color theme' }).click();
+  await page.getByPlaceholder('Search themes…').fill('dracula');
+  await page.getByRole('option', { name: 'Dracula' }).click();
+  await expect(html).toHaveClass(/theme-dracula/);
+  await expect(page.getByPlaceholder('Search themes…')).toHaveCount(0);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.keyboard.press('Escape');
+  await expect(html).toHaveClass(/theme-dracula/);
+
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.getByPlaceholder('Type a command or branch name…').fill('color theme');
+  await page.getByRole('option', { name: 'Color theme' }).click();
+  await page.getByPlaceholder('Search themes…').fill('angkor dusk');
+  await page.getByRole('option', { name: 'Angkor Dusk' }).click();
+  await expect(html).toHaveClass(/theme-angkor-dusk/);
+});
+
 test('mod+1 and mod+2 switch repository tabs', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.keyboard.press('ControlOrMeta+k');
   await page.getByPlaceholder('Type a command or branch name…').fill('temple-ui');
-  await page.keyboard.press('Enter');
+  await page.getByRole('option', { name: 'temple-ui' }).click();
   const angkor = page.locator('[data-tab-path$="/angkorgit"]');
   const temple = page.locator('[data-tab-path$="/temple-ui"]');
   await expect(temple).toHaveAttribute('aria-selected', 'true', { timeout: 10_000 });
@@ -53,19 +102,17 @@ test('mod+1 and mod+2 switch repository tabs', async ({ page }) => {
 });
 
 test('the status bar branch name opens a local branch switcher', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: 'Switch branch' }).click();
+  await openDemoRepo(page);
+  await page.getByTestId('status-bar-branch').click();
   const filter = page.getByPlaceholder('Filter branches…');
   await expect(filter).toBeFocused();
-  await expect(page.getByRole('menuitem', { name: 'develop' })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /develop/ })).toContainText(/ago|just now/);
-  await expect(page.getByRole('menuitem', { name: 'origin/main' })).toHaveCount(0);
+  await expect(page.getByRole('option', { name: 'develop' })).toBeVisible();
+  await expect(page.getByRole('option', { name: /develop/ })).toContainText(/ago|just now/);
+  await expect(page.getByRole('option', { name: 'origin/main' })).toHaveCount(0);
   await filter.fill('origin');
   await expect(page.getByText('No branches match')).toBeVisible();
   await filter.fill('develop');
-  await page.getByRole('menuitem', { name: 'develop' }).click();
+  await page.getByRole('option', { name: 'develop' }).click();
   await expect(page.getByText('Checkout develop done')).toBeVisible();
 });
 
@@ -108,9 +155,7 @@ test('the author box finds commits without flattening the graph', async ({ page 
 });
 
 test('reconnecting an account opens the token form with the account prefilled', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Authentication', exact: true }).click();
@@ -127,9 +172,7 @@ test('reconnecting an account opens the token form with the account prefilled', 
 });
 
 test('a file history row can open the full commit in the graph', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByText('CommitGraph.tsx').first().click();
   await page.locator('section[aria-label^="Diff for"]').getByRole('button', { name: 'File history' }).click();
   const history = page.locator('section[aria-label^="History of"]');
@@ -148,11 +191,8 @@ test('a file history row can open the full commit in the graph', async ({ page }
 });
 
 test('conflict resolver picks lines into a clean output', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: /drawGraph\.ts/ }).first().click();
-  await expect(page.getByText('0 of 1 resolved')).toBeVisible();
+  await openDemoRepo(page);
+  await openConflictFile(page);
   await expect(page.getByTitle(/Unresolved conflict/).first()).toBeVisible();
   await expect(page.getByText('<<<<<<<')).toHaveCount(0);
   await page.getByLabel('Take all lines from side A').click();
@@ -162,11 +202,8 @@ test('conflict resolver picks lines into a clean output', async ({ page }) => {
 });
 
 test('single conflict shows jump nav and per-conflict take-all', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: /drawGraph\.ts/ }).first().click();
-  await expect(page.getByText('0 of 1 resolved')).toBeVisible();
+  await openDemoRepo(page);
+  await openConflictFile(page);
   await expect(page.getByLabel('Next conflict')).toBeVisible();
   await expect(page.getByText('Conflict 1 of 1')).toBeVisible();
   await page.getByLabel('Take all lines from B for this conflict').click();
@@ -183,11 +220,8 @@ test('single conflict shows jump nav and per-conflict take-all', async ({ page }
 });
 
 test('conflict result can be hand-edited per block', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: /drawGraph\.ts/ }).first().click();
-  await expect(page.getByText('0 of 1 resolved')).toBeVisible();
+  await openDemoRepo(page);
+  await openConflictFile(page);
   await page.getByTitle(/Unresolved conflict/).first().click();
   const editor = page.getByLabel('Hand-edited result for this conflict');
   await expect(editor).toBeVisible();
@@ -209,11 +243,8 @@ test('conflict result can be hand-edited per block', async ({ page }) => {
 });
 
 test('conflict picks land in file order and a half-picked side shows as mixed', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: /drawGraph\.ts/ }).first().click();
-  await expect(page.getByText('0 of 1 resolved')).toBeVisible();
+  await openDemoRepo(page);
+  await openConflictFile(page);
   await page.getByText('return render(rows, { colors });').first().click();
   await page.getByText('const palette = useThemePalette();').first().click();
   await expect(page.getByText('1 of 1 resolved')).toBeVisible();
@@ -230,9 +261,7 @@ test('conflict picks land in file order and a half-picked side shows as mixed', 
 });
 
 test('the resolver picks with the keyboard and opens the next conflicted file after saving', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: /laneColors\.ts/ }).first().click();
   await expect(page.getByText('0 of 3 resolved')).toBeVisible();
   await expect(page.getByText('File 2 of 2')).toBeVisible();
@@ -253,9 +282,7 @@ test('the resolver picks with the keyboard and opens the next conflicted file af
 });
 
 test('leaving a conflict with picks asks first while a clean resolver closes on Escape', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const open = () => page.getByRole('button', { name: /drawGraph\.ts/ }).first().click();
   const resolver = page.getByRole('dialog', { name: /Resolve conflicts/ });
   await open();
@@ -277,9 +304,7 @@ test('leaving a conflict with picks asks first while a clean resolver closes on 
 });
 
 test('right-clicking a branch tip offers to push that branch', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('row').nth(0).click({ button: 'right' });
   const pushItem = page.getByRole('menuitem', { name: /^Push main/ });
   await expect(pushItem).toBeVisible();
@@ -291,9 +316,7 @@ test('right-clicking a branch tip offers to push that branch', async ({ page }) 
 });
 
 test('interactive rebase dialog opens from the commit context menu', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('row').nth(3).click({ button: 'right' });
   await page.getByRole('menuitem', { name: /Interactively rebase onto here/ }).click();
   const dialog = page.getByRole('dialog');
@@ -306,9 +329,7 @@ test('interactive rebase dialog opens from the commit context menu', async ({ pa
 });
 
 test('cherry-pick opens a dialog with the source reference option', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('row').nth(3).click({ button: 'right' });
   await page.getByRole('menuitem', { name: /Cherry-pick onto current branch/ }).click();
   const dialog = page.getByRole('dialog');
@@ -322,9 +343,7 @@ test('cherry-pick opens a dialog with the source reference option', async ({ pag
 });
 
 test('multi-select cherry-pick lists every commit in the dialog', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('row').nth(1).click();
   await page.getByRole('row').nth(2).click({ modifiers: ['ControlOrMeta'] });
   await page.getByRole('row').nth(2).click({ button: 'right' });
@@ -342,9 +361,7 @@ test('multi-select cherry-pick lists every commit in the dialog', async ({ page 
 });
 
 test('multi-select offers squash and pre-fills the rebase plan', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('row').nth(1).click();
   await page.getByRole('row').nth(2).click({ modifiers: ['ControlOrMeta'] });
   await page.getByRole('row').nth(2).click({ button: 'right' });
@@ -360,9 +377,7 @@ test('multi-select offers squash and pre-fills the rebase plan', async ({ page }
 });
 
 test('clicking a file opens the diff already at its first change, with no scroll animation', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const trace = page.evaluate(async () => {
     const samples: number[] = [];
     const started = performance.now();
@@ -383,9 +398,7 @@ test('clicking a file opens the diff already at its first change, with no scroll
 });
 
 test('long paths stay inside confirmation dialogs', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   const longPath =
     'src/features/repository/components/working-copy/deeply/nested/WorkingCopyFileListItemContainerFactory.tsx';
@@ -431,9 +444,7 @@ test('long paths stay inside confirmation dialogs', async ({ page }) => {
 });
 
 test('branch names line up whether or not the branch is checked out', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.locator('aside button[title="feature"]').click();
 
   const layout = await page.evaluate(() => {
@@ -464,9 +475,7 @@ test('branch names line up whether or not the branch is checked out', async ({ p
 });
 
 test('hovering a working copy file reveals its full path', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   const longPath =
     'src/features/repository/components/working-copy/deeply/nested/WorkingCopyFileListItemContainerFactory.tsx';
@@ -491,9 +500,7 @@ test('avatars stay visible after opening and closing a diff', async ({ page }) =
         ).length,
     );
 
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect.poll(visibleAvatars, { timeout: 10_000 }).toBeGreaterThan(0);
 
   await page.getByText('palette-seed.sql').first().click();
@@ -542,9 +549,7 @@ test('text selection in a diff survives the right-click copy menu', async ({ pag
 
 test('commit actions stay inside a narrow working copy panel', async ({ page }) => {
   await page.setViewportSize({ width: 820, height: 800 });
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   const inspector = page.locator('aside[aria-label="Inspector"]');
   const panel = await inspector.boundingBox();
@@ -565,9 +570,7 @@ test('commit actions stay inside a narrow working copy panel', async ({ page }) 
 test('opening a diff hides the sidebar and toggling it back returns to the graph', async ({
   page,
 }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   const sidebar = page.getByRole('complementary', { name: 'Branches and refs' });
   const diff = page.locator('section[aria-label^="Diff for"]');
@@ -598,9 +601,7 @@ test('opening a diff hides the sidebar and toggling it back returns to the graph
 });
 
 test('sidebar lists demo pull requests and opens the create dialog', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect(page.getByText('Pull requests')).toBeVisible();
   await expect(page.getByText(/side-by-side word diff polish/)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('Draft', { exact: true })).toBeVisible();
@@ -665,9 +666,7 @@ test('mod+f focuses the commit search box', async ({ page }) => {
 });
 
 test('sidebar lists the demo worktrees and the new worktree dialog opens', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect(page.getByText('Worktrees', { exact: true })).toBeVisible();
   await expect(page.getByText('angkorgit-feature-diff-viewer')).toBeVisible();
   await expect(page.getByText('folder missing')).toBeVisible();
@@ -684,9 +683,7 @@ test('sidebar lists the demo worktrees and the new worktree dialog opens', async
 });
 
 test('multi-line comments in a diff stay highlighted as comments', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByText('CommitGraph.tsx').first().click();
   const inner = page
     .locator('section[aria-label^="Diff for"] span.font-mono')
@@ -700,9 +697,7 @@ test('multi-line comments in a diff stay highlighted as comments', async ({ page
 });
 
 test('collapse all folds every sidebar section and branch folder', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: /^feature 1$/ }).click();
   await expect(page.getByText('diff-viewer', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: /^Remotes/ }).click();
@@ -719,9 +714,7 @@ test('collapse all folds every sidebar section and branch folder', async ({ page
 
 test('opening a diff keeps the inspector at the same width', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const inspector = page.locator('[data-panel-id="inspector"]');
   const sidebar = page.locator('[data-panel-id="sidebar"]');
   const handle = page.locator('[data-panel-resize-handle-id]').first();
@@ -751,9 +744,7 @@ test('the inspector stops at its minimum width when dragged and comes back after
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const inspector = page.locator('[data-panel-id="inspector"]');
   const widthOf = async () => (await inspector.boundingBox())?.width ?? 0;
   const handle = page.locator('[data-panel-resize-handle-id]').nth(1);
@@ -779,9 +770,7 @@ test('the inspector stops at its minimum width when dragged and comes back after
 
 test('dragging the sidebar shut and back open shows its content again', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const sidebar = page.locator('[data-panel-id="sidebar"]');
   const filter = page.getByPlaceholder('Filter refs…');
   await expect(filter).toBeVisible();
@@ -801,9 +790,7 @@ test('dragging the sidebar shut and back open shows its content again', async ({
 });
 
 test('commit box separates a summary line from a smaller description', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const summary = page.getByLabel('Commit summary');
   const description = page.getByLabel('Commit description');
   await summary.click();
@@ -829,9 +816,7 @@ test('commit box separates a summary line from a smaller description', async ({ 
 });
 
 test('the commit box grows when its top edge is dragged and resets on double-click', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const description = page.getByLabel('Commit description');
   const before = (await description.boundingBox())?.height ?? 0;
   const handle = page.getByRole('separator', { name: 'Resize commit box' });
@@ -849,9 +834,7 @@ test('the commit box grows when its top edge is dragged and resets on double-cli
 });
 
 test('folder tree view can collapse and expand every folder at once', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: 'Folder tree' }).click();
   await expect(page.getByText('ipc.ts', { exact: true }).first()).toBeVisible();
   const changesHeader = page.locator('div', { has: page.getByText(/^Changes/) }).filter({ has: page.getByRole('button', { name: 'Stage all' }) }).last();
@@ -864,9 +847,7 @@ test('folder tree view can collapse and expand every folder at once', async ({ p
 });
 
 test('graph ref chips show whole labels and fold the rest behind a count', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const firstRow = page.getByRole('row').filter({ hasText: 'feat(graph): virtualize commit rows' }).first();
   await expect(firstRow.getByText('main', { exact: true })).toBeVisible();
   const chips = firstRow.locator('span.inline-flex');
@@ -885,9 +866,7 @@ test('graph ref chips show whole labels and fold the rest behind a count', async
 });
 
 test('graph display menu can switch the lane color band off and on', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect.poll(() => page.locator('[data-graph-tail]').count()).toBeGreaterThan(5);
   await page.getByRole('button', { name: 'Graph display options' }).click();
   await page.getByRole('menuitemcheckbox', { name: 'Lane color band' }).click();
@@ -897,9 +876,7 @@ test('graph display menu can switch the lane color band off and on', async ({ pa
 });
 
 test('graph display menu hides and restores the hash column', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect(page.getByTitle('Copy full hash').first()).toBeVisible();
   await page.getByRole('button', { name: 'Graph display options' }).click();
   await page.getByRole('menuitemcheckbox', { name: 'Hash' }).click();
@@ -911,9 +888,7 @@ test('graph display menu hides and restores the hash column', async ({ page }) =
 
 test('sidebar sections behave as an accordion with collapsed headers pinned', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: 'Collapse all sections' }).click();
   await page.getByRole('button', { name: /^Branches/ }).click();
   const aside = page.getByRole('complementary', { name: 'Branches and refs' });
@@ -938,6 +913,8 @@ test('welcome page flags missing folders and opens a repository from the keyboar
   await expect(page.getByText('Recent repositories')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText('folder missing')).toBeVisible();
   await expect(page.getByText('~/work/api-gateway')).toBeVisible();
+  await expect(page.locator('[data-repo-mark="temple-ui"]')).toHaveText('TU');
+  await expect(page.locator('[data-repo-mark="api-gateway"]')).toHaveText('AG');
   const search = page.getByLabel('Search recent repositories');
   await expect(search).toBeFocused();
   await search.press('ArrowDown');
@@ -946,9 +923,7 @@ test('welcome page flags missing folders and opens a repository from the keyboar
 });
 
 test('conflict resolver shows line numbers in both sides and the result', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: /drawGraph\.ts/ }).first().click();
   const dialog = page.getByRole('dialog', { name: /Resolve conflicts/ });
   await expect(dialog).toBeVisible();
@@ -960,9 +935,7 @@ test('conflict resolver shows line numbers in both sides and the result', async 
 });
 
 test('the checked-out branch chip is filled while other local chips stay tinted', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const headChip = page.getByTitle(/^main · local/).first();
   const otherChip = page.getByTitle(/^feature\/diff-viewer · local/).first();
   const opacity = (color: string) => Number(color.split(',')[3]?.replace(')', '') ?? '1');
@@ -974,9 +947,7 @@ test('the checked-out branch chip is filled while other local chips stay tinted'
 });
 
 test('double-clicking a separated origin chip offers to reset the local branch', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByTitle(/origin\/main — double-click to reset main to it/).first().dblclick();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText('Reset branch to its remote?')).toBeVisible();
@@ -991,9 +962,7 @@ test('double-clicking a separated origin chip offers to reset the local branch',
 });
 
 test('the diff header opens the history of the file being viewed', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByText('CommitGraph.tsx').first().click();
   const diff = page.locator('section[aria-label^="Diff for"]');
   await expect(diff).toBeVisible();
@@ -1004,9 +973,7 @@ test('the diff header opens the history of the file being viewed', async ({ page
 });
 
 test('a single file can be stashed from its row menu and the toolbar pops the latest stash', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   await page.getByText('ipc.ts', { exact: true }).first().click({ button: 'right' });
   await page.getByRole('menuitem', { name: /Stash this file/ }).click();
@@ -1026,9 +993,7 @@ test('a single file can be stashed from its row menu and the toolbar pops the la
 });
 
 test('shift-click selects a range of working copy files and the menu acts on all of them', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   await page.getByText('ipc.ts', { exact: true }).first().click();
   await page.getByText('Architecture.md', { exact: true }).first().click({ modifiers: ['Shift'] });
@@ -1049,9 +1014,7 @@ test('shift-click selects a range of working copy files and the menu acts on all
 });
 
 test('the working copy filter narrows both lists and shows counts', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   await expect(page.getByPlaceholder('Filter changed files…')).toHaveCount(0);
   await page.getByRole('button', { name: 'Filter files' }).click();
@@ -1076,9 +1039,7 @@ test('the working copy filter narrows both lists and shows counts', async ({ pag
 });
 
 test('the commit file list can be filtered by path', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByText('feat(graph): virtualize commit rows').first().click();
 
   const inspector = page.getByRole('complementary', { name: 'Inspector' });
@@ -1098,9 +1059,7 @@ test('the commit file list can be filtered by path', async ({ page }) => {
 });
 
 test('a stash lists its files and one file can be restored on its own', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   await expect(page.getByText('feat(graph): virtualize commit rows').first()).toBeVisible();
   await page.getByText('WIP on main: experiment with lane colors').first().click();
@@ -1120,9 +1079,7 @@ test('a stash lists its files and one file can be restored on its own', async ({
 });
 
 test('staged files can be discarded from the row, the menu and the header', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
 
   const stagedDiscard = page.getByRole('button', { name: 'Discard src/features/graph/CommitGraph.tsx' });
   await page.getByText('CommitGraph.tsx', { exact: true }).first().hover();
@@ -1142,9 +1099,7 @@ test('staged files can be discarded from the row, the menu and the header', asyn
 });
 
 test('the sidebar comes back after a relaunch that happened with a diff open', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await expect(page.getByRole('complementary', { name: 'Branches and refs' })).toBeVisible();
   await page.getByText('ipc.ts', { exact: true }).first().click();
   await expect(page.locator('section[aria-label^="Diff for"]')).toBeVisible();
@@ -1159,10 +1114,27 @@ test('the sidebar comes back after a relaunch that happened with a diff open', a
   expect(stored.state?.sidebarOpen).toBe(true);
 });
 
+test('preview layout keeps the commit list visible while a diff is open', async ({ page }) => {
+  await openDemoRepo(page);
+  await page.getByRole('button', { name: 'Preview layout' }).click();
+  await expect(page.locator('[data-workspace-layout="preview"]')).toBeVisible();
+  await expect(page.getByText('Branch / tag')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Graph display options' })).toHaveCount(0);
+  await expect(page.getByRole('table', { name: 'Commits' }).locator('[data-graph-gutter]').first()).toBeVisible();
+  await page.getByText('ipc.ts', { exact: true }).first().click();
+  await expect(page.locator('section[aria-label^="Diff for"]')).toBeVisible();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('section[aria-label^="Diff for"]')).toHaveCount(0);
+  await expect(page.getByText('Select a file to preview')).toBeVisible();
+  await expect(page.getByPlaceholder('Search commits…')).toBeVisible();
+  await page.getByRole('button', { name: 'Show sidebar' }).click();
+  await expect(page.locator('[data-workspace-layout="standard"]')).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Branches and refs' })).toBeVisible();
+});
+
 test('a stash shows up in the graph with its own node and a menu to pop it', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const chip = page.getByRole('table', { name: 'Commits' }).getByTitle(/^WIP on main: experiment with lane colors/);
   await expect(chip).toBeVisible();
   const row = chip.locator('xpath=ancestor::*[@role="row"]');
@@ -1177,9 +1149,7 @@ test('a stash shows up in the graph with its own node and a menu to pop it', asy
 });
 
 test('arrow keys walk from the graph into a commit\u2019s files and back', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   const rows = page.getByRole('row');
   await rows.first().click();
   await expect(rows.first()).toHaveAttribute('aria-selected', 'true');
@@ -1206,10 +1176,55 @@ test('arrow keys walk from the graph into a commit\u2019s files and back', async
   await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'true');
 });
 
+test('arrow keys in the working copy open each file’s diff', async ({ page }) => {
+  await openDemoRepo(page);
+  await page.getByRole('button', { name: /uncommitted file changes/ }).click();
+  await page.keyboard.press('ArrowRight');
+  const files = page.getByLabel('Changed files');
+  await expect(files).toBeFocused();
+  await expect(page.locator('section[aria-label="Diff for src/core/ipc.ts"]')).toBeVisible();
+
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('section[aria-label="Diff for src/data/palette-seed.sql"]')).toBeVisible();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('section[aria-label="Diff for src/core/ipc.ts"]')).toBeVisible();
+});
+
+test('sidebar batch delete lists locals unchecked and age select picks old ones', async ({ page }) => {
+  await openDemoRepo(page);
+  await page.getByRole('button', { name: 'Branch actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete branches…' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Delete branches?' })).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete develop' })).not.toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'main kept' })).toBeDisabled();
+  await expect(dialog.getByText('Checked out', { exact: true })).toBeVisible();
+  await expect(dialog.getByRole('checkbox', { name: 'feature/diff-viewer kept' })).toBeDisabled();
+  await expect(dialog.getByRole('combobox', { name: 'Select by age' })).toHaveText('Choose age');
+  await dialog.getByRole('combobox', { name: 'Select by age' }).click();
+  await page.getByRole('option', { name: 'Older than 3 months' }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Select by age' })).toHaveText('Older than 3 months');
+  await expect(dialog.getByRole('checkbox', { name: 'Delete develop' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete old-feature' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'Delete wip-old' })).toBeChecked();
+  await expect(dialog.getByRole('checkbox', { name: 'main kept' })).toBeDisabled();
+  await dialog.getByRole('checkbox', { name: 'Delete develop' }).click();
+  await expect(dialog.getByRole('combobox', { name: 'Select by age' })).toHaveText('Choose age');
+  await expect(dialog.getByRole('button', { name: 'Delete 2' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Delete local and remote…' }).click();
+  const confirm = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Delete 2 on the remote too?' }) });
+  await expect(confirm).toBeVisible();
+  await expect(confirm.getByText('old-feature', { exact: true })).toBeVisible();
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirm).toBeHidden();
+  await expect(dialog.getByRole('heading', { name: 'Delete branches?' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('develop', { exact: true }).first()).toBeVisible();
+});
+
 test('fetch and clear local branches asks with checkboxes', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: 'Fetch options' }).click();
   await page.getByRole('menuitem', { name: 'Fetch and clear local branches…' }).click();
   const dialog = page.getByRole('dialog');
@@ -1224,9 +1239,7 @@ test('fetch and clear local branches asks with checkboxes', async ({ page }) => 
 });
 
 test('deleting a branch on the remote too asks first', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: 'develop actions' }).click();
   await page.getByRole('menuitem', { name: 'Delete local and remote…' }).click();
   const dialog = page.getByRole('dialog');
@@ -1238,9 +1251,7 @@ test('deleting a branch on the remote too asks first', async ({ page }) => {
 });
 
 test('deleting a tag that is not on the remote only says so', async ({ page }) => {
-  await page.goto('/');
-  await page.getByText('angkorgit', { exact: true }).first().click();
-  await expect(page.getByPlaceholder('Search commits…')).toBeVisible({ timeout: 10_000 });
+  await openDemoRepo(page);
   await page.getByRole('button', { name: /^Tags/ }).click();
   await page.getByRole('button', { name: 'v0.3.0 actions' }).click();
   await page.getByRole('menuitem', { name: 'Delete local and remote…' }).click();

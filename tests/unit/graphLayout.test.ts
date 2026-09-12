@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { GraphLayout, flatGraphRows, layoutGraph, type CommitInfo } from '@angkorgit/core';
 
 const sig = { name: 'Test', email: 't@example.com', time: 0 };
@@ -99,7 +99,7 @@ describe('GraphLayout', () => {
 });
 
 describe('flatGraphRows', () => {
-  it('keeps every commit on lane 0 with no connecting lines', () => {
+  it('keeps every commit on lane 0 with a single connecting line', () => {
     const disconnected = Array.from({ length: 20 }, (_, i) =>
       commit(`c${i}`, [`missing${i}`]),
     );
@@ -107,7 +107,16 @@ describe('flatGraphRows', () => {
     expect(rows).toHaveLength(20);
     expect(rows.every((r) => r.node.lane === 0 && r.node.color === 0)).toBe(true);
     expect(rows.every((r) => r.passing.length === 0 && r.node.merges.length === 0)).toBe(true);
-    expect(rows.every((r) => !r.node.continues && !r.node.hasIncoming)).toBe(true);
+    expect(rows[0].node.hasIncoming).toBe(false);
+    expect(rows[0].node.continues).toBe(true);
+    expect(rows[19].node.hasIncoming).toBe(true);
+    expect(rows[19].node.continues).toBe(false);
+  });
+
+  it('keeps the last row continuing when more pages exist', () => {
+    const rows = flatGraphRows([commit('c1', ['c0'])], 200, true);
+    expect(rows[0].node.hasIncoming).toBe(true);
+    expect(rows[0].node.continues).toBe(true);
   });
 
   it('numbers rows from startRow for pagination and keeps merge markers', () => {

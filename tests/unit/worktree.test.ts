@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import { parentDirectory, suggestWorktreePath, worktreeFolderName } from '@angkorgit/core';
 
 describe('worktreeFolderName', () => {
