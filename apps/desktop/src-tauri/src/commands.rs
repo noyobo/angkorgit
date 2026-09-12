@@ -430,7 +430,6 @@ pub async fn branch_list(path: String) -> AppResult<Vec<BranchInfo>> {
 }
 
 #[tauri::command]
-#[tauri::command]
 pub async fn branch_create(
     path: String,
     name: String,
