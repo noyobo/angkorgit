@@ -19,8 +19,7 @@ pub mod test_api {
     pub use crate::core::branch::{
         can_fast_forward, checkout_branch, cherry_pick, cherry_pick_many, create as branch_create,
         delete as branch_delete, delete_local_and_remote as branch_delete_local_and_remote,
-        list as branches, merge, rebase, rebase_commits, rebase_interactive,
-        reset,
+        list as branches, merge, rebase, rebase_commits, rebase_interactive, reset,
     };
     pub use crate::core::commit::{amend, commit, merge_message, revert};
     pub use crate::core::conflict::{

@@ -27,8 +27,7 @@ export async function fetchAndClearLocalBranches(
       .filter((wt) => wt.branch && !wt.isCurrent)
       .map((wt) => [wt.branch as string, wt.name]),
   );
-  const rows = eligibleLocals({
-    kind: 'stale',
+  const rows = eligibleLocals('stale', {
     locals: branches,
     remoteBranchNames: branches.filter((branch) => branch.isRemote).map((branch) => branch.name),
     remote,

@@ -61,8 +61,8 @@ export function pickDeleteBranches(
 
 function rowMeta(row: EligibleBranch): string | undefined {
   const parts: string[] = [];
-  if (row.time > 0) parts.push(timeAgo(row.time));
-  if (row.ahead > 0) parts.push(`↑${capCount(row.ahead)}`);
+  if (row.time && row.time > 0) parts.push(timeAgo(row.time));
+  if (row.ahead && row.ahead > 0) parts.push(`↑${capCount(row.ahead)}`);
   return parts.length ? parts.join(' · ') : undefined;
 }
 

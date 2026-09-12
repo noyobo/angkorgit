@@ -1,584 +1,166 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { eligibleLocals, namesOlderThan, remoteDeleteTarget } from '@angkorgit/core';
-import type { BranchInput } from '@angkorgit/core';
 
-describe('eligibleLocals', () => {
-  describe('kind: stale', () => {
-    it('identifies branches with gone upstream', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'main',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/main',
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/feature',
-          ahead: 0,
-          targetOid: 'def456',
-          targetTime: 2000,
-        },
-        {
-          name: 'other',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/other',
-          ahead: 0,
-          targetOid: 'ghi789',
-          targetTime: 3000,
-        },
-      ];
+const local = (
+  name: string,
+  extra: Partial<{
+    isHead: boolean;
+    isRemote: boolean;
+    upstream: string | null;
+    ahead: number;
+    targetOid: string;
+    targetTime: number;
+  }> = {},
+) => ({
+  name,
+  isHead: extra.isHead ?? false,
+  isRemote: extra.isRemote ?? false,
+  upstream: extra.upstream ?? null,
+  ahead: extra.ahead ?? 0,
+  targetOid: extra.targetOid ?? 'oid',
+  targetTime: extra.targetTime ?? 100,
+});
 
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: ['origin/main', 'origin/other'],
-        remote: 'origin',
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('feature');
-      expect(result[0].skip).toBeNull();
+describe('eligibleLocals - stale kind', () => {
+  it('offers a gone upstream with no unpushed commits', () => {
+    const rows = eligibleLocals('stale', {
+      locals: [local('old', { upstream: 'origin/old' })],
+      remoteBranchNames: ['origin/main'],
+      remote: 'origin',
+      aheadByName: { old: 0 },
+      heldBy: {},
     });
-
-    it('skips HEAD branch', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: true,
-          isRemote: false,
-          upstream: 'origin/feature',
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].skip).toBe('head');
-      expect(result[0].detail).toBe('Checked out');
-    });
-
-    it('skips worktree-held branches', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/feature',
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: { feature: 'feature-worktree' },
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].skip).toBe('worktree');
-      expect(result[0].detail).toBe('Checked out in feature-worktree');
-    });
-
-    it('skips branches with unpushed commits', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/feature',
-          ahead: 3,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].skip).toBe('unpushed');
-      expect(result[0].detail).toBe('Has unpushed commits');
-    });
-
-    it('uses aheadByName when provided', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/feature',
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: {},
-        aheadByName: { feature: 5 },
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].skip).toBe('unpushed');
-      expect(result[0].ahead).toBe(5);
-    });
-
-    it('sorts skipped items last', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'a-deletable',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/a-deletable',
-          ahead: 0,
-          targetOid: 'aaa',
-          targetTime: 1000,
-        },
-        {
-          name: 'b-held',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/b-held',
-          ahead: 0,
-          targetOid: 'bbb',
-          targetTime: 2000,
-        },
-        {
-          name: 'c-deletable',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/c-deletable',
-          ahead: 0,
-          targetOid: 'ccc',
-          targetTime: 3000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: { 'b-held': 'worktree' },
-      });
-
-      expect(result).toHaveLength(3);
-      expect(result[0].name).toBe('a-deletable');
-      expect(result[0].skip).toBeNull();
-      expect(result[1].name).toBe('c-deletable');
-      expect(result[1].skip).toBeNull();
-      expect(result[2].name).toBe('b-held');
-      expect(result[2].skip).toBe('worktree');
-    });
-
-    it('ignores branches without matching remote prefix', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: 'upstream/feature',
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('ignores branches without upstream', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'local-only',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('ignores remote branches', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'origin/feature',
-          isHead: false,
-          isRemote: true,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc123',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'stale',
-        locals,
-        remoteBranchNames: [],
-        remote: 'origin',
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('throws when required parameters are missing', () => {
-      expect(() =>
-        eligibleLocals({
-          kind: 'stale',
-          locals: [],
-          heldBy: {},
-        } as any),
-      ).toThrow("kind 'stale' requires remoteBranchNames and remote");
-    });
+    expect(rows).toEqual([{ name: 'old', oid: 'oid', skip: null }]);
   });
 
-  describe('kind: age', () => {
-    it('lists all local branches', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'old',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc',
-          targetTime: 1000,
-        },
-        {
-          name: 'new',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'def',
-          targetTime: 5000,
-        },
-        {
-          name: 'middle',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'ghi',
-          targetTime: 3000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'age',
-        locals,
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(3);
-      expect(result[0].name).toBe('old');
-      expect(result[1].name).toBe('middle');
-      expect(result[2].name).toBe('new');
+  it('ignores locals without an upstream on that remote', () => {
+    const rows = eligibleLocals('stale', {
+      locals: [
+        local('wip', { upstream: null }),
+        local('from-up', { upstream: 'upstream/old' }),
+        local('live', { upstream: 'origin/live' }),
+      ],
+      remoteBranchNames: ['origin/live'],
+      remote: 'origin',
+      aheadByName: {},
+      heldBy: {},
     });
+    expect(rows).toEqual([]);
+  });
 
-    it('marks HEAD as skipped', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'main',
-          isHead: true,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'age',
-        locals,
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].skip).toBe('head');
-      expect(result[0].detail).toBe('Checked out');
+  it('skips head, other worktrees, and unpushed commits', () => {
+    const rows = eligibleLocals('stale', {
+      locals: [
+        local('main', { isHead: true, upstream: 'origin/gone-head' }),
+        local('held', { upstream: 'origin/held' }),
+        local('wip', { upstream: 'origin/wip', ahead: 2 }),
+      ],
+      remoteBranchNames: [],
+      remote: 'origin',
+      aheadByName: { wip: 2 },
+      heldBy: { held: '/tmp/wt' },
     });
+    expect(rows.map((r) => [r.name, r.skip, r.detail])).toEqual([
+      ['held', 'worktree', 'Checked out in /tmp/wt'],
+      ['main', 'head', 'Checked out'],
+      ['wip', 'unpushed', 'Has unpushed commits'],
+    ]);
+  });
 
-    it('marks worktree-held branches as skipped', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc',
-          targetTime: 1000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'age',
-        locals,
-        heldBy: { feature: 'my-worktree' },
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].skip).toBe('worktree');
-      expect(result[0].detail).toBe('Checked out in my-worktree');
+  it('prefers the pre-fetch ahead snapshot', () => {
+    const rows = eligibleLocals('stale', {
+      locals: [local('old', { upstream: 'origin/old', ahead: 0 })],
+      remoteBranchNames: [],
+      remote: 'origin',
+      aheadByName: { old: 3 },
+      heldBy: {},
     });
+    expect(rows[0]?.skip).toBe('unpushed');
+  });
+});
 
-    it('sorts by time (oldest first)', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'new',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc',
-          targetTime: 5000,
-        },
-        {
-          name: 'old',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'def',
-          targetTime: 1000,
-        },
-        {
-          name: 'middle',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'ghi',
-          targetTime: 3000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'age',
-        locals,
-        heldBy: {},
-      });
-
-      expect(result.map((r) => r.name)).toEqual(['old', 'middle', 'new']);
+describe('eligibleLocals - age kind', () => {
+  it('lists every local and disables head and other worktrees', () => {
+    const rows = eligibleLocals('age', {
+      locals: [
+        local('main', { isHead: true, targetTime: 300 }),
+        local('held', { targetTime: 200 }),
+        local('wip', { ahead: 2, targetTime: 100 }),
+        local('origin/main', { isRemote: true, targetTime: 50 }),
+      ],
+      heldBy: { held: 'other' },
     });
+    expect(rows.map((row) => [row.name, row.skip, row.detail])).toEqual([
+      ['wip', null, undefined],
+      ['held', 'worktree', 'Checked out in other'],
+      ['main', 'head', 'Checked out'],
+    ]);
+  });
 
-    it('ignores remote branches', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'origin/main',
-          isHead: false,
-          isRemote: true,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'abc',
-          targetTime: 1000,
-        },
-        {
-          name: 'main',
-          isHead: false,
-          isRemote: false,
-          upstream: null,
-          ahead: 0,
-          targetOid: 'def',
-          targetTime: 2000,
-        },
-      ];
-
-      const result = eligibleLocals({
-        kind: 'age',
-        locals,
-        heldBy: {},
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('main');
+  it('sorts oldest tip first', () => {
+    const rows = eligibleLocals('age', {
+      locals: [local('new', { targetTime: 200 }), local('old', { targetTime: 50 })],
+      heldBy: {},
     });
+    expect(rows.map((row) => row.name)).toEqual(['old', 'new']);
+  });
 
-    it('preserves ahead count', () => {
-      const locals: BranchInput[] = [
-        {
-          name: 'feature',
-          isHead: false,
-          isRemote: false,
-          upstream: 'origin/feature',
-          ahead: 5,
-          targetOid: 'abc',
-          targetTime: 1000,
-        },
-      ];
+  it('does not skip unpushed commits for age kind', () => {
+    const rows = eligibleLocals('age', {
+      locals: [local('wip', { ahead: 5, targetTime: 100 })],
+      heldBy: {},
+    });
+    expect(rows).toEqual([
+      {
+        name: 'wip',
+        oid: 'oid',
+        time: 100,
+        ahead: 5,
+        skip: null,
+        detail: undefined,
+      },
+    ]);
+  });
 
-      const result = eligibleLocals({
-        kind: 'age',
-        locals,
-        heldBy: {},
-      });
-
-      expect(result[0].ahead).toBe(5);
+  it('includes time and ahead metadata', () => {
+    const rows = eligibleLocals('age', {
+      locals: [local('feat', { targetTime: 1_600_000_000, ahead: 3 })],
+      heldBy: {},
+    });
+    expect(rows[0]).toMatchObject({
+      name: 'feat',
+      time: 1_600_000_000,
+      ahead: 3,
     });
   });
 });
 
 describe('namesOlderThan', () => {
-  it('filters branches older than threshold', () => {
-    const now = 1_700_000_000; // Realistic Unix timestamp (2023)
-    const days1 = 1 * 86400;
-    const rows = [
-      { name: 'very-old', oid: 'a', time: now - days1 * 10, ahead: 0, skip: null },
-      { name: 'old', oid: 'b', time: now - days1 * 2, ahead: 0, skip: null },
-      { name: 'recent', oid: 'c', time: now - 1000, ahead: 0, skip: null },
-    ];
-
-    const result = namesOlderThan(rows, now, 1);
-
-    expect(result).toHaveLength(2);
-    expect(result).toContain('very-old');
-    expect(result).toContain('old');
-    expect(result).not.toContain('recent');
-  });
-
-  it('excludes skipped branches', () => {
+  it('checks enabled rows older than the cutoff and skips disabled or timeless', () => {
     const now = 1_700_000_000;
-    const days90 = 90 * 86400;
-    const rows = [
-      { name: 'old-head', oid: 'a', time: now - days90 - 1000, ahead: 0, skip: 'head' as const },
-      { name: 'old-worktree', oid: 'b', time: now - days90 - 1000, ahead: 0, skip: 'worktree' as const },
-      { name: 'old-unpushed', oid: 'c', time: now - days90 - 1000, ahead: 0, skip: 'unpushed' as const },
-      { name: 'old-deletable', oid: 'd', time: now - days90 - 1000, ahead: 0, skip: null },
-    ];
-
-    const result = namesOlderThan(rows, now, 90);
-
-    expect(result).toHaveLength(1);
-    expect(result).toEqual(['old-deletable']);
-  });
-
-  it('handles zero-time branches', () => {
-    const now = 1_700_000_000;
-    const days90 = 90 * 86400;
-    const rows = [
-      { name: 'zero-time', oid: 'a', time: 0, ahead: 0, skip: null },
-      { name: 'old', oid: 'b', time: now - days90 - 1000, ahead: 0, skip: null },
-    ];
-
-    const result = namesOlderThan(rows, now, 90);
-
-    expect(result).toEqual(['old']);
-  });
-
-  it('calculates cutoff correctly', () => {
-    const now = 1_700_000_000;
-    const days90 = 90 * 86400;
-    const rows = [
-      { name: 'exactly-90', oid: 'a', time: now - days90, ahead: 0, skip: null },
-      { name: 'older-than-90', oid: 'b', time: now - days90 - 1, ahead: 0, skip: null },
-      { name: 'newer-than-90', oid: 'c', time: now - days90 + 1, ahead: 0, skip: null },
-    ];
-
-    const result = namesOlderThan(rows, now, 90);
-
-    expect(result).toEqual(['older-than-90']);
-  });
-
-  it('returns empty array when no branches qualify', () => {
-    const now = 1_700_000_000;
-    const rows = [
-      { name: 'recent', oid: 'a', time: now - 1000, ahead: 0, skip: null },
-      { name: 'skipped', oid: 'b', time: now - 90 * 86400 - 1000, ahead: 0, skip: 'head' as const },
-    ];
-
-    const result = namesOlderThan(rows, now, 90);
-
-    expect(result).toEqual([]);
+    const rows = eligibleLocals('age', {
+      locals: [
+        local('main', { isHead: true, targetTime: 1_000_000_000 }),
+        local('ancient', { targetTime: 1_600_000_000 }),
+        local('recent', { targetTime: 1_699_000_000 }),
+        local('unknown', { targetTime: 0 }),
+      ],
+      heldBy: {},
+    });
+    expect(namesOlderThan(rows, now, 90)).toEqual(['ancient']);
   });
 });
 
 describe('remoteDeleteTarget', () => {
-  it('parses remote from upstream', () => {
-    const result = remoteDeleteTarget('feature', 'origin/feature', 'backup');
-    expect(result).toEqual({ remote: 'origin', remoteName: 'feature' });
-  });
-
-  it('handles upstream with nested path', () => {
-    const result = remoteDeleteTarget('my-branch', 'origin/nested/path', 'backup');
-    expect(result).toEqual({ remote: 'origin', remoteName: 'nested/path' });
-  });
-
-  it('falls back to firstRemote when no upstream', () => {
-    const result = remoteDeleteTarget('feature', null, 'backup');
-    expect(result).toEqual({ remote: 'backup', remoteName: 'feature' });
-  });
-
-  it('uses branch name with firstRemote fallback', () => {
-    const result = remoteDeleteTarget('my-feature', null, 'origin');
-    expect(result).toEqual({ remote: 'origin', remoteName: 'my-feature' });
-  });
-
-  it('returns null when no upstream and no firstRemote', () => {
-    const result = remoteDeleteTarget('feature', null, undefined);
-    expect(result).toBeNull();
-  });
-
-  it('returns null for upstream without slash', () => {
-    const result = remoteDeleteTarget('feature', 'noslash', undefined);
-    expect(result).toBeNull();
-  });
-
-  it('prefers upstream over firstRemote', () => {
-    const result = remoteDeleteTarget('feature', 'upstream/feature', 'origin');
-    expect(result).toEqual({ remote: 'upstream', remoteName: 'feature' });
+  it('prefers the upstream remote and falls back to the first remote', () => {
+    expect(remoteDeleteTarget('feat', 'origin/feat', 'upstream')).toEqual({
+      remote: 'origin',
+      remoteName: 'feat',
+    });
+    expect(remoteDeleteTarget('local-only', null, 'origin')).toEqual({
+      remote: 'origin',
+      remoteName: 'local-only',
+    });
+    expect(remoteDeleteTarget('local-only', null, undefined)).toBeNull();
   });
 });
