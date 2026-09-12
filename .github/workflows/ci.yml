@@ -49,6 +49,7 @@ jobs:
               - 'package.json'
               - 'bun.lock'
               - 'bun.lockb'
+              - 'biome.json*'
             e2e:
               - 'apps/desktop/src/**'
               - 'apps/desktop/index.html'
@@ -81,6 +82,25 @@ jobs:
             echo "rust=${{ steps.filter.outputs.rust }}" >> "$GITHUB_OUTPUT"
             echo "Selection: frontend=${{ steps.filter.outputs.frontend }} e2e=${{ steps.filter.outputs.e2e }} rust=${{ steps.filter.outputs.rust }}"
           fi
+
+  format-check:
+    name: Format (Biome)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run format:check
 
   typecheck-packages:
     name: Typecheck (Packages)
@@ -343,7 +363,7 @@ jobs:
       always() &&
       needs.changes.result != 'skipped' &&
       needs.changes.result != 'cancelled'
-    needs: [changes, typecheck-packages, typecheck-desktop, test-core, test-ai, test-utils, build, e2e, rust-lint, rust-test]
+    needs: [changes, format-check, typecheck-packages, typecheck-desktop, test-core, test-ai, test-utils, build, e2e, rust-lint, rust-test]
     runs-on: ubuntu-latest
     steps:
       - name: Require selected jobs
@@ -351,6 +371,7 @@ jobs:
           WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
           WANT_E2E: ${{ needs.changes.outputs.e2e }}
           WANT_RUST: ${{ needs.changes.outputs.rust }}
+          FORMAT_CHECK: ${{ needs.format-check.result }}
           TYPECHECK_PKG: ${{ needs.typecheck-packages.result }}
           TYPECHECK_DESKTOP: ${{ needs.typecheck-desktop.result }}
           TEST_CORE: ${{ needs.test-core.result }}
@@ -375,6 +396,7 @@ jobs:
               echo "$label skipped (not selected)"
             fi
           }
+          require "$WANT_FRONTEND" "$FORMAT_CHECK" "format-check"
           require "$WANT_FRONTEND" "$TYPECHECK_PKG" "typecheck-packages"
           require "$WANT_FRONTEND" "$TYPECHECK_DESKTOP" "typecheck-desktop"
           require "$WANT_FRONTEND" "$TEST_CORE" "test-core"

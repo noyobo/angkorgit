@@ -25,6 +25,8 @@
     "release:mac": "bun tauri:build && open apps/desktop/src-tauri/target/release/bundle/dmg",
     "install:mac": "rm -rf /Applications/AngKorGit.app && ditto apps/desktop/src-tauri/target/release/bundle/macos/AngKorGit.app /Applications/AngKorGit.app && open -a /Applications/AngKorGit.app",
     "build": "bun run --filter '*' build",
+    "format": "biome format --write .",
+    "format:check": "biome ci .",
     "lint": "bun run --filter '*' lint",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test ./tests/unit",
@@ -34,6 +36,7 @@
     "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
     "@happy-dom/global-registrator": "^20.14.5",
     "@rstest/adapter-rspack": "^0.11.12",
     "@rstest/core": "^0.11.12",
