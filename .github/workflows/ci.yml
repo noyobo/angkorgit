@@ -20,7 +20,8 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
-      - run: bun run typecheck
+      # Engineering CI only — skip the marketing site package.
+      - run: bun run --filter '!@angkorgit/website' typecheck
       - run: bun run test
       - run: bun --filter @angkorgit/desktop build
 

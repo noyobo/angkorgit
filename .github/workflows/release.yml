@@ -1,15 +1,16 @@
+# Disabled for this fork — engineering CI only (see ci.yml).
+# Re-enable tag triggers when desktop release builds are needed again.
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
+    if: false
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.platform }}
     strategy:
@@ -47,7 +48,6 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Updater artifact signing (free minisign key — see docs/Distribution.md).
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:

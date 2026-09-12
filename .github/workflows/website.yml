@@ -1,17 +1,8 @@
+# Disabled for this fork — engineering CI only (see ci.yml).
+# Re-enable automatic triggers when website/Pages deploy is needed again.
 name: Website
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/website/**'
-      - 'docs/assets/**'
-      - 'packages/design-system/**'
-      - '.github/workflows/website.yml'
-  release:
-    types: [published]
-  schedule:
-    - cron: '0 1 * * *'
   workflow_dispatch:
 
 permissions:
@@ -25,6 +16,7 @@ concurrency:
 
 jobs:
   build:
+    if: false
     name: Build website
     runs-on: ubuntu-latest
     steps:
@@ -45,6 +37,7 @@ jobs:
           path: apps/website/dist
 
   deploy:
+    if: false
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
