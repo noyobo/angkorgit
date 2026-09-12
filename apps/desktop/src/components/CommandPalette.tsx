@@ -29,6 +29,7 @@ import {
   Tag as TagIcon,
   Trash2,
   Undo2,
+  UserRoundSearch,
   X,
   ZoomIn,
   ZoomOut,
@@ -144,8 +145,8 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     setSearch('');
   };
 
-  const enterFileHistory = () => {
-    setMode('fileHistory');
+  const enterFilePicker = (picker: 'fileHistory' | 'blame') => {
+    setMode(picker);
     setSearch('');
     setFiles([]);
     setFilesError(false);
@@ -163,7 +164,9 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         setFiles([]);
         setFilesError(true);
         setFilesLoading(false);
-        toast.error(`File history failed: ${(error as { message?: string }).message ?? error}`);
+        toast.error(
+          `${picker === 'blame' ? 'Blame' : 'File history'} failed: ${(error as { message?: string }).message ?? error}`,
+        );
       });
   };
 
@@ -341,7 +344,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
       open={paletteOpen}
       onOpenChange={setPaletteOpen}
       label="Command palette"
-      shouldFilter={mode !== 'fileHistory'}
+      shouldFilter={mode !== 'fileHistory' && mode !== 'blame'}
       className="fixed left-1/2 top-24 z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-surface-overlay shadow-soft"
       data-command-palette-open={paletteOpen || undefined}
     >
@@ -351,13 +354,15 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         placeholder={
           mode === 'fileHistory'
             ? 'Search a file to see who changed it…'
-            : mode === 'theme'
-              ? 'Search themes…'
-              : 'Type a command or branch name…'
+            : mode === 'blame'
+              ? 'Search a file to blame…'
+              : mode === 'theme'
+                ? 'Search themes…'
+                : 'Type a command or branch name…'
         }
         onKeyDown={(e) => {
           if (
-            (mode === 'fileHistory' || mode === 'theme') &&
+            (mode === 'fileHistory' || mode === 'blame' || mode === 'theme') &&
             e.key === 'Backspace' &&
             search === ''
           ) {
@@ -382,28 +387,29 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
       />
       {mode === 'theme' && <ThemePreviewSync />}
       <Command.List className="max-h-96 overflow-y-auto p-1.5 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-faint">
-        {!(mode === 'fileHistory' && (filesLoading || filesError)) && (
+        {!((mode === 'fileHistory' || mode === 'blame') && (filesLoading || filesError)) && (
           <Command.Empty className="py-8 text-center text-sm text-faint">No results.</Command.Empty>
         )}
 
-        {mode === 'fileHistory' && filesLoading && (
+        {(mode === 'fileHistory' || mode === 'blame') && filesLoading && (
           <div className="flex items-center justify-center gap-2 py-8 text-sm text-faint">
             <Spinner /> Loading files…
           </div>
         )}
-        {mode === 'fileHistory' && !filesLoading && filesError && (
+        {(mode === 'fileHistory' || mode === 'blame') && !filesLoading && filesError && (
           <div className="py-8 text-center text-sm text-faint">Could not list files.</div>
         )}
-        {mode === 'fileHistory' && !filesLoading && !filesError && (
-          <Command.Group heading="File history">
+        {(mode === 'fileHistory' || mode === 'blame') && !filesLoading && !filesError && (
+          <Command.Group heading={mode === 'blame' ? 'Blame' : 'File history'}>
             {visibleFiles.map((file) => (
               <PaletteItem
                 key={file}
-                icon={<FileClock />}
+                icon={mode === 'blame' ? <UserRoundSearch /> : <FileClock />}
                 label={file}
                 onSelect={() => {
                   close();
-                  useUi.getState().openFileHistory(file);
+                  if (mode === 'blame') useUi.getState().openBlame(file);
+                  else useUi.getState().openFileHistory(file);
                 }}
               />
             ))}
@@ -456,7 +462,12 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
                   icon={<History />}
                   label="File history…"
                   hint={`${modKey()}F`}
-                  onSelect={enterFileHistory}
+                  onSelect={() => enterFilePicker('fileHistory')}
+                />
+                <PaletteItem
+                  icon={<UserRoundSearch />}
+                  label="Blame…"
+                  onSelect={() => enterFilePicker('blame')}
                 />
                 <PaletteItem
                   icon={<ArrowDownToLine />}

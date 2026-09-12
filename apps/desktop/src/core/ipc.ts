@@ -668,8 +668,11 @@ export const ipc = {
     return invoke('staged_patch', { path });
   },
 
-  async fileBlame(path: string, file: string, rev: string | null): Promise<FileBlame> {
-    if (!isTauri()) return demo.demoFileBlame(file);
+  async fileBlame(path: string, file: string, rev?: string | null): Promise<FileBlame> {
+    if (!isTauri()) {
+      await delay(150);
+      return demo.demoFileBlame(file, rev ?? null);
+    }
     return invoke('file_blame', { path, file, rev });
   },
 

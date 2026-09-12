@@ -71,6 +71,17 @@ test('opens blame view from working copy file menu', async ({ page }) => {
   await fileRow.click({ button: 'right' });
   console.timeEnd('4. Right-click file');
 
+  // Debug: list all menu items
+  const menuItems = page.getByRole('menuitem');
+  const count = await menuItems.count();
+  console.log(`\n=== Found ${count} menu items ===`);
+  for (let i = 0; i < count; i++) {
+    const text = await menuItems.nth(i).textContent();
+    const name = await menuItems.nth(i).getAttribute('aria-label');
+    console.log(`  [${i}]: text="${text}" aria-label="${name}"`);
+  }
+  console.log(`=== End menu items ===\n`);
+
   console.time('5. Click Blame menu');
   await page.getByRole('menuitem', { name: /Blame/ }).click();
   console.timeEnd('5. Click Blame menu');
