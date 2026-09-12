@@ -210,20 +210,14 @@ jobs:
           bun run test:e2e
           kill $SERVER_PID || true
 
-  rust:
-    name: Rust (${{ matrix.os }})
+  rust-lint:
+    name: Rust Lint
     needs: [changes, typecheck]
     if: |
       always() &&
       needs.changes.outputs.rust == 'true' &&
       (needs.typecheck.result == 'success' || needs.typecheck.result == 'skipped')
-    runs-on: ${{ matrix.os }}
-    strategy:
-      # Mac first, then Linux, then Windows — one platform at a time.
-      fail-fast: true
-      max-parallel: 1
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/desktop/src-tauri
@@ -237,12 +231,40 @@ jobs:
           workspaces: apps/desktop/src-tauri
           shared-key: git-engine
       - name: Install Linux system dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libdbus-1-dev
       - run: cargo fmt --check
       - run: cargo clippy --locked --all-targets -- -D warnings
+
+  rust-test:
+    name: Rust Tests (${{ matrix.os }})
+    needs: [changes, rust-lint]
+    if: |
+      always() &&
+      needs.changes.outputs.rust == 'true' &&
+      needs.rust-lint.result == 'success'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: apps/desktop/src-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          shared-key: git-engine
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libdbus-1-dev
       - run: cargo test --locked
 
   ci:
@@ -251,7 +273,7 @@ jobs:
       always() &&
       needs.changes.result != 'skipped' &&
       needs.changes.result != 'cancelled'
-    needs: [changes, typecheck, test, build, e2e, rust]
+    needs: [changes, typecheck, test, build, e2e, rust-lint, rust-test]
     runs-on: ubuntu-latest
     steps:
       - name: Require selected jobs
@@ -263,7 +285,8 @@ jobs:
           TEST: ${{ needs.test.result }}
           BUILD: ${{ needs.build.result }}
           E2E: ${{ needs.e2e.result }}
-          RUST: ${{ needs.rust.result }}
+          RUST_LINT: ${{ needs.rust-lint.result }}
+          RUST_TEST: ${{ needs.rust-test.result }}
         run: |
           fail=0
           require() {
@@ -283,5 +306,6 @@ jobs:
           require "$WANT_FRONTEND" "$TEST" test
           require "$WANT_FRONTEND" "$BUILD" build
           require "$WANT_E2E" "$E2E" e2e
-          require "$WANT_RUST" "$RUST" rust
+          require "$WANT_RUST" "$RUST_LINT" "rust-lint"
+          require "$WANT_RUST" "$RUST_TEST" "rust-test"
           exit "$fail"
