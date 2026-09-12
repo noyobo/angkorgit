@@ -251,7 +251,8 @@ export const useUi = create<UiState>()(
       closeRangeDiff: () => set({ rangeDiff: null }),
       openEditor: (centerEditor) => set({ centerEditor }),
       closeEditor: () => set({ centerEditor: null }),
-      openFileHistory: (centerFileHistory) => set({ centerFileHistory, centerBlame: null, centerDiff: null }),
+      openFileHistory: (centerFileHistory) =>
+        set({ centerFileHistory, centerBlame: null, centerDiff: null }),
       closeFileHistory: () => set({ centerFileHistory: null }),
       openBlame: (file, rev = null) =>
         set({ centerBlame: { file, rev }, centerFileHistory: null, centerDiff: null }),
