@@ -1,7 +1,14 @@
 // Bun test setup for React component testing
-import { expect } from 'bun:test';
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
 import '@testing-library/jest-dom';
 
-// 设置 happy-dom 作为测试环境
-// @ts-expect-error - happy-dom types
-global.happyDOM = true;
+// Register happy-dom global environment
+// Provides DOM APIs (document, window, etc.) for tests
+GlobalRegistrator.register();
+
+// Cleanup after all tests complete
+if (typeof afterAll !== 'undefined') {
+  afterAll(() => {
+    GlobalRegistrator.unregister();
+  });
+}
