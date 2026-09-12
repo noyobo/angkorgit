@@ -16,6 +16,24 @@ body {
   @apply bg-background font-sans text-sm text-foreground antialiased;
 }
 
+/* Desktop chrome is not a document: selection is off unless opted in. */
+html {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable="true"],
+pre,
+[data-diff-pane],
+[data-diff-layer] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+::selection {
+  background-color: hsl(var(--primary) / 0.35);
+}
+
 /* Subtle scrollbars everywhere */
 * {
   scrollbar-width: thin;
@@ -89,9 +107,34 @@ body {
 }
 
 /* xterm fills its panel */
+.terminal-host {
+  position: relative;
+}
 .terminal-host .xterm {
   height: 100%;
-  padding: 8px;
+  padding: 0;
+}
+.terminal-host .xterm .xterm-viewport {
+  width: 100% !important;
+  overflow-y: auto;
+}
+
+/* macOS-style scrollbar for terminal */
+.terminal-host .xterm .xterm-viewport::-webkit-scrollbar {
+  width: 12px;
+}
+.terminal-host .xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+.terminal-host .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+  background-clip: padding-box;
+}
+.terminal-host .xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .diff-pane-selected {
