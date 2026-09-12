@@ -1,0 +1,46 @@
+name: Sync upstream-main
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Mirror cheat2001/angkorgit main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout upstream-main
+        uses: actions/checkout@v4
+        with:
+          ref: upstream-main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reset to upstream main and push
+        env:
+          UPSTREAM_URL: https://github.com/cheat2001/angkorgit.git
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch "$UPSTREAM_URL" main
+          target=$(git rev-parse FETCH_HEAD)
+          current=$(git rev-parse HEAD)
+
+          if [ "$current" = "$target" ]; then
+            echo "Already in sync with cheat2001/angkorgit@main ($current)"
+            exit 0
+          fi
+
+          echo "Updating upstream-main: $current → $target"
+          git reset --hard "$target"
+          git push --force origin HEAD:refs/heads/upstream-main
