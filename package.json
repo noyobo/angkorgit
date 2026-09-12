@@ -4,39 +4,42 @@
   "private": true,
   "description": "AngKorGit — a modern, fast, beautiful cross-platform Git client inspired by the craftsmanship of Angkor Wat.",
   "license": "MIT",
-  "packageManager": "pnpm@10.32.1",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp"
-    ]
-  },
+  "packageManager": "bun@1.4.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "trustedDependencies": [
+    "esbuild",
+    "sharp",
+    "@tauri-apps/cli"
+  ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm --filter @angkorgit/desktop dev",
-    "tauri": "pnpm --filter @angkorgit/desktop tauri",
-    "tauri:dev": "pnpm --filter @angkorgit/desktop tauri dev",
-    "tauri:build": "pnpm --filter @angkorgit/desktop tauri build",
-    "release:mac": "pnpm tauri:build && open apps/desktop/src-tauri/target/release/bundle/dmg",
+    "dev": "bun --filter @angkorgit/desktop dev",
+    "tauri": "bun --filter @angkorgit/desktop tauri",
+    "tauri:dev": "bun --filter @angkorgit/desktop tauri dev",
+    "tauri:build": "bun --filter @angkorgit/desktop tauri build",
+    "release:mac": "bun tauri:build && open apps/desktop/src-tauri/target/release/bundle/dmg",
     "install:mac": "rm -rf /Applications/AngKorGit.app && ditto apps/desktop/src-tauri/target/release/bundle/macos/AngKorGit.app /Applications/AngKorGit.app && open -a /Applications/AngKorGit.app",
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
-    "website": "pnpm --filter @angkorgit/website dev",
-    "website:build": "pnpm --filter @angkorgit/website build",
-    "website:preview": "pnpm --filter @angkorgit/website preview",
-    "website:images": "pnpm --filter @angkorgit/website images",
-    "icons": "node scripts/generate-icons.mjs"
+    "build": "bun run --filter '*' build",
+    "lint": "bun run --filter '*' lint",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun test ./tests/unit",
+    "test:watch": "bun test ./tests/unit --watch",
+    "test:e2e": "bunx playwright test -c tests/e2e/playwright.config.ts",
+    "website": "bun --filter @angkorgit/website dev",
+    "website:build": "bun --filter @angkorgit/website build",
+    "website:preview": "bun --filter @angkorgit/website preview",
+    "website:images": "bun --filter @angkorgit/website images",
+    "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.63.0",
+    "@types/bun": "^1.4.2",
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "typescript": "^7.0.2"
   }
 }

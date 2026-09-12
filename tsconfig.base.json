@@ -14,13 +14,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "useDefineForClassFields": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@angkorgit/core": ["./packages/core/src/index.ts"],
-      "@angkorgit/core/*": ["./packages/core/src/*"],
-      "@angkorgit/design-system": ["./packages/design-system/src/index.ts"],
-      "@angkorgit/design-system/*": ["./packages/design-system/src/*"]
-    },
-    "baseUrl": "."
+    "jsx": "react-jsx"
   }
 }

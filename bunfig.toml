@@ -1,0 +1,15 @@
+[install]
+# Equivalent to pnpm's onlyBuiltDependencies
+optional = true
+peer = true
+
+[install.scopes]
+# Trust these dependencies to run lifecycle scripts
+"@tauri-apps/cli" = { trustedDependencies = true }
+"esbuild" = { trustedDependencies = true }
+"sharp" = { trustedDependencies = true }
+
+# Path aliases for workspace packages
+[loader]
+".ts" = "tsx"
+".tsx" = "tsx"
