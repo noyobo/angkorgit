@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { ArchiveRestore, ChevronDown, ChevronRight, ChevronUp, Cloud, Copy, Maximize2, Monitor, Sparkles, Tag as TagIcon } from 'lucide-react';
 import type { CommitFileInfo, CommitInfo, FileDiff } from '@angkorgit/core';
 import { aiCapabilities, filterFiles } from '@angkorgit/core';
+import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 import {
   Badge,
   Button,
@@ -12,6 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Hint,
   Logo,
@@ -21,6 +23,7 @@ import { ipc } from '@/core/ipc';
 import { FileFilterInput } from '@/components/FileFilterInput';
 import { useGraph } from '@/features/graph/store';
 import { useRepo } from '@/features/repository/store';
+import { useSettings } from '@/features/settings/store';
 import { focusRequests, useUi } from '@/features/ui/store';
 import { aiConfigured, getAiProvider } from '@/features/ai/client';
 import { AiText } from '@/features/ai/AiText';
@@ -148,9 +151,12 @@ export function CommitDetails({
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
   const centerDiff = useUi((s) => s.centerDiff);
   const fileTree = useUi((s) => s.fileTree);
-  const repoPath = useRepo((s) => s.repo?.path ?? '');
+  const repo = useRepo((s) => s.repo);
+  const repoPath = repo?.path ?? '';
+  const remotes = useRepo((s) => s.remotes);
   const stash = useRepo((s) => s.stashes.find((entry) => entry.oid === commit.oid) ?? null);
   const refreshStatus = useRepo((s) => s.refreshStatus);
+  const externalEditor = useSettings((s) => s.externalEditor);
   const explainKey = explainKeyFor(repoPath, commit.oid);
   const aiText = useAiWork((s) => s.explains[explainKey] ?? null);
   const aiBusy = useAiWork((s) => !!s.explainBusy[explainKey]);
@@ -265,6 +271,7 @@ export function CommitDetails({
   };
 
   const [stashFileMenu, setStashFileMenu] = useState<{ x: number; y: number; path: string } | null>(null);
+  const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null);
   const restoreFromStash = async (files: string[]) => {
     if (!stash || files.length === 0) return;
     try {
@@ -296,14 +303,14 @@ export function CommitDetails({
             stash && picked.has(diff.path) && !active && 'bg-primary/5',
           )}
           style={fileTree && depth !== undefined ? { paddingLeft: treeIndent(depth) } : undefined}
-          onContextMenu={
-            stash
-              ? (e) => {
-                  e.preventDefault();
-                  setStashFileMenu({ x: e.clientX, y: e.clientY, path: diff.path });
-                }
-              : undefined
-          }
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (stash) {
+              setStashFileMenu({ x: e.clientX, y: e.clientY, path: diff.path });
+            } else {
+              setFileMenu({ x: e.clientX, y: e.clientY, path: diff.path });
+            }
+          }}
         >
         {stash && (
           <Checkbox
@@ -637,14 +644,33 @@ export function CommitDetails({
                 <ArchiveRestore /> Apply {picked.size} selected files
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem
-              onClick={() => {
-                void navigator.clipboard.writeText(stashFileMenu.path);
-                toast.success('Path copied');
-              }}
-            >
-              <Copy /> Copy path
-            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <FileActionsMenu
+              repoPath={repoPath}
+              filePath={stashFileMenu.path}
+              source="inspector-stash"
+              externalEditor={externalEditor}
+              remotes={remotes}
+              headBranch={repo?.headBranch ?? null}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      {fileMenu && (
+        <DropdownMenu open onOpenChange={(o) => !o && setFileMenu(null)}>
+          <DropdownMenuTrigger asChild>
+            <span style={{ position: 'fixed', left: fileMenu.x, top: fileMenu.y }} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="bottom">
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">{fileMenu.path}</DropdownMenuLabel>
+            <FileActionsMenu
+              repoPath={repoPath}
+              filePath={fileMenu.path}
+              source="inspector"
+              externalEditor={externalEditor}
+              remotes={remotes}
+              headBranch={repo?.headBranch ?? null}
+            />
           </DropdownMenuContent>
         </DropdownMenu>
       )}
