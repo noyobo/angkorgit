@@ -585,7 +585,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             <DropdownMenuItem onClick={() => {
               if (busy) return;
               setBusy('Fetch tags');
-              void fetchOperation(makeContext(), { prune: true, tags: false, label: 'Fetch tags' }).finally(() => setBusy(null));
+              void fetchOperation(makeContext(), { tags: true, prune: false, label: 'Fetch tags' }).finally(() => setBusy(null));
             }}>
               Fetch tags
             </DropdownMenuItem>
