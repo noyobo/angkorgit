@@ -467,36 +467,107 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
     }
 }
 
+struct PullPolicy {
+    rebase: bool,
+    ff_only: bool,
+    autostash: bool,
+}
+
+impl PullPolicy {
+    fn from_config(repo: &Repository) -> AppResult<Self> {
+        let config = repo.config()?;
+        let rebase = config
+            .get_bool("pull.rebase")
+            .ok()
+            .unwrap_or(false);
+        let ff_only = config
+            .get_string("pull.ff")
+            .ok()
+            .map(|v| v == "only")
+            .unwrap_or(false);
+        let autostash = if rebase {
+            config.get_bool("rebase.autostash").ok().unwrap_or(false)
+        } else {
+            false
+        };
+        
+        Ok(Self {
+            rebase,
+            ff_only,
+            autostash,
+        })
+    }
+}
+
+struct AutoStash {
+    stash_oid: Option<String>,
+}
+
+impl AutoStash {
+    fn create_if_needed(repo: &mut Repository, should_stash: bool) -> AppResult<Self> {
+        let stash_oid = if should_stash && !super::repo::is_clean(repo)? {
+            let sig = repo.signature()?;
+            repo.stash_save2(&sig, Some("autostash"), Some(git2::StashFlags::DEFAULT))
+                .ok()
+                .map(|oid| oid.to_string())
+        } else {
+            None
+        };
+        
+        Ok(Self { stash_oid })
+    }
+    
+    fn pop(self, repo: &mut Repository) {
+        if let Some(stash_oid) = self.stash_oid {
+            if let Ok(oid) = git2::Oid::from_str(&stash_oid) {
+                if let Some(index) = find_stash_index(repo, oid) {
+                    let _ = repo.stash_pop(index, None);
+                }
+            }
+        }
+    }
+}
+
+fn apply_pull_policy(
+    path: &str,
+    upstream_name: &str,
+    policy: &PullPolicy,
+    is_head: bool,
+) -> AppResult<OpOutcome> {
+    if policy.rebase {
+        super::branch::rebase(path, upstream_name)
+    } else if policy.ff_only {
+        let repo = super::repo::open(path)?;
+        let target_oid = super::branch::resolve_branch_ref(&repo, upstream_name)?.peel_to_commit()?.id();
+        let head_oid = repo.head()?.peel_to_commit()?.id();
+        
+        if target_oid == head_oid {
+            Ok(OpOutcome {
+                status: "up_to_date".into(),
+                message: format!("Already up to date with {upstream_name}"),
+            })
+        } else if repo.graph_descendant_of(target_oid, head_oid)? {
+            drop(repo);
+            super::branch::merge(path, upstream_name, false)
+        } else {
+            Err(AppError::other(format!(
+                "Cannot fast-forward to {upstream_name} — merge or rebase required"
+            )))
+        }
+    } else if is_head {
+        super::branch::merge(path, upstream_name, false)
+    } else {
+        Ok(OpOutcome {
+            status: "fast_forward".into(),
+            message: format!("Fast-forwarded to {upstream_name}"),
+        })
+    }
+}
+
 pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
     let mut repo = super::repo::open(path)?;
-    
-    let config = repo.config()?;
-    let rebase = config
-        .get_bool("pull.rebase")
-        .ok()
-        .unwrap_or(false);
-    let ff_only = config
-        .get_string("pull.ff")
-        .ok()
-        .map(|v| v == "only")
-        .unwrap_or(false);
-    
-    let autostash = if rebase {
-        config.get_bool("rebase.autostash").ok().unwrap_or(false)
-    } else {
-        false
-    };
-    
-    let stashed = if autostash && !super::repo::is_clean(&repo)? {
-        let sig = repo.signature()?;
-        repo.stash_save2(&sig, Some("autostash"), Some(git2::StashFlags::DEFAULT))
-            .ok()
-            .map(|oid| oid.to_string())
-    } else {
-        None
-    };
-    
-    drop(config);
+    let policy = PullPolicy::from_config(&repo)?;
+    let stash = AutoStash::create_if_needed(&mut repo, policy.autostash)?;
     drop(repo);
     
     let fetch_tags = false;
@@ -520,39 +591,12 @@ pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
     drop(upstream);
     drop(branch);
     drop(head);
+    drop(repo);
 
-    let outcome = if rebase {
-        super::branch::rebase(path, &upstream_name)?
-    } else if ff_only {
-        let repo = super::repo::open(path)?;
-        let target_oid = super::branch::resolve_branch_ref(&repo, &upstream_name)?.peel_to_commit()?.id();
-        let head_oid = repo.head()?.peel_to_commit()?.id();
-        
-        if target_oid == head_oid {
-            OpOutcome {
-                status: "up_to_date".into(),
-                message: format!("Already up to date with {upstream_name}"),
-            }
-        } else if repo.graph_descendant_of(target_oid, head_oid)? {
-            drop(repo);
-            super::branch::merge(path, &upstream_name, false)?
-        } else {
-            return Err(AppError::other(format!(
-                "Cannot fast-forward to {upstream_name} — merge or rebase required"
-            )));
-        }
-    } else {
-        super::branch::merge(path, &upstream_name, false)?
-    };
+    let outcome = apply_pull_policy(path, &upstream_name, &policy, true)?;
     
-    if let Some(stash_oid) = stashed {
-        let mut repo = super::repo::open(path)?;
-        if let Ok(oid) = git2::Oid::from_str(&stash_oid) {
-            if let Some(index) = find_stash_index(&mut repo, oid) {
-                let _ = repo.stash_pop(index, None);
-            }
-        }
-    }
+    let mut repo = super::repo::open(path)?;
+    stash.pop(&mut repo);
     
     Ok(outcome)
 }
@@ -736,7 +780,7 @@ pub fn push(
 }
 
 pub fn pull_branch(path: &str, branch_name: &str) -> AppResult<OpOutcome> {
-    let (upstream_name, remote_name) = {
+    let (upstream_name, remote_name, is_head) = {
         let repo = super::repo::open(path)?;
         let branch = repo.find_branch(branch_name, git2::BranchType::Local)?;
         let upstream = branch.upstream().map_err(|_| {
@@ -751,22 +795,23 @@ pub fn pull_branch(path: &str, branch_name: &str) -> AppResult<OpOutcome> {
             .next()
             .unwrap_or("origin")
             .to_string();
-        (upstream_name, remote_name)
+        let is_head = repo
+            .head()
+            .ok()
+            .and_then(|h| h.shorthand().map(String::from))
+            .as_deref()
+            == Some(branch_name);
+        (upstream_name, remote_name, is_head)
     };
+
+    let mut repo = super::repo::open(path)?;
+    let policy = PullPolicy::from_config(&repo)?;
+    let stash = AutoStash::create_if_needed(&mut repo, policy.autostash && is_head)?;
+    drop(repo);
 
     fetch(path, &remote_name, false, false)?;
 
     let repo = super::repo::open(path)?;
-    let is_head = repo
-        .head()
-        .ok()
-        .and_then(|h| h.shorthand().map(String::from))
-        .as_deref()
-        == Some(branch_name);
-    if is_head {
-        return super::branch::merge(path, &upstream_name, false);
-    }
-
     let branch = repo.find_branch(branch_name, git2::BranchType::Local)?;
     let upstream = branch.upstream()?;
     let local_oid = branch
@@ -791,20 +836,36 @@ pub fn pull_branch(path: &str, branch_name: &str) -> AppResult<OpOutcome> {
             message: format!("{branch_name} is ahead of {upstream_name} — nothing to pull"),
         });
     }
-    if ahead > 0 {
+    if ahead > 0 && !is_head {
         return Err(AppError::other(format!(
             "{branch_name} has diverged from {upstream_name} — check it out to merge"
         )));
     }
-    let mut reference = repo.find_reference(&format!("refs/heads/{branch_name}"))?;
-    reference.set_target(
-        upstream_oid,
-        &format!("pull: fast-forward to {upstream_name}"),
-    )?;
-    Ok(OpOutcome {
-        status: "fast_forward".into(),
-        message: format!("Fast-forwarded {branch_name} to {upstream_name}"),
-    })
+    drop(upstream);
+    drop(branch);
+    drop(repo);
+
+    let outcome = if !is_head {
+        let repo = super::repo::open(path)?;
+        let mut reference = repo.find_reference(&format!("refs/heads/{branch_name}"))?;
+        reference.set_target(
+            upstream_oid,
+            &format!("pull: fast-forward to {upstream_name}"),
+        )?;
+        OpOutcome {
+            status: "fast_forward".into(),
+            message: format!("Fast-forwarded {branch_name} to {upstream_name}"),
+        }
+    } else {
+        apply_pull_policy(path, &upstream_name, &policy, is_head)?
+    };
+
+    if is_head {
+        let mut repo = super::repo::open(path)?;
+        stash.pop(&mut repo);
+    }
+
+    Ok(outcome)
 }
 
 const PR_HEAD_TMP_REF: &str = "refs/angkorgit/pr-head";

@@ -194,10 +194,10 @@ All behavioral changes are covered by integration tests in `apps/desktop/src-tau
 - P0/P1 features: ✅ Tested
 - P2 features: Partially tested (merge strategy, progress are documented limitations)
 - Worktree: ✅ Comprehensive test suite
+- Pull policy: ✅ Comprehensive test suite (pull.rebase, pull.ff, rebase.autostash for both pull and pull_branch)
 
 **Future**: Add tests for:
 - Hook execution (pre-commit failure blocks commit)
-- Pull with autostash (stash → pull → pop flow)
 - Reset --keep refusal cases
 
 ## References
