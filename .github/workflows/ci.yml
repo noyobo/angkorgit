@@ -2,46 +2,169 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.select.outputs.frontend }}
+      e2e: ${{ steps.select.outputs.e2e }}
+      rust: ${{ steps.select.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Full suite on main/dev push or manual dispatch
+        id: force
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: echo "full=true" >> "$GITHUB_OUTPUT"
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: steps.force.outputs.full != 'true'
+        with:
+          filters: |
+            frontend:
+              - 'apps/desktop/src/**'
+              - 'apps/desktop/index.html'
+              - 'apps/desktop/package.json'
+              - 'apps/desktop/rspack.config.*'
+              - 'apps/desktop/tsconfig*'
+              - 'apps/desktop/tailwind.config.*'
+              - 'apps/desktop/postcss.config.*'
+              - 'packages/**'
+              - 'tests/unit/**'
+              - 'tsconfig.base.json'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bun.lockb'
+            e2e:
+              - 'apps/desktop/src/**'
+              - 'apps/desktop/index.html'
+              - 'apps/desktop/package.json'
+              - 'apps/desktop/rspack.config.*'
+              - 'apps/desktop/tsconfig*'
+              - 'apps/desktop/tailwind.config.*'
+              - 'apps/desktop/postcss.config.*'
+              - 'packages/**'
+              - 'tests/e2e/**'
+              - 'tsconfig.base.json'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bun.lockb'
+            rust:
+              - 'apps/desktop/src-tauri/**'
+            ci:
+              - '.github/workflows/ci.yml'
+      - name: Select jobs
+        id: select
+        run: |
+          if [ "${{ steps.force.outputs.full }}" = "true" ] || [ "${{ steps.filter.outputs.ci }}" = "true" ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+            echo "Selection: full suite"
+          else
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> "$GITHUB_OUTPUT"
+            echo "e2e=${{ steps.filter.outputs.e2e }}" >> "$GITHUB_OUTPUT"
+            echo "rust=${{ steps.filter.outputs.rust }}" >> "$GITHUB_OUTPUT"
+            echo "Selection: frontend=${{ steps.filter.outputs.frontend }} e2e=${{ steps.filter.outputs.e2e }} rust=${{ steps.filter.outputs.rust }}"
+          fi
+
   frontend:
     name: Typecheck, unit tests & build
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - run: bun typecheck
-      - run: bun test
+      - run: bun run --filter '!@angkorgit/website' typecheck
+      - run: bun run test
       - run: bun --filter @angkorgit/desktop build
+      - name: Upload desktop dist for e2e
+        if: needs.changes.outputs.e2e == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist
+          path: apps/desktop/dist
+          retention-days: 1
+          if-no-files-found: error
 
   e2e:
     name: Playwright (demo mode)
+    needs: [changes, frontend]
+    if: |
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.e2e == 'true' &&
+      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.ms-playwright
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ${{ github.workspace }}/.ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
-      - run: bun test:e2e
+      - name: Download desktop dist
+        id: download-dist
+        if: needs.frontend.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-dist
+          path: apps/desktop/dist
+      - name: Build desktop for e2e
+        if: needs.frontend.result != 'success'
+        run: bun --filter @angkorgit/desktop build
+      - name: Install Playwright Chromium
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            bunx playwright install-deps chromium
+          else
+            bunx playwright install --with-deps chromium
+          fi
+      - run: bun run test:e2e
 
   rust:
-    name: Rust engine (check, clippy, git integration tests)
+    name: Rust (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      # Mac first, then Linux, then Windows — one platform at a time.
+      fail-fast: true
+      max-parallel: 1
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     defaults:
       run:
         working-directory: apps/desktop/src-tauri
@@ -53,11 +176,46 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
+          shared-key: git-engine
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libdbus-1-dev
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  ci:
+    name: CI
+    if: always()
+    needs: [changes, frontend, e2e, rust]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected jobs
+        env:
+          WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
+          WANT_E2E: ${{ needs.changes.outputs.e2e }}
+          WANT_RUST: ${{ needs.changes.outputs.rust }}
+          FRONTEND: ${{ needs.frontend.result }}
+          E2E: ${{ needs.e2e.result }}
+          RUST: ${{ needs.rust.result }}
+        run: |
+          fail=0
+          require() {
+            local want=$1 result=$2 label=$3
+            if [ "$want" = "true" ]; then
+              if [ "$result" != "success" ]; then
+                echo "::error::$label was required but finished as '$result'"
+                fail=1
+              else
+                echo "$label ok"
+              fi
+            else
+              echo "$label skipped (not selected)"
+            fi
+          }
+          require "$WANT_FRONTEND" "$FRONTEND" frontend
+          require "$WANT_E2E" "$E2E" e2e
+          require "$WANT_RUST" "$RUST" rust
+          exit "$fail"

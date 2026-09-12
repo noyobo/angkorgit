@@ -94,6 +94,7 @@ export function WelcomePage() {
     }
     try {
       await open(path);
+      if (useRepo.getState().repo?.path !== path) return;
       navigate('/repo');
     } catch (error) {
       toast.error(`Could not open repository: ${(error as { message?: string }).message ?? error}`);
@@ -228,19 +229,20 @@ export function WelcomePage() {
                 return (
                   <div
                     key={repo.path}
-                    role="button"
+                    data-testid="recent-repo"
+                    data-path={repo.path}
                     aria-current={active || undefined}
                     className={cn(
                       'group flex items-center gap-3 rounded-md px-2.5 py-2 transition-colors',
                       gone ? 'cursor-default' : 'cursor-pointer hover:bg-surface-raised',
                       active && 'bg-surface-raised ring-1 ring-inset ring-primary/40',
                     )}
+                    {...itemProps}
                     onClick={() => void openRepository(repo.path)}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       openMenuAt(e.clientX, e.clientY, repo);
                     }}
-                    {...itemProps}
                   >
                     <RepoMark name={repo.name} size={32} faded={gone} />
                     <span className="flex min-w-0 flex-1 select-none flex-col leading-tight">
@@ -263,19 +265,19 @@ export function WelcomePage() {
                     ) : (
                       <span className="shrink-0 text-xs text-faint">{timeAgo(repo.lastOpenedAt)}</span>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                    <button
+                      type="button"
+                      className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted opacity-0 hover:bg-surface-raised hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group-hover:opacity-100"
                       aria-label={`${repo.name} actions`}
                       onClick={(e) => {
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
                         openMenuAt(rect.left, rect.bottom + 4, repo);
                       }}
+                      onKeyDown={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="size-3.5" />
-                    </Button>
+                    </button>
                   </div>
                 );
               })

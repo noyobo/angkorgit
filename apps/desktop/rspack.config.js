@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
-import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -17,11 +17,15 @@ const getGitHash = () => {
 };
 
 const isDev = process.env.NODE_ENV !== 'production';
+const isCi = Boolean(process.env.CI);
 
 export default defineConfig({
   entry: {
     main: './src/main.tsx',
   },
+  // CI e2e: a mid-run rebuild with HMR/liveReload off leaves a blank page
+  // ("Waiting for process restart…"). Compile once and serve that.
+  watch: isDev && !isCi,
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].[contenthash].js',
@@ -69,7 +73,7 @@ export default defineConfig({
                   react: {
                     runtime: 'automatic',
                     development: isDev,
-                    refresh: isDev,
+                    refresh: isDev && !isCi,
                   },
                 },
               },
@@ -84,11 +88,11 @@ export default defineConfig({
     ],
   },
   plugins: [
-    new rspack.HtmlPlugin({
+    new rspack.HtmlRspackPlugin({
       template: './index.html',
       filename: 'index.html',
     }),
-    isDev && new ReactRefreshPlugin(),
+    isDev && !isCi && new ReactRefreshRspackPlugin(),
     new rspack.DefinePlugin({
       __GIT_HASH__: JSON.stringify(getGitHash()),
       'process.env.VITE_DEV': JSON.stringify(isDev ? 'true' : 'false'),
@@ -100,8 +104,12 @@ export default defineConfig({
   ].filter(Boolean),
   devServer: {
     port: 1420,
-    hot: true,
+    hot: isDev && !isCi,
+    liveReload: isDev && !isCi,
     historyApiFallback: true,
+    client: {
+      overlay: isCi ? false : { errors: true, warnings: false },
+    },
     headers: {
       'Access-Control-Allow-Origin': '*',
     },

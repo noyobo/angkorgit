@@ -840,9 +840,11 @@ function PaletteItem({
 }) {
   return (
     <Command.Item
-      value={value}
+      value={value ?? label}
       keywords={keywords}
-      onSelect={onSelect}
+      onSelect={() => {
+        onSelect();
+      }}
       className="flex cursor-default select-none items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-foreground data-[selected=true]:bg-surface-raised [&_svg]:size-4 [&_svg]:text-muted"
       {...rest}
     >

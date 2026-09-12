@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useRepo } from './store';
 import { useGraph } from '@/features/graph/store';
@@ -361,7 +361,7 @@ export function RepositoryPage() {
   );
   useShortcuts(shortcuts);
 
-  if (!repo) return null;
+  if (!repo) return <Navigate to="/welcome" replace />;
 
   return (
     <motion.div

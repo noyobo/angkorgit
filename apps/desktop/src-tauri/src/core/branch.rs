@@ -154,7 +154,7 @@ pub fn delete_local_and_remote(
     }
     let tracking = format!("{remote}/{remote_branch}");
     let _ = delete(path, &tracking, true);
-    delete(path, name, false)?;
+    delete_with_force(path, name, false, true)?;
     Ok(OpOutcome {
         status: "ok".into(),
         message: format!("Deleted {name} and {remote}/{remote_branch}"),
@@ -703,7 +703,46 @@ pub fn reset(path: &str, oid: &str, mode: &str) -> AppResult<()> {
                 }
             }
 
-            ResetType::Mixed
+            let head_tree = head.tree()?;
+            let target_tree = target.tree()?;
+            let mut paths = Vec::new();
+            let diff = repo.diff_tree_to_tree(Some(&head_tree), Some(&target_tree), None)?;
+            diff.foreach(
+                &mut |delta, _| {
+                    if let Some(path) = delta.new_file().path().or_else(|| delta.old_file().path())
+                    {
+                        paths.push(path.to_path_buf());
+                    }
+                    true
+                },
+                None,
+                None,
+                None,
+            )?;
+
+            repo.reset(&obj, ResetType::Mixed, None)?;
+            let workdir = repo
+                .workdir()
+                .ok_or_else(|| AppError::other("repository has no working directory"))?;
+            let mut checkout = CheckoutBuilder::new();
+            checkout.force();
+            for path in &paths {
+                let target_has = target_tree.get_path(path).is_ok();
+                if target_has {
+                    checkout.path(path);
+                } else {
+                    let abs = workdir.join(path);
+                    if abs.is_file() || abs.is_symlink() {
+                        let _ = std::fs::remove_file(&abs);
+                    } else if abs.is_dir() {
+                        let _ = std::fs::remove_dir_all(&abs);
+                    }
+                }
+            }
+            if paths.iter().any(|path| target_tree.get_path(path).is_ok()) {
+                repo.checkout_tree(&obj, Some(&mut checkout))?;
+            }
+            return Ok(());
         }
         _ => return Err(AppError::other(format!("unknown reset mode: {mode}"))),
     };

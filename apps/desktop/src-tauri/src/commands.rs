@@ -255,25 +255,24 @@ pub async fn open_in_editor(path: String, editor: String) -> AppResult<()> {
             }
             #[cfg(target_os = "windows")]
             {
-                let exe = match editor.as_str() {
-                    "cursor" => "Cursor.exe",
-                    "vscode" => "Code.exe",
-                    "vscode-insiders" => "Code - Insiders.exe",
-                    "vscodium" => "VSCodium.exe",
-                    "sublime" => "sublime_text.exe",
-                    "atom" => "atom.exe",
-                    "zed" => "zed.exe",
-                    "fleet" => "fleet.exe",
-                    "webstorm" => "webstorm64.exe",
-                    "phpstorm" => "phpstorm64.exe",
-                    "idea" => "idea64.exe",
-                    _ => {
-                        return crate::proc::hidden("cmd")
-                            .args(["/C", "start", "", &path])
-                            .status()
-                    }
-                };
-                crate::proc::hidden(exe).arg(&path).status()
+                match editor.as_str() {
+                    "cursor" => crate::proc::hidden("Cursor.exe").arg(&path).status(),
+                    "vscode" => crate::proc::hidden("Code.exe").arg(&path).status(),
+                    "vscode-insiders" => crate::proc::hidden("Code - Insiders.exe")
+                        .arg(&path)
+                        .status(),
+                    "vscodium" => crate::proc::hidden("VSCodium.exe").arg(&path).status(),
+                    "sublime" => crate::proc::hidden("sublime_text.exe").arg(&path).status(),
+                    "atom" => crate::proc::hidden("atom.exe").arg(&path).status(),
+                    "zed" => crate::proc::hidden("zed.exe").arg(&path).status(),
+                    "fleet" => crate::proc::hidden("fleet.exe").arg(&path).status(),
+                    "webstorm" => crate::proc::hidden("webstorm64.exe").arg(&path).status(),
+                    "phpstorm" => crate::proc::hidden("phpstorm64.exe").arg(&path).status(),
+                    "idea" => crate::proc::hidden("idea64.exe").arg(&path).status(),
+                    _ => crate::proc::hidden("cmd")
+                        .args(["/C", "start", "", &path])
+                        .status(),
+                }
             }
             #[cfg(all(unix, not(target_os = "macos")))]
             {

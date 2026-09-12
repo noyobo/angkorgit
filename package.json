@@ -37,7 +37,7 @@
     "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.63.0",
     "@types/bun": "^1.4.2",
     "@types/node": "^22.10.0",
     "typescript": "^7.0.2"

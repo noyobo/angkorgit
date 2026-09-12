@@ -406,12 +406,34 @@ pub fn edit(path: &str, name: &str, new_name: &str, url: &str) -> AppResult<()> 
         ));
     }
     let repo = super::repo::open(path)?;
-    let mut current = name.to_string();
-    if new_name != name {
-        let _ = repo.remote_rename(name, new_name)?;
-        current = new_name.to_string();
+    match repo.find_remote(name) {
+        Ok(_) => {
+            let mut current = name.to_string();
+            if new_name != name {
+                let _ = repo.remote_rename(name, new_name)?;
+                current = new_name.to_string();
+            }
+            repo.remote_set_url(&current, url)?;
+            ensure_fetch_refspec(&repo, &current)?;
+        }
+        Err(_) => {
+            repo.remote(new_name, url)?;
+            ensure_fetch_refspec(&repo, new_name)?;
+        }
     }
-    repo.remote_set_url(&current, url)?;
+    Ok(())
+}
+
+fn ensure_fetch_refspec(repo: &git2::Repository, remote_name: &str) -> AppResult<()> {
+    let remote = repo.find_remote(remote_name)?;
+    if remote.fetch_refspecs()?.iter().flatten().next().is_some() {
+        return Ok(());
+    }
+    let mut config = repo.config()?;
+    config.set_str(
+        &format!("remote.{remote_name}.fetch"),
+        &format!("+refs/heads/*:refs/remotes/{remote_name}/*"),
+    )?;
     Ok(())
 }
 
@@ -717,8 +739,7 @@ pub fn push(
         if let Some(remote_oid) = advertised_oid(&repo, remote_name, &git_ref)? {
             if remote_oid == local_oid {
                 if set_upstream {
-                    let mut branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
-                    branch.set_upstream(Some(&format!("{remote_name}/{branch_name}")))?;
+                    ensure_upstream(&repo, remote_name, &branch_name, local_oid)?;
                 }
                 return Ok(OpOutcome {
                     status: "up_to_date".into(),
@@ -762,8 +783,7 @@ pub fn push(
     remote.push(&specs, Some(&mut opts))?;
 
     if set_upstream {
-        let mut branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
-        branch.set_upstream(Some(&format!("{remote_name}/{branch_name}")))?;
+        ensure_upstream(&repo, remote_name, &branch_name, local_oid)?;
     }
 
     Ok(OpOutcome {
@@ -773,6 +793,24 @@ pub fn push(
             if force { " (forced)" } else { "" }
         ),
     })
+}
+
+fn ensure_upstream(
+    repo: &git2::Repository,
+    remote_name: &str,
+    branch_name: &str,
+    oid: git2::Oid,
+) -> AppResult<()> {
+    ensure_fetch_refspec(repo, remote_name)?;
+    let tracking = format!("refs/remotes/{remote_name}/{branch_name}");
+    repo.reference(&tracking, oid, true, &format!("update by push: {tracking}"))?;
+    let mut config = repo.config()?;
+    config.set_str(&format!("branch.{branch_name}.remote"), remote_name)?;
+    config.set_str(
+        &format!("branch.{branch_name}.merge"),
+        &format!("refs/heads/{branch_name}"),
+    )?;
+    Ok(())
 }
 
 pub fn pull_branch(path: &str, branch_name: &str) -> AppResult<OpOutcome> {
