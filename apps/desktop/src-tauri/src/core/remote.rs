@@ -418,7 +418,7 @@ pub fn edit(path: &str, name: &str, new_name: &str, url: &str) -> AppResult<()> 
 pub fn remove(path: &str, name: &str) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     repo.remote_delete(name)?;
-    
+
     let mut config = repo.config()?;
     let section = format!("remote.{}", name);
     if config.remove_multivar(&section, ".*").is_ok() {
@@ -428,7 +428,7 @@ pub fn remove(path: &str, name: &str) -> AppResult<()> {
         let _ = config.remove(&format!("{}.push", section));
         let _ = config.remove(&format!("{}.tagopt", section));
     }
-    
+
     Ok(())
 }
 
@@ -436,14 +436,14 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
     let repo = super::repo::open(path)?;
     prime_account_bindings(Some(&repo));
     let mut remote = repo.find_remote(remote_name)?;
-    
+
     let received_objects = std::cell::Cell::new(0usize);
     let mut callbacks = make_callbacks();
     callbacks.transfer_progress(|stats| {
         received_objects.set(stats.received_objects());
         true
     });
-    
+
     let mut opts = FetchOptions::new();
     opts.remote_callbacks(callbacks);
     if tags {
@@ -453,7 +453,7 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
         opts.prune(git2::FetchPrune::On);
     }
     remote.fetch(&[] as &[&str], Some(&mut opts), None)?;
-    
+
     if received_objects.get() == 0 {
         Ok(OpOutcome {
             status: "up_to_date".into(),
@@ -476,10 +476,7 @@ struct PullPolicy {
 impl PullPolicy {
     fn from_config(repo: &Repository) -> AppResult<Self> {
         let config = repo.config()?;
-        let rebase = config
-            .get_bool("pull.rebase")
-            .ok()
-            .unwrap_or(false);
+        let rebase = config.get_bool("pull.rebase").ok().unwrap_or(false);
         let ff_only = config
             .get_string("pull.ff")
             .ok()
@@ -490,7 +487,7 @@ impl PullPolicy {
         } else {
             false
         };
-        
+
         Ok(Self {
             rebase,
             ff_only,
@@ -513,10 +510,10 @@ impl AutoStash {
         } else {
             None
         };
-        
+
         Ok(Self { stash_oid })
     }
-    
+
     fn pop(self, repo: &mut Repository) {
         if let Some(stash_oid) = self.stash_oid {
             if let Ok(oid) = git2::Oid::from_str(&stash_oid) {
@@ -538,9 +535,11 @@ fn apply_pull_policy(
         super::branch::rebase(path, upstream_name)
     } else if policy.ff_only {
         let repo = super::repo::open(path)?;
-        let target_oid = super::branch::resolve_branch_ref(&repo, upstream_name)?.peel_to_commit()?.id();
+        let target_oid = super::branch::resolve_branch_ref(&repo, upstream_name)?
+            .peel_to_commit()?
+            .id();
         let head_oid = repo.head()?.peel_to_commit()?.id();
-        
+
         if target_oid == head_oid {
             Ok(OpOutcome {
                 status: "up_to_date".into(),
@@ -569,7 +568,7 @@ pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
     let policy = PullPolicy::from_config(&repo)?;
     let stash = AutoStash::create_if_needed(&mut repo, policy.autostash)?;
     drop(repo);
-    
+
     let fetch_tags = false;
     let fetch_prune = false;
     fetch(path, remote_name, fetch_tags, fetch_prune)?;
@@ -594,10 +593,10 @@ pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
     drop(repo);
 
     let outcome = apply_pull_policy(path, &upstream_name, &policy, true)?;
-    
+
     let mut repo = super::repo::open(path)?;
     stash.pop(&mut repo);
-    
+
     Ok(outcome)
 }
 
@@ -666,14 +665,14 @@ pub fn push_delete(path: &str, remote_name: &str, git_ref: &str) -> AppResult<Op
     }
     let repo = super::repo::open(path)?;
     prime_account_bindings(Some(&repo));
-    
+
     if advertised_oid(&repo, remote_name, git_ref)?.is_none() {
         return Ok(OpOutcome {
             status: "up_to_date".into(),
             message: format!("{git_ref} is already absent from {remote_name}"),
         });
     }
-    
+
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());
@@ -713,7 +712,7 @@ pub fn push(
 
     prime_account_bindings(Some(&repo));
     let git_ref = format!("refs/heads/{branch_name}");
-    
+
     if !with_tags {
         if let Some(remote_oid) = advertised_oid(&repo, remote_name, &git_ref)? {
             if remote_oid == local_oid {
@@ -726,16 +725,13 @@ pub fn push(
                     message: format!("{branch_name} is already up to date"),
                 });
             }
-            
+
             if force {
                 let expected_remote = {
                     let branch = repo.find_branch(&branch_name, git2::BranchType::Local)?;
-                    branch
-                        .upstream()
-                        .ok()
-                        .and_then(|up| up.get().target())
+                    branch.upstream().ok().and_then(|up| up.get().target())
                 };
-                
+
                 if let Some(expected) = expected_remote {
                     if remote_oid != expected {
                         return Err(AppError::other(format!(
@@ -751,14 +747,14 @@ pub fn push(
     }
 
     let refspecs = push_refspecs(&branch_name, force, with_tags);
-    
+
     let remote_url = repo
         .find_remote(remote_name)?
         .url()
         .unwrap_or("")
         .to_string();
     super::hooks::run_pre_push(&repo, remote_name, &remote_url, &refspecs)?;
-    
+
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());
@@ -959,7 +955,7 @@ pub fn push_tag(path: &str, remote_name: &str, tag: &str) -> AppResult<OpOutcome
         .ok()
         .map(|c| c.id())
         .or_else(|| local_tag.target());
-    
+
     prime_account_bindings(Some(&repo));
     let git_ref = format!("refs/tags/{tag}");
     if let Some(local) = local_oid {
@@ -970,7 +966,7 @@ pub fn push_tag(path: &str, remote_name: &str, tag: &str) -> AppResult<OpOutcome
             });
         }
     }
-    
+
     let mut remote = repo.find_remote(remote_name)?;
     let mut opts = PushOptions::new();
     opts.remote_callbacks(make_callbacks());
@@ -1006,7 +1002,7 @@ pub fn clone(
     opts.remote_callbacks(callbacks);
     let mut builder = git2::build::RepoBuilder::new();
     builder.fetch_options(opts);
-    
+
     let branch_to_clone = match branch {
         Some(b) => Some(b.to_string()),
         None => git2::Config::open_default()
@@ -1014,7 +1010,7 @@ pub fn clone(
             .and_then(|c| c.get_string("init.defaultBranch").ok())
             .filter(|s| !s.trim().is_empty()),
     };
-    
+
     if let Some(ref b) = branch_to_clone {
         builder.branch(b);
     }
