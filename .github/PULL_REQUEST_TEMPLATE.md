@@ -8,6 +8,7 @@
 
 ## Checklist
 
+- [ ] Add the `ci` label when the PR is ready — CI does not run on draft PRs or without that label
 - [ ] `pnpm typecheck && pnpm test` pass
 - [ ] `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test` pass (if Rust changed)
 - [ ] New engine functions have integration tests in `tests/git_engine.rs`
