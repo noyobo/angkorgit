@@ -82,8 +82,8 @@ jobs:
             echo "Selection: frontend=${{ steps.filter.outputs.frontend }} e2e=${{ steps.filter.outputs.e2e }} rust=${{ steps.filter.outputs.rust }}"
           fi
 
-  frontend:
-    name: Typecheck, unit tests & build
+  typecheck:
+    name: Typecheck
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
@@ -100,7 +100,49 @@ jobs:
             bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - run: bun run --filter '!@angkorgit/website' typecheck
+
+  test:
+    name: Unit tests
+    needs: [changes, typecheck]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
       - run: bun run test
+
+  build:
+    name: Build
+    needs: [changes, test]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
       - run: bun --filter @angkorgit/desktop build
       - name: Upload desktop dist for e2e
         if: needs.changes.outputs.e2e == 'true'
@@ -113,12 +155,12 @@ jobs:
 
   e2e:
     name: E2E Tests (Rstest)
-    needs: [changes, frontend]
+    needs: [changes, build]
     if: |
       always() &&
       needs.changes.result == 'success' &&
       needs.changes.outputs.e2e == 'true' &&
-      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
+      needs.build.result == 'success'
     runs-on: ubuntu-latest
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.ms-playwright
@@ -142,15 +184,10 @@ jobs:
             playwright-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - name: Download desktop dist
-        id: download-dist
-        if: needs.frontend.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: desktop-dist
           path: apps/desktop/dist
-      - name: Build desktop for e2e
-        if: needs.frontend.result != 'success'
-        run: bun --filter @angkorgit/desktop build
       - name: Install Playwright Chromium
         run: |
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
@@ -175,8 +212,11 @@ jobs:
 
   rust:
     name: Rust (${{ matrix.os }})
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    needs: [changes, typecheck]
+    if: |
+      always() &&
+      needs.changes.outputs.rust == 'true' &&
+      (needs.typecheck.result == 'success' || needs.typecheck.result == 'skipped')
     runs-on: ${{ matrix.os }}
     strategy:
       # Mac first, then Linux, then Windows — one platform at a time.
@@ -211,7 +251,7 @@ jobs:
       always() &&
       needs.changes.result != 'skipped' &&
       needs.changes.result != 'cancelled'
-    needs: [changes, frontend, e2e, rust]
+    needs: [changes, typecheck, test, build, e2e, rust]
     runs-on: ubuntu-latest
     steps:
       - name: Require selected jobs
@@ -219,7 +259,9 @@ jobs:
           WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
           WANT_E2E: ${{ needs.changes.outputs.e2e }}
           WANT_RUST: ${{ needs.changes.outputs.rust }}
-          FRONTEND: ${{ needs.frontend.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
+          TEST: ${{ needs.test.result }}
+          BUILD: ${{ needs.build.result }}
           E2E: ${{ needs.e2e.result }}
           RUST: ${{ needs.rust.result }}
         run: |
@@ -237,7 +279,9 @@ jobs:
               echo "$label skipped (not selected)"
             fi
           }
-          require "$WANT_FRONTEND" "$FRONTEND" frontend
+          require "$WANT_FRONTEND" "$TYPECHECK" typecheck
+          require "$WANT_FRONTEND" "$TEST" test
+          require "$WANT_FRONTEND" "$BUILD" build
           require "$WANT_E2E" "$E2E" e2e
           require "$WANT_RUST" "$RUST" rust
           exit "$fail"
