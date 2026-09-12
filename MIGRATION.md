@@ -6,7 +6,7 @@ This document describes the toolchain migration completed in this PR.
 
 The AngKorGit repository has been migrated from:
 - **pnpm 10.32.1** → **Bun 1.4.2**
-- **Vite 6.0.3** → **Rspack 1.1.14** (desktop app only)
+- **Vite 6.0.3** → **Rspack 2.x** (desktop app only)
 - **TypeScript 5.7.2** → **TypeScript 7.0.2**
 - **vitest 2.1.8** → **bun:test** (built-in)
 
