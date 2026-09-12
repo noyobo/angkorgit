@@ -166,6 +166,7 @@ export function BlamePanel({ target }: { target: BlameTarget }) {
                     {first && hunk && (
                       <button
                         type="button"
+                        data-testid="blame-hunk"
                         className="flex min-w-0 flex-1 items-center gap-2 text-left font-sans disabled:cursor-default"
                         title={`${hunk.summary}\n${hunk.authorName} · ${formatDate(hunk.time)}`}
                         aria-label={hunk.committed ? `Open commit ${hunk.shortOid}` : 'Not committed yet'}
@@ -178,6 +179,7 @@ export function BlamePanel({ target }: { target: BlameTarget }) {
                           <span className="size-4 shrink-0 rounded-full bg-primary/30" />
                         )}
                         <span
+                          data-testid="author-name"
                           className={cn(
                             'min-w-0 flex-1 truncate',
                             hunk.committed ? 'text-foreground' : 'text-primary',
