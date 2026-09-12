@@ -142,7 +142,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
   if (view.layout === 'preview') {
     return (
       <div className="h-full" data-workspace-layout="preview">
-        <Group orientation="vertical" id="angkorgit-preview-v2">
+        <Group orientation="vertical" id="angkorgit-preview-v3" autoSave="angkorgit-preview-v3">
           <Panel minSize="30%">
             {view.showDiffDock ? (
               <Group orientation="horizontal" id="angkorgit-preview-cols-v3">
@@ -173,7 +173,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
           {terminalOpen && (
             <>
               <Separator className="h-px bg-border-subtle" />
-              <Panel defaultSize="30%" minSize="12%" maxSize="60%">
+              <Panel id="terminal" defaultSize="30%" minSize="12%" maxSize="60%">
                 <TerminalSlot />
               </Panel>
             </>
@@ -199,12 +199,12 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
         </Panel>
         <Separator className={cn('w-px bg-border-subtle', !view.showSidebar && 'hidden')} />
         <Panel id="center" defaultSize="54%" minSize="30%">
-          <Group orientation="vertical" id="angkorgit-center-v2">
+          <Group orientation="vertical" id="angkorgit-center-v3" autoSave="angkorgit-center-v3">
             <Panel minSize="30%">{graph}</Panel>
             {terminalOpen && (
               <>
                 <Separator className="h-px bg-border-subtle" />
-                <Panel defaultSize="30%" minSize="12%" maxSize="60%">
+                <Panel id="terminal" defaultSize="30%" minSize="12%" maxSize="60%">
                   <TerminalSlot />
                 </Panel>
               </>
