@@ -104,8 +104,11 @@ jobs:
 
   typecheck-packages:
     name: Typecheck (Packages)
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    needs: [changes, format-check]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.format-check.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -124,8 +127,11 @@ jobs:
 
   typecheck-desktop:
     name: Typecheck (Desktop)
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    needs: [changes, format-check]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.format-check.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

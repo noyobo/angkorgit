@@ -32,6 +32,12 @@ typecheck: ## Run TypeScript type checking across workspace
 lint: ## Run linters across workspace
 	bun run lint
 
+.PHONY: check
+check: ## Run all quality checks (format → typecheck → test)
+	bun run format:check
+	bun run typecheck
+	bun test ./tests/unit
+
 ##@ Testing
 
 .PHONY: test
