@@ -1686,11 +1686,20 @@ export function Sidebar() {
                   {branchMenu.branch.behind > 0 && <Badge tone="info">↓{capCount(branchMenu.branch.behind)}</Badge>}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() =>
-                    void act(`Push ${branchMenu.branch.name}`, () =>
-                      ipc.push(path, remotes[0]?.name ?? 'origin', false, false, true, branchMenu.branch.name, 'sidebar-branch-menu'),
-                    )
-                  }
+                  onClick={() => {
+                    const { pushOperation } = require('@/features/repository/operations');
+                    void act(`Push ${branchMenu.branch.name}`, () => 
+                      pushOperation(
+                        {
+                          path,
+                          branches,
+                          remotes,
+                          source: 'sidebar-branch-menu',
+                        },
+                        { branch: branchMenu.branch.name, label: `Push ${branchMenu.branch.name}` }
+                      )
+                    );
+                  }}
                 >
                   <ArrowUpFromLine /> Push
                   {branchMenu.branch.ahead > 0 && <Badge tone="primary">↑{capCount(branchMenu.branch.ahead)}</Badge>}

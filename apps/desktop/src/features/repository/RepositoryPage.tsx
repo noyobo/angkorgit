@@ -238,22 +238,13 @@ export function RepositoryPage() {
         combo: 'mod+shift+g',
         handler: async () => {
           if (!repo) return;
-          const remotes = useRepo.getState().remotes;
-          if (remotes.length === 0) {
-            toast.error('No remotes configured');
-            return;
-          }
-          const { buildBrowseUrl, pickForgeRemote } = await import('@angkorgit/core');
-          const branches = useRepo.getState().branches;
-          const headBranch = branches.find((b) => b.isHead && !b.isRemote);
-          const headUpstream = headBranch?.upstream ?? null;
-          const remote = pickForgeRemote(remotes, headUpstream);
-          const url = buildBrowseUrl(remote?.url ?? remotes[0].url, repo.headBranch);
-          if (!url) {
-            toast.error('Could not parse remote URL');
-            return;
-          }
-          await openExternal(url);
+          const { viewOnRemoteOperation } = await import('./operations');
+          await viewOnRemoteOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
         },
       },
       
@@ -302,45 +293,39 @@ export function RepositoryPage() {
         combo: 'mod+p',
         handler: async () => {
           if (!repo || busy) return;
-          const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
-          const { ensureRepoProfile } = await import('@/features/settings/profiles');
-          await ensureRepoProfile(repo.path);
-          try {
-          const result = await ipc.push(repo.path, remote, false, false, true, undefined, 'keyboard-shortcut');
-            toastOutcome(result, 'Push complete');
-            await refresh();
-            void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
-          } catch (error) {
-            toast.error(`Push failed: ${(error as { message?: string }).message ?? error}`);
-          }
+          const { pushOperation } = await import('./operations');
+          await pushOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
         },
       },
       {
         combo: 'mod+shift+p',
         handler: async () => {
           if (!repo || busy) return;
-          const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
-          try {
-            const result = await ipc.pull(repo.path, remote);
-            toastOutcome(result, 'Pull complete');
-            await refreshAll();
-          } catch (error) {
-            toast.error(`Pull failed: ${(error as { message?: string }).message ?? error}`);
-          }
+          const { pullOperation } = await import('./operations');
+          await pullOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
         },
       },
       {
         combo: 'mod+shift+t',
         handler: async () => {
           if (!repo || busy) return;
-          const remote = useRepo.getState().remotes[0]?.name ?? 'origin';
-          try {
-            await ipc.fetch(repo.path, remote, true, true);
-            toast.success('Fetch complete');
-            await refreshAll();
-          } catch (error) {
-            toast.error(`Fetch failed: ${(error as { message?: string }).message ?? error}`);
-          }
+          const { fetchOperation } = await import('./operations');
+          await fetchOperation({
+            path: repo.path,
+            branches: useRepo.getState().branches,
+            remotes: useRepo.getState().remotes,
+            source: 'keyboard-shortcut',
+          });
         },
       },
       

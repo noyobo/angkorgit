@@ -45,10 +45,16 @@ import { confirmDialog } from '@/components/confirm';
 import { RepoMark } from '@/components/RepoMark';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
+import {
+  pushOperation,
+  pullOperation,
+  fetchOperation,
+  type OperationContext,
+} from '@/features/repository/operations';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings, type IdentityProfile } from '@/features/settings/store';
-import { applyProfileToRepo, ensureRepoProfile } from '@/features/settings/profiles';
+import { applyProfileToRepo } from '@/features/settings/profiles';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { capCount, modKey } from '@/shared/utils';
 import { logger } from '@/core/logger';
@@ -378,6 +384,7 @@ function UndoRedoButtons({ onRefresh }: { onRefresh: () => Promise<void> }) {
 export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const repo = useRepo((s) => s.repo);
   const status = useRepo((s) => s.status);
+  const branches = useRepo((s) => s.branches);
   const remotes = useRepo((s) => s.remotes);
   const stashes = useRepo((s) => s.stashes);
   const busy = useRepo((s) => s.busy);
@@ -391,8 +398,14 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const [spinning, setSpinning] = useState(false);
 
   if (!repo) return null;
-  const remote = remotes[0]?.name ?? 'origin';
   const latestStash = stashes[0];
+
+  const makeContext = (): OperationContext => ({
+    path: repo.path,
+    branches,
+    remotes,
+    source: 'toolbar-button',
+  });
 
   const run = async (label: string, op: () => Promise<{ status: string; message: string } | void>) => {
     if (busy) return;
@@ -412,14 +425,6 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
       setBusy(null);
     }
   };
-
-  const runPush = (label: string, op: () => Promise<{ status: string; message: string } | void>) =>
-    void (async () => {
-      if (busy) return;
-      await ensureRepoProfile(repo.path);
-      await run(label, op);
-      void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
-    })();
 
   return (
     <header className="flex h-12 shrink-0 items-center gap-1 border-b border-border-subtle bg-surface px-2">
@@ -463,7 +468,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <Hint
           label={
             <span className="flex items-center gap-1">
-              Fetch {remote} <Kbd>{modKey()}</Kbd>
+              Fetch <Kbd>{modKey()}</Kbd>
               <Kbd>⇧</Kbd>
               <Kbd>T</Kbd>
             </span>
@@ -474,7 +479,11 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             size="sm"
             className="rounded-r-none"
             disabled={!!busy}
-            onClick={() => void run('Fetch', () => ipc.fetch(repo.path, remote, true, true))}
+            onClick={() => {
+              if (busy) return;
+              setBusy('Fetch');
+              void fetchOperation(makeContext()).finally(() => setBusy(null));
+            }}
           >
             <RefreshCw className={busy === 'Fetch' || busy === 'Fetch and clear' ? 'animate-spin' : ''} />
             <span className="select-none">Fetch</span>
@@ -491,7 +500,8 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
               onClick={() => {
                 if (busy) return;
                 setBusy('Fetch and clear');
-                void fetchAndClearLocalBranches(repo.path, remote, onRefresh).finally(() => setBusy(null));
+                const ctx = makeContext();
+                void fetchAndClearLocalBranches(ctx.path, ctx.remotes[0]?.name ?? 'origin', onRefresh).finally(() => setBusy(null));
               }}
             >
               Fetch and clear local branches…
@@ -502,7 +512,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
       <Hint
         label={
           <span className="flex items-center gap-1">
-            Pull from {remote}
+            Pull
             {status?.behind ? ` (${status.behind} behind)` : ''} <Kbd>{modKey()}</Kbd>
             <Kbd>⇧</Kbd>
             <Kbd>P</Kbd>
@@ -513,7 +523,11 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           variant="ghost"
           size="sm"
             disabled={!!busy}
-          onClick={() => void run('Pull', () => ipc.pull(repo.path, remote))}
+          onClick={() => {
+            if (busy) return;
+            setBusy('Pull');
+            void pullOperation(makeContext()).finally(() => setBusy(null));
+          }}
         >
           <ArrowDownToLine />
           <span className="select-none">Pull</span>
@@ -524,7 +538,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <Hint
           label={
             <span className="flex items-center gap-1">
-              Push to {remote}
+              Push
               {status?.ahead ? ` (${status.ahead} ahead)` : ''} <Kbd>{modKey()}</Kbd>
               <Kbd>P</Kbd>
             </span>
@@ -535,7 +549,11 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             size="sm"
             className="rounded-r-none"
             disabled={!!busy}
-            onClick={() => runPush('Push', () => ipc.push(repo.path, remote, false, false, true, undefined, 'toolbar-button'))}
+            onClick={() => {
+              if (busy) return;
+              setBusy('Push');
+              void pushOperation(makeContext()).finally(() => setBusy(null));
+            }}
           >
             <ArrowUpFromLine />
             <span className="select-none">Push</span>
@@ -549,14 +567,26 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => runPush('Push (force)', () => ipc.push(repo.path, remote, true, false, true, undefined, 'toolbar-menu-force'))} destructive>
+            <DropdownMenuItem onClick={() => {
+              if (busy) return;
+              setBusy('Push (force)');
+              void pushOperation(makeContext(), { force: true, label: 'Push (force)' }).finally(() => setBusy(null));
+            }} destructive>
               Force push
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => runPush('Push with tags', () => ipc.push(repo.path, remote, false, true, true, undefined, 'toolbar-menu-tags'))}>
+            <DropdownMenuItem onClick={() => {
+              if (busy) return;
+              setBusy('Push with tags');
+              void pushOperation(makeContext(), { tags: true, label: 'Push with tags' }).finally(() => setBusy(null));
+            }}>
               Push with tags
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void run('Fetch tags', () => ipc.fetch(repo.path, remote, true, false))}>
+            <DropdownMenuItem onClick={() => {
+              if (busy) return;
+              setBusy('Fetch tags');
+              void fetchOperation(makeContext(), { prune: true, tags: false, label: 'Fetch tags' }).finally(() => setBusy(null));
+            }}>
               Fetch tags
             </DropdownMenuItem>
           </DropdownMenuContent>
