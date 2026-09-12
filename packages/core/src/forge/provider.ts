@@ -29,6 +29,7 @@ export function createForgeProvider(remote: ForgeRemote, http: HttpClient): Forg
     case 'bitbucket':
       return bitbucketForgeProvider(remote, http);
     case 'bitbucket-server':
+    case 'unknown':
       return null;
   }
 }

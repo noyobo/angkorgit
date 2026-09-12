@@ -30,7 +30,7 @@ export function pickForgeRemote(
   return remotes.find((remote) => remote.name === 'origin') ?? remotes[0];
 }
 
-export type ForgeKind = 'github' | 'gitlab' | 'bitbucket' | 'bitbucket-server';
+export type ForgeKind = 'github' | 'gitlab' | 'bitbucket' | 'bitbucket-server' | 'unknown';
 
 export interface ForgeRemote {
   kind: ForgeKind;
@@ -75,5 +75,16 @@ export function parseForgeRemote(url: string): ForgeRemote | null {
       ...base,
     };
   }
+  
+  // Unknown forge: assume standard owner/repo structure
+  if (segments.length >= 2) {
+    return {
+      kind: 'unknown',
+      owner: segments.slice(0, -1).join('/'),
+      repo: segments[segments.length - 1],
+      ...base,
+    };
+  }
+  
   return null;
 }
