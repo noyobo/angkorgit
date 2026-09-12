@@ -8,7 +8,6 @@ import {
   Check,
   ChevronDown,
   Command,
-  FolderOpen,
   GitBranchPlus,
   Home,
   PanelLeft,
@@ -30,9 +29,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   Hint,
   Kbd,
@@ -40,7 +36,7 @@ import {
   Spinner,
   cn,
 } from '@angkorgit/design-system';
-import { ipc, pickDirectory } from '@/core/ipc';
+import { ipc } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
 import { RepoMark } from '@/components/RepoMark';
 import { useRepo } from '@/features/repository/store';
@@ -61,10 +57,41 @@ import { logger } from '@/core/logger';
 
 function RepoSwitcher() {
   const repo = useRepo((s) => s.repo);
-  const recents = useRepo((s) => s.recents);
-  const open = useRepo((s) => s.open);
   const busy = useRepo((s) => s.busy);
-  const openDialog = useUi((s) => s.openDialog);
+  const setRecentReposOpen = useUi((s) => s.setRecentReposOpen);
+
+  if (!repo) return null;
+
+  return (
+    <Hint
+      label={
+        <span className="flex items-center gap-1">
+          Recent repositories <Kbd>{modKey()}</Kbd>
+          <Kbd>O</Kbd>
+        </span>
+      }
+    >
+      <button
+        className={cn(
+          'mx-1 flex items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-surface-raised',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        )}
+        disabled={!!busy}
+        onClick={() => {
+          void logger.click('repo-switcher', 'toolbar-button');
+          setRecentReposOpen(true);
+        }}
+        aria-label="Open recent repositories"
+      >
+        <RepoMark name={repo.name} size={22} />
+        <span className="select-none text-sm font-semibold leading-tight text-foreground">{repo.name}</span>
+      </button>
+    </Hint>
+  );
+}
+
+function ProfileButton() {
+  const repo = useRepo((s) => s.repo);
   const profiles = useSettings((s) => s.profiles);
   const profileId = useRepo((s) => s.profileId);
   const [activeEmail, setActiveEmail] = useState('');
@@ -85,113 +112,44 @@ function RepoSwitcher() {
     }
   };
 
-  if (!repo) return null;
+  if (!repo || profiles.length === 0) return null;
 
   const assignedProfile =
     profiles.find((p) => p.id === profileId) ??
     (profileId ? undefined : profiles.find((p) => p.email === activeEmail));
 
-  const switchTo = async (path: string) => {
-    if (path === repo.path) return;
-    try {
-      await open(path);
-      toast.success(`Switched to ${path.split('/').pop()}`);
-    } catch (error) {
-      toast.error(`Could not open repository: ${(error as { message?: string }).message ?? error}`);
-    }
-  };
-
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'mx-1 flex items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-surface-raised',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-          )}
-          disabled={!!busy}
-          aria-label="Switch repository"
-        >
-          <RepoMark name={repo.name} size={22} />
-          <span className="select-none leading-tight">
-            <span className="flex items-center gap-1 text-sm font-semibold text-foreground">
-              {repo.name}
-              <ChevronDown className="size-3 text-faint" />
-            </span>
-            <span className="flex items-center gap-1.5 font-mono text-[10px] text-faint">
-              {repo.isWorktree && <span className="text-primary">worktree</span>}
-              {repo.isWorktree && <span>·</span>}
-              <span className={repo.isDetached ? 'text-danger' : 'text-success'}>
-                {repo.isDetached ? 'detached HEAD' : repo.headBranch ?? 'no branch'}
+      <Hint label={assignedProfile ? `Profile: ${assignedProfile.label}` : 'Assign profile'}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mx-0.5 gap-1.5 px-2"
+            aria-label="Assign profile to this repository"
+          >
+            <UserRound className="size-4" />
+            {assignedProfile && (
+              <span className="select-none text-xs text-muted">{assignedProfile.label}</span>
+            )}
+            <ChevronDown className="size-3 text-faint" />
+          </Button>
+        </DropdownMenuTrigger>
+      </Hint>
+      <DropdownMenuContent align="start">
+        <DropdownMenuLabel>Profile for {repo.name}</DropdownMenuLabel>
+        {profiles.map((profile) => {
+          const active = assignedProfile?.id === profile.id;
+          return (
+            <DropdownMenuItem key={profile.id} onClick={() => void assignProfile(profile)}>
+              {active ? <Check className="text-primary" /> : <UserRound />}
+              <span className="min-w-0 flex-1 select-none">
+                <span className="block">{profile.label}</span>
+                <span className="block truncate text-[10px] text-faint">{profile.email}</span>
               </span>
-              {assignedProfile && (
-                <>
-                  <span>·</span>
-                  <span className="text-muted">{assignedProfile.label}</span>
-                </>
-              )}
-            </span>
-          </span>
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] min-w-72 flex-col"
-      >
-        <DropdownMenuLabel>Repositories</DropdownMenuLabel>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {recents.map((recent) => {
-            const isCurrent = recent.path === repo.path;
-            return (
-              <DropdownMenuItem key={recent.path} onClick={() => void switchTo(recent.path)}>
-                <RepoMark name={recent.name} size={20} />
-                <span className="min-w-0 flex-1 select-none">
-                  <span className={cn('block truncate', isCurrent && 'text-primary')}>{recent.name}</span>
-                  <span className="block truncate font-mono text-[10px] text-faint">{recent.path}</span>
-                </span>
-                {isCurrent ? <Check className="text-primary" /> : null}
-              </DropdownMenuItem>
-            );
-          })}
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() =>
-            void (async () => {
-              const dir = await pickDirectory('Open a Git repository');
-              if (dir) await switchTo(dir);
-            })()
-          }
-        >
-          <FolderOpen /> Open repository…
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openDialog('clone')}>
-          <GitBranchPlus /> Clone repository…
-        </DropdownMenuItem>
-        {profiles.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <UserRound /> Profile
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {profiles.map((profile) => {
-                  const active = assignedProfile?.id === profile.id;
-                  return (
-                    <DropdownMenuItem key={profile.id} onClick={() => void assignProfile(profile)}>
-                      {active ? <Check className="text-primary" /> : <UserRound />}
-                      <span className="min-w-0 flex-1 select-none">
-                        <span className="block">{profile.label}</span>
-                        <span className="block truncate text-[10px] text-faint">{profile.email}</span>
-                      </span>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </>
-        )}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -458,6 +416,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         </Button>
       </Hint>
       <RepoSwitcher />
+      <ProfileButton />
       <StateActions onRefresh={onRefresh} />
 
       <UndoRedoButtons onRefresh={onRefresh} />
