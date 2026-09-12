@@ -30,10 +30,6 @@
     "test": "bun test ./tests/unit",
     "test:watch": "bun test ./tests/unit --watch",
     "test:e2e": "bunx playwright test -c tests/e2e/playwright.config.ts",
-    "website": "bun run --cwd apps/website dev",
-    "website:build": "bun run --cwd apps/website build",
-    "website:preview": "bun run --cwd apps/website preview",
-    "website:images": "bun run --cwd apps/website images",
     "icons": "bun scripts/generate-icons.mjs"
   },
   "devDependencies": {
