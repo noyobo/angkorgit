@@ -224,7 +224,7 @@ export function RepositoryPage() {
       { combo: 'mod+shift+/', handler: () => useUi.getState().setPanelsOpen(true) },
       
       // View toggles - Desktop-aligned shortcuts
-      { combo: 'mod+b', handler: () => useUi.getState().openBranchSwitcher() }, // Desktop: Cmd+B opens branch switcher
+      { combo: 'mod+b', handler: () => useUi.getState().setBranchSwitcherOpen(true) }, // Desktop: Cmd+B opens branch switcher
       { combo: 'mod+`', handler: () => toggleTerminal() }, // Terminal (Desktop: Ctrl+`)
       { combo: 'mod+l', handler: () => toggleSidebar() }, // REMAPPED: Sidebar toggle from Cmd+B to Cmd+L
       
