@@ -8,8 +8,6 @@ import {
   Check,
   ChevronDown,
   Command,
-  FolderGit2,
-  FolderOpen,
   GitBranchPlus,
   Home,
   PanelLeft,
@@ -31,34 +29,70 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   Hint,
   Kbd,
-  Logo,
   Separator,
   Spinner,
   cn,
 } from '@angkorgit/design-system';
-import { ipc, pickDirectory } from '@/core/ipc';
+import { ipc } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
+import { RepoMark } from '@/components/RepoMark';
+import { BranchChip } from '@/components/BranchChip';
 import { useRepo } from '@/features/repository/store';
 import { abortMergeFlow } from '@/features/repository/merge';
+import {
+  pushOperation,
+  pullOperation,
+  fetchOperation,
+  type OperationContext,
+} from '@/features/repository/operations';
 import { sidebarVisible, useUi } from '@/features/ui/store';
 import { useUndo } from '@/features/history/undoStore';
 import { useSettings, type IdentityProfile } from '@/features/settings/store';
-import { applyProfileToRepo, ensureRepoProfile } from '@/features/settings/profiles';
+import { applyProfileToRepo } from '@/features/settings/profiles';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { capCount, modKey } from '@/shared/utils';
+import { logger } from '@/core/logger';
 
 function RepoSwitcher() {
   const repo = useRepo((s) => s.repo);
-  const recents = useRepo((s) => s.recents);
-  const open = useRepo((s) => s.open);
   const busy = useRepo((s) => s.busy);
-  const openDialog = useUi((s) => s.openDialog);
+  const setRecentReposOpen = useUi((s) => s.setRecentReposOpen);
+
+  if (!repo) return null;
+
+  return (
+    <Hint
+      label={
+        <span className="flex items-center gap-1">
+          Recent repositories <Kbd>{modKey()}</Kbd>
+          <Kbd>O</Kbd>
+        </span>
+      }
+    >
+      <button
+        className={cn(
+          'mx-1 flex items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-surface-raised',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        )}
+        disabled={!!busy}
+        onClick={() => {
+          void logger.click('repo-switcher', 'toolbar-button');
+          setRecentReposOpen(true);
+        }}
+        aria-label="Open recent repositories"
+      >
+        <RepoMark name={repo.name} size={22} />
+        <span className="select-none text-sm font-semibold leading-tight text-foreground">{repo.name}</span>
+      </button>
+    </Hint>
+  );
+}
+
+function ProfileButton() {
+  const repo = useRepo((s) => s.repo);
   const profiles = useSettings((s) => s.profiles);
   const profileId = useRepo((s) => s.profileId);
   const [activeEmail, setActiveEmail] = useState('');
@@ -79,104 +113,44 @@ function RepoSwitcher() {
     }
   };
 
-  if (!repo) return null;
+  if (!repo || profiles.length === 0) return null;
 
   const assignedProfile =
     profiles.find((p) => p.id === profileId) ??
     (profileId ? undefined : profiles.find((p) => p.email === activeEmail));
 
-  const switchTo = async (path: string) => {
-    if (path === repo.path) return;
-    try {
-      await open(path);
-      toast.success(`Switched to ${path.split('/').pop()}`);
-    } catch (error) {
-      toast.error(`Could not open repository: ${(error as { message?: string }).message ?? error}`);
-    }
-  };
-
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'mx-1 flex items-center gap-2 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-surface-raised',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-          )}
-          disabled={!!busy}
-          aria-label="Switch repository"
-        >
-          <Logo size={22} className="text-foreground" />
-          <span className="leading-tight">
-            <span className="flex items-center gap-1 text-sm font-semibold">
-              {repo.name}
-              <ChevronDown className="size-3 text-faint" />
-            </span>
-            <span className="block font-mono text-[10px] text-faint">
-              {repo.isDetached ? 'detached HEAD' : repo.headBranch ?? 'no branch'}
-              {repo.isWorktree ? ' · worktree' : ''}
-              {assignedProfile ? ` · ${assignedProfile.label}` : ''}
-            </span>
-          </span>
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        className="flex max-h-[min(70vh,var(--radix-dropdown-menu-content-available-height))] min-w-72 flex-col"
-      >
-        <DropdownMenuLabel>Repositories</DropdownMenuLabel>
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {recents.map((recent) => {
-            const isCurrent = recent.path === repo.path;
-            return (
-              <DropdownMenuItem key={recent.path} onClick={() => void switchTo(recent.path)}>
-                {isCurrent ? <Check className="text-primary" /> : <FolderGit2 />}
-                <span className="min-w-0 flex-1">
-                  <span className={cn('block truncate', isCurrent && 'text-primary')}>{recent.name}</span>
-                  <span className="block truncate font-mono text-[10px] text-faint">{recent.path}</span>
-                </span>
-              </DropdownMenuItem>
-            );
-          })}
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() =>
-            void (async () => {
-              const dir = await pickDirectory('Open a Git repository');
-              if (dir) await switchTo(dir);
-            })()
-          }
-        >
-          <FolderOpen /> Open repository…
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openDialog('clone')}>
-          <GitBranchPlus /> Clone repository…
-        </DropdownMenuItem>
-        {profiles.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <UserRound /> Profile
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                {profiles.map((profile) => {
-                  const active = assignedProfile?.id === profile.id;
-                  return (
-                    <DropdownMenuItem key={profile.id} onClick={() => void assignProfile(profile)}>
-                      {active ? <Check className="text-primary" /> : <UserRound />}
-                      <span className="min-w-0 flex-1">
-                        <span className="block">{profile.label}</span>
-                        <span className="block truncate text-[10px] text-faint">{profile.email}</span>
-                      </span>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </>
-        )}
+      <Hint label={assignedProfile ? `Profile: ${assignedProfile.label}` : 'Assign profile'}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mx-0.5 gap-1.5 px-2"
+            aria-label="Assign profile to this repository"
+          >
+            <UserRound className="size-4" />
+            {assignedProfile && (
+              <span className="select-none text-xs text-muted">{assignedProfile.label}</span>
+            )}
+            <ChevronDown className="size-3 text-faint" />
+          </Button>
+        </DropdownMenuTrigger>
+      </Hint>
+      <DropdownMenuContent align="start">
+        <DropdownMenuLabel>Profile for {repo.name}</DropdownMenuLabel>
+        {profiles.map((profile) => {
+          const active = assignedProfile?.id === profile.id;
+          return (
+            <DropdownMenuItem key={profile.id} onClick={() => void assignProfile(profile)}>
+              {active ? <Check className="text-primary" /> : <UserRound />}
+              <span className="min-w-0 flex-1 select-none">
+                <span className="block">{profile.label}</span>
+                <span className="block truncate text-[10px] text-faint">{profile.email}</span>
+              </span>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -200,6 +174,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
   const continueRebase = () =>
     void (async () => {
+      void logger.click('continue-rebase', 'toolbar-state-menu');
       try {
         const outcome = await ipc.rebaseContinue(path);
         toastOutcome(outcome, 'Rebase continued');
@@ -211,6 +186,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
   const abortRebase = () =>
     void (async () => {
+      void logger.click('abort-rebase', 'toolbar-state-menu');
       const ok = await confirmDialog({
         title: 'Abort rebase?',
         description:
@@ -228,10 +204,14 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
       finish();
     })();
 
-  const abortMerge = () => void abortMergeFlow(path);
+  const abortMerge = () => {
+    void logger.click('abort-merge', 'toolbar-state-menu');
+    void abortMergeFlow(path);
+  };
 
   const clearState = () =>
     void (async () => {
+      void logger.click('clear-state', 'toolbar-state-menu');
       const ok = await confirmDialog({
         title: `Clear ${state} state?`,
         description:
@@ -261,7 +241,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
             )}
             aria-label={`${state} in progress — actions`}
           >
-            {state}
+            <span className="select-none">{state}</span>
             <ChevronDown className="size-3" />
           </button>
         </DropdownMenuTrigger>
@@ -302,6 +282,7 @@ function UndoRedoButtons({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const nextRedo = [...redoStack].reverse().find((e) => e.repoPath === path);
 
   const run = (direction: 'undo' | 'redo') => {
+    void logger.click(direction, 'toolbar-button');
     const fn = direction === 'undo' ? useUndo.getState().undo : useUndo.getState().redo;
     void fn(path).then((ok) => {
       if (ok) void onRefresh();
@@ -362,6 +343,7 @@ function UndoRedoButtons({ onRefresh }: { onRefresh: () => Promise<void> }) {
 export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const repo = useRepo((s) => s.repo);
   const status = useRepo((s) => s.status);
+  const branches = useRepo((s) => s.branches);
   const remotes = useRepo((s) => s.remotes);
   const stashes = useRepo((s) => s.stashes);
   const busy = useRepo((s) => s.busy);
@@ -375,11 +357,18 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
   const [spinning, setSpinning] = useState(false);
 
   if (!repo) return null;
-  const remote = remotes[0]?.name ?? 'origin';
   const latestStash = stashes[0];
+
+  const makeContext = (): OperationContext => ({
+    path: repo.path,
+    branches,
+    remotes,
+    source: 'toolbar-button',
+  });
 
   const run = async (label: string, op: () => Promise<{ status: string; message: string } | void>) => {
     if (busy) return;
+    void logger.click(label, 'toolbar-button');
     setBusy(label);
     try {
       const outcome = await op();
@@ -396,18 +385,13 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
     }
   };
 
-  const runPush = (label: string, op: () => Promise<{ status: string; message: string } | void>) =>
-    void (async () => {
-      if (busy) return;
-      await ensureRepoProfile(repo.path);
-      await run(label, op);
-      void import('@/features/forge/store').then(({ useForge }) => useForge.getState().load(true));
-    })();
-
   return (
     <header className="flex h-12 shrink-0 items-center gap-1 border-b border-border-subtle bg-surface px-2">
       <Hint label="Back to repositories">
-        <Button variant="ghost" size="icon" aria-label="Home" onClick={() => navigate('/welcome')}>
+        <Button variant="ghost" size="icon" aria-label="Home" onClick={() => {
+          void logger.click('home', 'toolbar-button');
+          navigate('/welcome');
+        }}>
           <Home />
         </Button>
       </Hint>
@@ -424,12 +408,17 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           size="icon"
           aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           className={!sidebarOpen ? 'text-primary' : undefined}
-          onClick={toggleSidebar}
+          onClick={() => {
+            void logger.click('toggle-sidebar', 'toolbar-button');
+            toggleSidebar();
+          }}
         >
           <PanelLeft />
         </Button>
       </Hint>
       <RepoSwitcher />
+      <BranchChip />
+      <ProfileButton />
       <StateActions onRefresh={onRefresh} />
 
       <UndoRedoButtons onRefresh={onRefresh} />
@@ -437,16 +426,28 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
       <Separator orientation="vertical" className="mx-2 h-6" />
 
       <div className="flex items-center">
-        <Hint label={`Fetch ${remote}`}>
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Fetch <Kbd>{modKey()}</Kbd>
+              <Kbd>⇧</Kbd>
+              <Kbd>T</Kbd>
+            </span>
+          }
+        >
           <Button
             variant="ghost"
             size="sm"
             className="rounded-r-none"
             disabled={!!busy}
-            onClick={() => void run('Fetch', () => ipc.fetch(repo.path, remote, true, true))}
+            onClick={() => {
+              if (busy) return;
+              setBusy('Fetch');
+              void fetchOperation(makeContext()).finally(() => setBusy(null));
+            }}
           >
             <RefreshCw className={busy === 'Fetch' || busy === 'Fetch and clear' ? 'animate-spin' : ''} />
-            Fetch
+            <span className="select-none">Fetch</span>
           </Button>
         </Hint>
         <DropdownMenu>
@@ -460,7 +461,8 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
               onClick={() => {
                 if (busy) return;
                 setBusy('Fetch and clear');
-                void fetchAndClearLocalBranches(repo.path, remote, onRefresh).finally(() => setBusy(null));
+                const ctx = makeContext();
+                void fetchAndClearLocalBranches(ctx.path, ctx.remotes[0]?.name ?? 'origin', onRefresh).finally(() => setBusy(null));
               }}
             >
               Fetch and clear local branches…
@@ -468,29 +470,54 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <Hint label={`Pull from ${remote}${status?.behind ? ` (${status.behind} behind)` : ''}`}>
+      <Hint
+        label={
+          <span className="flex items-center gap-1">
+            Pull
+            {status?.behind ? ` (${status.behind} behind)` : ''} <Kbd>{modKey()}</Kbd>
+            <Kbd>⇧</Kbd>
+            <Kbd>P</Kbd>
+          </span>
+        }
+      >
         <Button
           variant="ghost"
           size="sm"
-          disabled={!!busy}
-          onClick={() => void run('Pull', () => ipc.pull(repo.path, remote))}
+            disabled={!!busy}
+          onClick={() => {
+            if (busy) return;
+            setBusy('Pull');
+            void pullOperation(makeContext()).finally(() => setBusy(null));
+          }}
         >
           <ArrowDownToLine />
-          Pull
+          <span className="select-none">Pull</span>
           {status && status.behind > 0 && <Badge tone="info">{capCount(status.behind)}</Badge>}
         </Button>
       </Hint>
       <div className="flex items-center">
-        <Hint label={`Push to ${remote}${status?.ahead ? ` (${status.ahead} ahead)` : ''}`}>
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Push
+              {status?.ahead ? ` (${status.ahead} ahead)` : ''} <Kbd>{modKey()}</Kbd>
+              <Kbd>P</Kbd>
+            </span>
+          }
+        >
           <Button
             variant="ghost"
             size="sm"
             className="rounded-r-none"
             disabled={!!busy}
-            onClick={() => runPush('Push', () => ipc.push(repo.path, remote, false, false, true))}
+            onClick={() => {
+              if (busy) return;
+              setBusy('Push');
+              void pushOperation(makeContext()).finally(() => setBusy(null));
+            }}
           >
             <ArrowUpFromLine />
-            Push
+            <span className="select-none">Push</span>
             {status && status.ahead > 0 && <Badge tone="primary">{capCount(status.ahead)}</Badge>}
           </Button>
         </Hint>
@@ -501,14 +528,26 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => runPush('Push (force)', () => ipc.push(repo.path, remote, true, false, true))} destructive>
+            <DropdownMenuItem onClick={() => {
+              if (busy) return;
+              setBusy('Push (force)');
+              void pushOperation(makeContext(), { force: true, label: 'Push (force)' }).finally(() => setBusy(null));
+            }} destructive>
               Force push
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => runPush('Push with tags', () => ipc.push(repo.path, remote, false, true, true))}>
+            <DropdownMenuItem onClick={() => {
+              if (busy) return;
+              setBusy('Push with tags');
+              void pushOperation(makeContext(), { tags: true, label: 'Push with tags' }).finally(() => setBusy(null));
+            }}>
               Push with tags
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void run('Fetch tags', () => ipc.fetch(repo.path, remote, true, false))}>
+            <DropdownMenuItem onClick={() => {
+              if (busy) return;
+              setBusy('Fetch tags');
+              void fetchOperation(makeContext(), { tags: true, prune: false, label: 'Fetch tags' }).finally(() => setBusy(null));
+            }}>
               Fetch tags
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -517,18 +556,43 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <Separator orientation="vertical" className="mx-2 h-6" />
 
-      <Hint label="Create branch">
-        <Button variant="ghost" size="icon" aria-label="Create branch" onClick={() => openDialog('createBranch')}>
+      <Hint
+        label={
+          <span className="flex items-center gap-1">
+            Create branch <Kbd>{modKey()}</Kbd>
+            <Kbd>⇧</Kbd>
+            <Kbd>N</Kbd>
+          </span>
+        }
+      >
+        <Button variant="ghost" size="icon" aria-label="Create branch" onClick={() => {
+          void logger.click('create-branch', 'toolbar-button');
+          openDialog('createBranch');
+        }}>
           <GitBranchPlus />
         </Button>
       </Hint>
       <Hint label="Create tag">
-        <Button variant="ghost" size="icon" aria-label="Create tag" onClick={() => openDialog('createTag')}>
+        <Button variant="ghost" size="icon" aria-label="Create tag" onClick={() => {
+          void logger.click('create-tag', 'toolbar-button');
+          openDialog('createTag');
+        }}>
           <Tag />
         </Button>
       </Hint>
-      <Hint label="Stash changes">
-        <Button variant="ghost" size="icon" aria-label="Stash changes" onClick={() => openDialog('createStash')}>
+      <Hint
+        label={
+          <span className="flex items-center gap-1">
+            Stash changes <Kbd>{modKey()}</Kbd>
+            <Kbd>⇧</Kbd>
+            <Kbd>S</Kbd>
+          </span>
+        }
+      >
+        <Button variant="ghost" size="icon" aria-label="Stash changes" onClick={() => {
+          void logger.click('stash-changes', 'toolbar-button');
+          openDialog('createStash');
+        }}>
           <Archive />
         </Button>
       </Hint>
@@ -546,7 +610,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
 
       <div className="ml-auto flex items-center gap-1">
         {busy && (
-          <span className="mr-1 flex items-center gap-2 text-xs text-muted">
+          <span className="mr-1 flex select-none items-center gap-2 text-xs text-muted">
             <Spinner /> {busy}…
           </span>
         )}
@@ -558,28 +622,42 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Command palette" onClick={() => setPaletteOpen(true)}>
+          <Button variant="ghost" size="icon" aria-label="Command palette" onClick={() => {
+            void logger.click('command-palette', 'toolbar-button');
+            setPaletteOpen(true);
+          }}>
             <Command />
           </Button>
         </Hint>
         <Hint
           label={
             <span className="flex items-center gap-1">
-              Terminal <Kbd>{modKey()}</Kbd>
+              Terminal <Kbd>Ctrl</Kbd>
               <Kbd>`</Kbd>
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Toggle terminal" onClick={toggleTerminal}>
+          <Button variant="ghost" size="icon" aria-label="Toggle terminal" onClick={() => {
+            void logger.click('toggle-terminal', 'toolbar-button');
+            toggleTerminal();
+          }}>
             <SquareTerminal />
           </Button>
         </Hint>
-        <Hint label="Refresh">
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Refresh <Kbd>{modKey()}</Kbd>
+              <Kbd>R</Kbd>
+            </span>
+          }
+        >
           <Button
             variant="ghost"
             size="icon"
             aria-label="Refresh"
             onClick={() => {
+              void logger.click('refresh', 'toolbar-button');
               setSpinning(true);
               void onRefresh().finally(() => setSpinning(false));
             }}
@@ -587,8 +665,18 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             <RefreshCw className={spinning ? 'animate-spin' : ''} />
           </Button>
         </Hint>
-        <Hint label="Settings">
-          <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => openDialog('settings')}>
+        <Hint
+          label={
+            <span className="flex items-center gap-1">
+              Settings <Kbd>{modKey()}</Kbd>
+              <Kbd>,</Kbd>
+            </span>
+          }
+        >
+          <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => {
+            void logger.click('settings', 'toolbar-button');
+            openDialog('settings');
+          }}>
             <Settings />
           </Button>
         </Hint>
