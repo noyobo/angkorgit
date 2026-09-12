@@ -632,7 +632,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <Hint
           label={
             <span className="flex items-center gap-1">
-              Terminal <Kbd>{modKey()}</Kbd>
+              Terminal <Kbd>Ctrl</Kbd>
               <Kbd>`</Kbd>
             </span>
           }

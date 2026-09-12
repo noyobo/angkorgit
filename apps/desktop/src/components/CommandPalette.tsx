@@ -658,7 +658,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           <PaletteItem
             icon={<SquareTerminal />}
             label="Toggle terminal"
-            hint={`${modKey()}\``}
+            hint="Ctrl+`"
             onSelect={() => {
               close();
               toggleTerminal();

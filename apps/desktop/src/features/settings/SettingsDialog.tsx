@@ -626,7 +626,7 @@ function ReviewStyleCard() {
 const SHORTCUTS: Array<[string, string[]]> = [
   ['Command palette', ['mod', 'K / P']],
   ['Switch repository tab', ['mod', '1–9']],
-  ['Toggle terminal', ['mod', '`']],
+  ['Toggle terminal', ['Ctrl', '`']],
   ['Toggle sidebar', ['mod', 'B']],
   ['Undo / redo operation', ['mod', 'Z / ⇧Z']],
   ['Refresh repository', ['mod', 'R']],

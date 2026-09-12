@@ -14,16 +14,20 @@ const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform)
 
 function matches(event: KeyboardEvent, combo: string): boolean {
   const parts = combo.toLowerCase().split('+');
-  const key = parts[parts.length - 1] || '+'; // "mod+shift+=" style combos
+  const key = parts[parts.length - 1] || '+';
   const needMod = parts.includes('mod');
+  const needCtrl = parts.includes('ctrl');
   const needShift = parts.includes('shift');
   const needAlt = parts.includes('alt');
-  const mod = isMac ? event.metaKey : event.ctrlKey;
-  if (needMod !== mod) return false;
+  const wantMeta = needMod && isMac;
+  const wantCtrl = needCtrl || (needMod && !isMac);
+  if (event.metaKey !== wantMeta) return false;
+  if (event.ctrlKey !== wantCtrl) return false;
   if (needShift !== event.shiftKey) return false;
   if (needAlt !== event.altKey) return false;
   const eventKey = event.key.toLowerCase();
   if (key === '=' && eventKey === '+') return true;
+  if (key === '`' && (eventKey === '`' || event.code === 'Backquote')) return true;
   return eventKey === key;
 }
 
@@ -52,7 +56,10 @@ export function useShortcuts(shortcuts: Shortcut[]): void {
       for (const shortcut of shortcuts) {
         if (!matches(event, shortcut.combo)) continue;
         if (overlayOpen && shortcut.skipWhenOverlayOpen !== false) continue;
-        const hasModifier = shortcut.combo.includes('mod+') || shortcut.combo.includes('alt+');
+        const hasModifier =
+          shortcut.combo.includes('mod+') ||
+          shortcut.combo.includes('alt+') ||
+          shortcut.combo.includes('ctrl+');
         if (shortcut.skipInInput && inEditable(event)) continue;
         if (!hasModifier && !shortcut.allowInInput && inEditable(event)) continue;
         event.preventDefault();

@@ -156,7 +156,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             "Toggle t&erminal"
         },
         true,
-        Some("CmdOrCtrl+`"),
+        Some("Ctrl+`"),
     )?;
     let zoom_in = MenuItem::with_id(
         app,
@@ -274,7 +274,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             "Open in &terminal"
         },
         true,
-        Some("Ctrl+`"),
+        None::<&str>,
     )?;
     let open_finder = MenuItem::with_id(
         app,
