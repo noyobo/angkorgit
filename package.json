@@ -27,7 +27,7 @@
     "build": "bun run --filter '*' build",
     "format": "biome format --write .",
     "format:check": "biome ci .",
-    "lint": "bun run --filter '*' lint",
+    "lint": "biome check .",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test ./tests/unit",
     "test:watch": "bun test ./tests/unit --watch",
