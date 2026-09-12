@@ -83,179 +83,12 @@ jobs:
             echo "Selection: frontend=${{ steps.filter.outputs.frontend }} e2e=${{ steps.filter.outputs.e2e }} rust=${{ steps.filter.outputs.rust }}"
           fi
 
-  format-check:
-    name: Format (Biome)
+  web-pipeline:
+    name: Web Pipeline
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun run format:check
-
-  typecheck-packages:
-    name: Typecheck (Packages)
-    needs: [changes, format-check]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.format-check.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun run --filter '@angkorgit/core' typecheck
-      - run: bun run --filter '@angkorgit/design-system' typecheck
-
-  typecheck-desktop:
-    name: Typecheck (Desktop)
-    needs: [changes, format-check]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.format-check.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun run --filter '@angkorgit/desktop' typecheck
-
-  test-core:
-    name: Unit Tests (Core Logic)
-    needs: [changes, typecheck-packages]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-packages.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun test tests/unit/graphLayout.test.ts tests/unit/wordDiff.test.ts tests/unit/conflicts.test.ts tests/unit/fileFilter.test.ts
-
-  test-ai:
-    name: Unit Tests (AI & Integrations)
-    needs: [changes, typecheck-packages]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-packages.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun test tests/unit/ai*.test.ts tests/unit/forge.test.ts tests/unit/pullRequestUrl.test.ts
-
-  test-utils:
-    name: Unit Tests (Utilities)
-    needs: [changes, typecheck-packages]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-packages.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun test tests/unit/commitStyle.test.ts tests/unit/highlight.test.ts tests/unit/worktree.test.ts tests/unit/workspace.test.ts
-
-  build:
-    name: Build
-    needs: [changes, typecheck-desktop, test-core, test-ai, test-utils]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck-desktop.result == 'success' &&
-      needs.test-core.result == 'success' &&
-      needs.test-ai.result == 'success' &&
-      needs.test-utils.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
-      - uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - run: bun --filter @angkorgit/desktop build
-      - name: Upload desktop dist for e2e
-        if: needs.changes.outputs.e2e == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-dist
-          path: apps/desktop/dist
-          retention-days: 1
-          if-no-files-found: error
-
-  e2e:
-    name: E2E Tests (Rstest)
-    needs: [changes, build]
-    if: |
-      always() &&
-      needs.changes.result == 'success' &&
-      needs.changes.outputs.e2e == 'true' &&
-      needs.build.result == 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     env:
       PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.ms-playwright
     steps:
@@ -269,31 +102,55 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             bun-${{ runner.os }}-
-      - uses: actions/cache@v4
+      - run: bun install --frozen-lockfile
+      
+      # 1. Format (fastest, fail early)
+      - name: Format
+        run: bun run format:check
+      
+      # 2-3. Typecheck & Unit Tests (all parallel)
+      - name: Typecheck and Unit Tests
+        run: |
+          # Typecheck in parallel
+          bun run --filter '@angkorgit/core' typecheck &
+          bun run --filter '@angkorgit/design-system' typecheck &
+          bun run --filter '@angkorgit/desktop' typecheck &
+          
+          # Unit tests in parallel
+          bun test tests/unit/graphLayout.test.ts tests/unit/wordDiff.test.ts tests/unit/conflicts.test.ts tests/unit/fileFilter.test.ts &
+          bun test tests/unit/ai*.test.ts tests/unit/forge.test.ts tests/unit/pullRequestUrl.test.ts &
+          bun test tests/unit/commitStyle.test.ts tests/unit/highlight.test.ts tests/unit/worktree.test.ts tests/unit/workspace.test.ts &
+          
+          # Wait for all background jobs to complete
+          wait
+      
+      # 4. Build
+      - name: Build
+        run: bun --filter @angkorgit/desktop build
+      
+      # 5. E2E (if needed)
+      - name: Cache Playwright
+        if: needs.changes.outputs.e2e == 'true'
+        uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ${{ github.workspace }}/.ms-playwright
           key: playwright-${{ runner.os }}-v1.63.0
           restore-keys: |
             playwright-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
-      - name: Download desktop dist
-        uses: actions/download-artifact@v4
-        with:
-          name: desktop-dist
-          path: apps/desktop/dist
-      - name: Install Playwright Chromium
+      
+      - name: Install Playwright
+        if: needs.changes.outputs.e2e == 'true'
         run: |
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
             bunx playwright install-deps chromium
           else
             bunx playwright install --with-deps chromium
           fi
-      - name: Serve production build and run tests
+      
+      - name: E2E Tests
+        if: needs.changes.outputs.e2e == 'true'
         run: |
-          # IMPORTANT: Use production build, NOT dev server
-          # Rspack lazy compilation in dev mode causes 404s and MIME type errors in CI
-          # See docs/E2E-TESTING.md for details
           cd apps/desktop/dist
           python3 -m http.server 1420 &
           SERVER_PID=$!
@@ -313,12 +170,11 @@ jobs:
 
   rust-lint:
     name: Rust Lint
-    needs: [changes, e2e, build]
+    needs: [changes, web-pipeline]
     if: |
       always() &&
       needs.changes.outputs.rust == 'true' &&
-      (needs.changes.outputs.frontend != 'true' || 
-       (needs.build.result == 'success' && needs.e2e.result != 'failure'))
+      (needs.changes.outputs.frontend != 'true' || needs.web-pipeline.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -374,22 +230,14 @@ jobs:
       always() &&
       needs.changes.result != 'skipped' &&
       needs.changes.result != 'cancelled'
-    needs: [changes, format-check, typecheck-packages, typecheck-desktop, test-core, test-ai, test-utils, build, e2e, rust-lint, rust-test]
+    needs: [changes, web-pipeline, rust-lint, rust-test]
     runs-on: ubuntu-latest
     steps:
       - name: Require selected jobs
         env:
-          WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
-          WANT_E2E: ${{ needs.changes.outputs.e2e }}
+          WANT_WEB: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.e2e == 'true' }}
           WANT_RUST: ${{ needs.changes.outputs.rust }}
-          FORMAT_CHECK: ${{ needs.format-check.result }}
-          TYPECHECK_PKG: ${{ needs.typecheck-packages.result }}
-          TYPECHECK_DESKTOP: ${{ needs.typecheck-desktop.result }}
-          TEST_CORE: ${{ needs.test-core.result }}
-          TEST_AI: ${{ needs.test-ai.result }}
-          TEST_UTILS: ${{ needs.test-utils.result }}
-          BUILD: ${{ needs.build.result }}
-          E2E: ${{ needs.e2e.result }}
+          WEB_PIPELINE: ${{ needs.web-pipeline.result }}
           RUST_LINT: ${{ needs.rust-lint.result }}
           RUST_TEST: ${{ needs.rust-test.result }}
         run: |
@@ -407,14 +255,7 @@ jobs:
               echo "$label skipped (not selected)"
             fi
           }
-          require "$WANT_FRONTEND" "$FORMAT_CHECK" "format-check"
-          require "$WANT_FRONTEND" "$TYPECHECK_PKG" "typecheck-packages"
-          require "$WANT_FRONTEND" "$TYPECHECK_DESKTOP" "typecheck-desktop"
-          require "$WANT_FRONTEND" "$TEST_CORE" "test-core"
-          require "$WANT_FRONTEND" "$TEST_AI" "test-ai"
-          require "$WANT_FRONTEND" "$TEST_UTILS" "test-utils"
-          require "$WANT_FRONTEND" "$BUILD" "build"
-          require "$WANT_E2E" "$E2E" "e2e"
+          require "$WANT_WEB" "$WEB_PIPELINE" "web-pipeline"
           require "$WANT_RUST" "$RUST_LINT" "rust-lint"
           require "$WANT_RUST" "$RUST_TEST" "rust-test"
           exit "$fail"
