@@ -82,8 +82,8 @@ jobs:
             echo "Selection: frontend=${{ steps.filter.outputs.frontend }} e2e=${{ steps.filter.outputs.e2e }} rust=${{ steps.filter.outputs.rust }}"
           fi
 
-  typecheck:
-    name: Typecheck
+  typecheck-packages:
+    name: Typecheck (Packages)
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
@@ -99,15 +99,13 @@ jobs:
           restore-keys: |
             bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - run: bun run --filter '!@angkorgit/website' typecheck
+      - run: bun run --filter '@angkorgit/core' typecheck
+      - run: bun run --filter '@angkorgit/design-system' typecheck
 
-  test:
-    name: Unit tests
-    needs: [changes, typecheck]
-    if: |
-      always() &&
-      needs.changes.outputs.frontend == 'true' &&
-      needs.typecheck.result == 'success'
+  typecheck-desktop:
+    name: Typecheck (Desktop)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,15 +119,84 @@ jobs:
           restore-keys: |
             bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - run: bun run test
+      - run: bun run --filter '@angkorgit/desktop' typecheck
 
-  build:
-    name: Build
-    needs: [changes, test]
+  test-core:
+    name: Unit Tests (Core Logic)
+    needs: [changes, typecheck-packages]
     if: |
       always() &&
       needs.changes.outputs.frontend == 'true' &&
-      needs.test.result == 'success'
+      needs.typecheck-packages.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun test tests/unit/graphLayout.test.ts tests/unit/wordDiff.test.ts tests/unit/conflicts.test.ts tests/unit/fileFilter.test.ts
+
+  test-ai:
+    name: Unit Tests (AI & Integrations)
+    needs: [changes, typecheck-packages]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-packages.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun test tests/unit/ai*.test.ts tests/unit/forge.test.ts tests/unit/pullRequestUrl.test.ts
+
+  test-utils:
+    name: Unit Tests (Utilities)
+    needs: [changes, typecheck-packages]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-packages.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun test tests/unit/commitStyle.test.ts tests/unit/highlight.test.ts tests/unit/worktree.test.ts tests/unit/workspace.test.ts
+
+  build:
+    name: Build
+    needs: [changes, typecheck-desktop, test-core, test-ai, test-utils]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-desktop.result == 'success' &&
+      needs.test-core.result == 'success' &&
+      needs.test-ai.result == 'success' &&
+      needs.test-utils.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -212,11 +279,8 @@ jobs:
 
   rust-lint:
     name: Rust Lint
-    needs: [changes, typecheck]
-    if: |
-      always() &&
-      needs.changes.outputs.rust == 'true' &&
-      (needs.typecheck.result == 'success' || needs.typecheck.result == 'skipped')
+    needs: [changes]
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -246,8 +310,7 @@ jobs:
       needs.rust-lint.result == 'success'
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
     defaults:
@@ -273,7 +336,7 @@ jobs:
       always() &&
       needs.changes.result != 'skipped' &&
       needs.changes.result != 'cancelled'
-    needs: [changes, typecheck, test, build, e2e, rust-lint, rust-test]
+    needs: [changes, typecheck-packages, typecheck-desktop, test-core, test-ai, test-utils, build, e2e, rust-lint, rust-test]
     runs-on: ubuntu-latest
     steps:
       - name: Require selected jobs
@@ -281,8 +344,11 @@ jobs:
           WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
           WANT_E2E: ${{ needs.changes.outputs.e2e }}
           WANT_RUST: ${{ needs.changes.outputs.rust }}
-          TYPECHECK: ${{ needs.typecheck.result }}
-          TEST: ${{ needs.test.result }}
+          TYPECHECK_PKG: ${{ needs.typecheck-packages.result }}
+          TYPECHECK_DESKTOP: ${{ needs.typecheck-desktop.result }}
+          TEST_CORE: ${{ needs.test-core.result }}
+          TEST_AI: ${{ needs.test-ai.result }}
+          TEST_UTILS: ${{ needs.test-utils.result }}
           BUILD: ${{ needs.build.result }}
           E2E: ${{ needs.e2e.result }}
           RUST_LINT: ${{ needs.rust-lint.result }}
@@ -302,10 +368,13 @@ jobs:
               echo "$label skipped (not selected)"
             fi
           }
-          require "$WANT_FRONTEND" "$TYPECHECK" typecheck
-          require "$WANT_FRONTEND" "$TEST" test
-          require "$WANT_FRONTEND" "$BUILD" build
-          require "$WANT_E2E" "$E2E" e2e
+          require "$WANT_FRONTEND" "$TYPECHECK_PKG" "typecheck-packages"
+          require "$WANT_FRONTEND" "$TYPECHECK_DESKTOP" "typecheck-desktop"
+          require "$WANT_FRONTEND" "$TEST_CORE" "test-core"
+          require "$WANT_FRONTEND" "$TEST_AI" "test-ai"
+          require "$WANT_FRONTEND" "$TEST_UTILS" "test-utils"
+          require "$WANT_FRONTEND" "$BUILD" "build"
+          require "$WANT_E2E" "$E2E" "e2e"
           require "$WANT_RUST" "$RUST_LINT" "rust-lint"
           require "$WANT_RUST" "$RUST_TEST" "rust-test"
           exit "$fail"
