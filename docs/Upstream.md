@@ -7,7 +7,7 @@ This fork is **independently maintained** on `main`. Product work, tooling, and 
 Only [`upstream-main`](https://github.com/noyobo/angkorgit/tree/upstream-main) mirrors upstream `main`.
 
 - It is a hard reset to `cheat2001/angkorgit@main` (exact commit match).
-- GitHub Actions workflow **Sync upstream-main** refreshes it every six hours and on manual dispatch.
+- GitHub Actions workflow **Sync upstream-main** refreshes it once a week (Sunday 00:00 UTC) and on manual dispatch.
 - Do **not** commit fork-specific work onto `upstream-main`.
 
 ## Opening a PR to upstream
