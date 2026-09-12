@@ -105,6 +105,7 @@ export function BlamePanel({ target }: { target: BlameTarget }) {
         </Hint>
         <UserRoundSearch className="size-4 shrink-0 text-muted" />
         <span className="min-w-0 flex-1 truncate text-xs">
+          <span className="text-muted">Blame:</span>{' '}
           <span className="font-medium text-foreground">{basename(target.file)}</span>
           {dir && <span className="ml-1.5 text-faint">{dir}</span>}
         </span>

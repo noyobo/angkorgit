@@ -1,6 +1,7 @@
 import type { RemoteInfo } from '@angkorgit/core';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@angkorgit/design-system';
-import { Copy, ExternalLink, Folder, Globe, Pencil } from 'lucide-react';
+import { Clock, Copy, ExternalLink, Folder, Globe, Pencil, UserRoundSearch } from 'lucide-react';
+import { useUi } from '@/features/ui/store';
 import type { ExternalEditor } from '@/features/settings/store';
 import {
   buildFileRemoteUrl,
@@ -65,11 +66,19 @@ export function FileActionsMenu({
 }: FileActionsMenuProps) {
   const ctx: FileActionContext = { repoPath, filePath, source };
   const forgeFileUrl = buildFileRemoteUrl(filePath, remotes, headBranch);
+  const ui = useUi();
 
   return (
     <>
       {children}
       {separatorBefore && <DropdownMenuSeparator />}
+      <DropdownMenuItem onClick={() => ui.openBlame(filePath)}>
+        <UserRoundSearch /> Blame
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => ui.openFileHistory(filePath)}>
+        <Clock /> File history
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => void revealFileAction(ctx)}>
         <Folder /> {getRevealLabel()}
       </DropdownMenuItem>

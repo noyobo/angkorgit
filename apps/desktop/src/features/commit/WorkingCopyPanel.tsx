@@ -30,7 +30,6 @@ import {
   Archive,
   FileText,
   FolderGit2,
-  History,
   Maximize2,
   Minus,
   Plus,
@@ -38,7 +37,6 @@ import {
   Sparkles,
   Trash2,
   Undo2,
-  UserRoundSearch,
   X,
 } from 'lucide-react';
 import {
@@ -122,6 +120,9 @@ const FileRow = memo(function FileRow({
   const conflicted = file.unstaged === 'conflicted';
   const row = (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={file.path}
       data-selected-file-row={selected || undefined}
       title={treeMode ? file.path : undefined}
       className={cn(
@@ -131,6 +132,12 @@ const FileRow = memo(function FileRow({
       style={indent !== undefined ? { paddingLeft: indent } : undefined}
       onClick={(e) => onClick(file, staged, e)}
       onContextMenu={onContextMenu ? (e) => onContextMenu(e, file, staged) : undefined}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(file, staged, e as unknown as React.MouseEvent);
+        }
+      }}
     >
       <Checkbox
         checked={staged}
@@ -1255,14 +1262,6 @@ export function WorkingCopyPanel() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => openEditor(fileMenu.file.path)}>
                   <FileText /> Edit in app
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => useUi.getState().openFileHistory(fileMenu.file.path)}
-                >
-                  <History /> File history
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => useUi.getState().openBlame(fileMenu.file.path)}>
-                  <UserRoundSearch /> Blame
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
