@@ -4,9 +4,9 @@
   "version": "0.12.0",
   "identifier": "dev.angkorgit",
   "build": {
-    "beforeDevCommand": "pnpm dev:vite",
+    "beforeDevCommand": "bun dev:rspack",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "bun build",
     "frontendDist": "../dist"
   },
   "app": {
