@@ -102,6 +102,10 @@ export default defineConfig({
     port: 1420,
     hot: true,
     historyApiFallback: true,
+    // CI/e2e: never let the error overlay steal pointer events from Playwright
+    client: {
+      overlay: process.env.CI ? false : { errors: true, warnings: false },
+    },
     headers: {
       'Access-Control-Allow-Origin': '*',
     },

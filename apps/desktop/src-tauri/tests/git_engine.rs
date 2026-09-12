@@ -603,8 +603,7 @@ fn delete_local_and_remote_removes_both_and_refuses_while_checked_out() {
     core::checkout_branch(local.path(), "origin/feature").unwrap();
 
     let err = core::branch_delete_local_and_remote(local.path(), "feature", "origin", "feature")
-        .err()
-        .expect("deleting the checked-out branch must fail");
+        .expect_err("deleting the checked-out branch must fail");
     assert!(err.to_string().contains("checked out"));
     assert!(core::branches(origin.path())
         .unwrap()
