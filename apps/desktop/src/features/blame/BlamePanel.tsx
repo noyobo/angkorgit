@@ -16,7 +16,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
 import { Copy, GitCommitHorizontal, History, UserRoundSearch, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/Avatar';
 import { ipc } from '@/core/ipc';
@@ -109,14 +109,14 @@ export function BlamePanel({ target }: { target: BlameTarget }) {
           {dir && <span className="ml-1.5 text-faint">{dir}</span>}
         </span>
         {rev ? (
-          <>
+          <Fragment>
             <Badge tone="info" className="font-mono">
               at {rev.slice(0, 7)}
             </Badge>
             <Button variant="ghost" size="sm" onClick={() => openBlame(target.file, null)}>
               Back to working copy
             </Button>
-          </>
+          </Fragment>
         ) : (
           <Badge>Working copy</Badge>
         )}

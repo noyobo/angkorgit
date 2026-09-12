@@ -41,7 +41,16 @@ import {
   UserRoundSearch,
   X,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/components/confirm';
 import { FileFilterInput } from '@/components/FileFilterInput';
@@ -957,9 +966,9 @@ export function WorkingCopyPanel() {
             <Spinner className="size-5" />
           </div>
         ) : (
-          <>
+          <Fragment>
             {conflicts.length > 0 && (
-              <>
+              <Fragment>
                 <div className="mb-1 flex items-center justify-between px-2">
                   <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-danger">
                     <AlertTriangle className="size-3.5" />
@@ -1010,7 +1019,7 @@ export function WorkingCopyPanel() {
                     </button>
                   ))}
                 </div>
-              </>
+              </Fragment>
             )}
             <div className="mb-1 flex items-center justify-between px-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -1144,7 +1153,7 @@ export function WorkingCopyPanel() {
                 renderRow={renderStaged}
               />
             )}
-          </>
+          </Fragment>
         )}
       </div>
 
@@ -1155,7 +1164,7 @@ export function WorkingCopyPanel() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
             {menuMulti ? (
-              <>
+              <Fragment>
                 <DropdownMenuLabel>{menuMulti.paths.length} files selected</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => void stageMany(menuMulti.paths, menuMulti.staged)}>
                   {menuMulti.staged ? <Minus /> : <Plus />}
@@ -1177,9 +1186,9 @@ export function WorkingCopyPanel() {
                 >
                   <Trash2 /> Discard changes in {menuMulti.paths.length} files…
                 </DropdownMenuItem>
-              </>
+              </Fragment>
             ) : (
-              <>
+              <Fragment>
                 <DropdownMenuLabel className="max-w-64 truncate font-mono">
                   {fileMenu.file.path}
                 </DropdownMenuLabel>
@@ -1192,7 +1201,7 @@ export function WorkingCopyPanel() {
                   headBranch={repo?.headBranch ?? null}
                 >
                   {fileMenu.file.isSubmodule && (
-                    <>
+                    <Fragment>
                       <DropdownMenuItem
                         onClick={() => {
                           const subPath = `${path}/${fileMenu.file.path}`;
@@ -1202,12 +1211,12 @@ export function WorkingCopyPanel() {
                         <FolderGit2 /> Open submodule
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                    </>
+                    </Fragment>
                   )}
                 </FileActionsMenu>
                 <DropdownMenuSeparator />
                 {fileMenu.staged ? (
-                  <>
+                  <Fragment>
                     <DropdownMenuItem
                       onClick={() =>
                         void run(() => ipc.unstageFile(path, fileMenu.file.path), 'Unstage failed')
@@ -1221,9 +1230,9 @@ export function WorkingCopyPanel() {
                     >
                       <Trash2 /> Discard changes…
                     </DropdownMenuItem>
-                  </>
+                  </Fragment>
                 ) : (
-                  <>
+                  <Fragment>
                     <DropdownMenuItem
                       onClick={() =>
                         void run(() => ipc.stageFile(path, fileMenu.file.path), 'Stage failed')
@@ -1234,7 +1243,7 @@ export function WorkingCopyPanel() {
                     <DropdownMenuItem destructive onClick={() => requestDiscard(fileMenu.file)}>
                       <Trash2 /> Discard changes…
                     </DropdownMenuItem>
-                  </>
+                  </Fragment>
                 )}
                 <DropdownMenuItem
                   onClick={() =>
@@ -1293,7 +1302,7 @@ export function WorkingCopyPanel() {
                 >
                   <Trash2 /> Delete file…
                 </DropdownMenuItem>
-              </>
+              </Fragment>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
