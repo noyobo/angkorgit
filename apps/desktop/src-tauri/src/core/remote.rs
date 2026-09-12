@@ -437,7 +437,7 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
     prime_account_bindings(Some(&repo));
     let mut remote = repo.find_remote(remote_name)?;
     
-    let mut received_objects = 0u32;
+    let mut received_objects = 0usize;
     let mut callbacks = make_callbacks();
     callbacks.transfer_progress(|stats| {
         received_objects = stats.received_objects();
@@ -468,7 +468,7 @@ pub fn fetch(path: &str, remote_name: &str, tags: bool, prune: bool) -> AppResul
 }
 
 pub fn pull(path: &str, remote_name: &str) -> AppResult<OpOutcome> {
-    let repo = super::repo::open(path)?;
+    let mut repo = super::repo::open(path)?;
     
     let config = repo.config()?;
     let rebase = config
