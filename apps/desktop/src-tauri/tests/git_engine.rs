@@ -2886,7 +2886,7 @@ fn pull_branch_for_non_head_fast_forwards_without_autostash() {
 fn blame_file_basic() {
     let repo = TempRepo::new();
     repo.write("file.txt", "line 1\nline 2\nline 3\n");
-    repo.commit("Initial commit");
+    commit_all(&repo, "Initial commit");
 
     let blame = core::blame_file(repo.path(), "file.txt", None).unwrap();
 
@@ -2912,15 +2912,15 @@ fn blame_file_multiple_commits() {
 
     // First commit
     repo.write("file.txt", "line 1\nline 2\nline 3\n");
-    repo.commit("First commit");
+    commit_all(&repo, "First commit");
 
     // Second commit - modify line 2
     repo.write("file.txt", "line 1\nline 2 modified\nline 3\n");
-    repo.commit("Second commit");
+    commit_all(&repo, "Second commit");
 
     // Third commit - add line 4
     repo.write("file.txt", "line 1\nline 2 modified\nline 3\nline 4\n");
-    repo.commit("Third commit");
+    commit_all(&repo, "Third commit");
 
     let blame = core::blame_file(repo.path(), "file.txt", None).unwrap();
 
@@ -2954,12 +2954,11 @@ fn blame_file_at_specific_commit() {
 
     // First commit
     repo.write("file.txt", "line 1\nline 2\n");
-    repo.commit("First commit");
-    let first_oid = repo.head_oid();
+    let first_oid = commit_all(&repo, "First commit");
 
     // Second commit
     repo.write("file.txt", "line 1\nline 2\nline 3\n");
-    repo.commit("Second commit");
+    commit_all(&repo, "Second commit");
 
     // Blame at first commit (should only have 2 lines)
     let blame = core::blame_file(repo.path(), "file.txt", Some(&first_oid)).unwrap();
@@ -2977,7 +2976,7 @@ fn blame_file_working_copy_with_uncommitted_changes() {
 
     // Committed content
     repo.write("file.txt", "line 1\nline 2\n");
-    repo.commit("Initial commit");
+    commit_all(&repo, "Initial commit");
 
     // Uncommitted changes
     repo.write("file.txt", "line 1\nline 2 modified\nline 3 new\n");
@@ -3000,7 +2999,7 @@ fn blame_file_working_copy_with_uncommitted_changes() {
 fn blame_file_nonexistent_file() {
     let repo = TempRepo::new();
     repo.write("other.txt", "content\n");
-    repo.commit("Initial commit");
+    commit_all(&repo, "Initial commit");
 
     let result = core::blame_file(repo.path(), "nonexistent.txt", None);
     assert!(result.is_err());
@@ -3015,7 +3014,7 @@ fn blame_file_binary_file() {
         b"\x00\x01\x02\x03\xFF\xFE",
     )
     .unwrap();
-    repo.commit("Add binary file");
+    commit_all(&repo, "Add binary file");
 
     let result = core::blame_file(repo.path(), "binary.bin", None);
     // Should error on binary files
@@ -3029,7 +3028,7 @@ fn blame_file_large_file_rejected() {
     // Create a file larger than 5MB
     let large_content = "x".repeat(6 * 1024 * 1024); // 6MB
     repo.write("large.txt", &large_content);
-    repo.commit("Add large file");
+    commit_all(&repo, "Add large file");
 
     let result = core::blame_file(repo.path(), "large.txt", None);
 
@@ -3047,7 +3046,7 @@ fn blame_file_large_file_rejected() {
 fn blame_file_invalid_revision() {
     let repo = TempRepo::new();
     repo.write("file.txt", "content\n");
-    repo.commit("Initial commit");
+    commit_all(&repo, "Initial commit");
 
     // Test with invalid OID
     let result = core::blame_file(repo.path(), "file.txt", Some("invalid-oid"));
@@ -3066,7 +3065,7 @@ fn blame_file_invalid_revision() {
 fn blame_file_empty_file() {
     let repo = TempRepo::new();
     repo.write("empty.txt", "");
-    repo.commit("Add empty file");
+    commit_all(&repo, "Add empty file");
 
     let blame = core::blame_file(repo.path(), "empty.txt", None).unwrap();
 
@@ -3079,7 +3078,7 @@ fn blame_file_empty_file() {
 fn blame_file_single_line() {
     let repo = TempRepo::new();
     repo.write("single.txt", "only one line\n");
-    repo.commit("Add single line file");
+    commit_all(&repo, "Add single line file");
 
     let blame = core::blame_file(repo.path(), "single.txt", None).unwrap();
 
@@ -3104,7 +3103,7 @@ fn blame_file_preserves_line_content() {
                    special: !@#$%^&*()\n\
                    unicode: 你好世界 🎉\n";
     repo.write("content.txt", content);
-    repo.commit("Add content");
+    commit_all(&repo, "Add content");
 
     let blame = core::blame_file(repo.path(), "content.txt", None).unwrap();
 
