@@ -1,4 +1,4 @@
-name: Sync upstream/main
+name: Sync upstream-main
 
 on:
   schedule:
@@ -17,10 +17,10 @@ jobs:
     name: Mirror cheat2001/angkorgit main
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout upstream/main
+      - name: Checkout upstream-main
         uses: actions/checkout@v4
         with:
-          ref: upstream/main
+          ref: upstream-main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -41,6 +41,6 @@ jobs:
             exit 0
           fi
 
-          echo "Updating upstream/main: $current → $target"
+          echo "Updating upstream-main: $current → $target"
           git reset --hard "$target"
-          git push --force origin HEAD:refs/heads/upstream/main
+          git push --force origin HEAD:refs/heads/upstream-main
