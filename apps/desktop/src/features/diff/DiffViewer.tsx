@@ -240,7 +240,7 @@ export function DiffViewer({
   }
 
   return (
-    <div>
+    <div className="select-text">
       {diff.hunks.map((hunk, i) => {
         const props: HunkProps = {
           hunk,

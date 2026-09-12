@@ -5,7 +5,10 @@ import { Fragment } from 'react';
 export function AiText({ text, className }: { text: string; className?: string }) {
   return (
     <div
-      className={cn('min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] font-sans', className)}
+      className={cn(
+        'min-w-0 select-text whitespace-pre-wrap [overflow-wrap:anywhere] font-sans',
+        className,
+      )}
     >
       {parseAiTextSegments(text).map((segment, index) => {
         if (segment.kind === 'bold') {
