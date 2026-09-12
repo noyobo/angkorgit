@@ -184,6 +184,12 @@ pub struct FileStatus {
     pub orig_path: Option<String>,
     pub staged: Option<String>,
     pub unstaged: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_submodule: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submodule_pointer_changed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submodule_has_changes: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -254,6 +260,7 @@ pub struct ConflictFile {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct OpOutcome {
     pub status: String, // "ok" | "conflicts" | "up_to_date" | "fast_forward"
     pub message: String,

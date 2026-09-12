@@ -328,6 +328,29 @@ pub fn commit_file_diff(
     })
 }
 
+pub fn range_diff(
+    path: &str,
+    from_oid: &str,
+    to_oid: &str,
+    context_lines: u32,
+) -> AppResult<Vec<FileDiff>> {
+    let repo = super::repo::open(path)?;
+    let from_commit = repo.find_commit(git2::Oid::from_str(from_oid)?)?;
+    let to_commit = repo.find_commit(git2::Oid::from_str(to_oid)?)?;
+    let from_tree = from_commit.tree()?;
+    let to_tree = to_commit.tree()?;
+
+    let mut opts = base_opts(None, context_lines);
+    let diff = repo.diff_tree_to_tree(Some(&from_tree), Some(&to_tree), Some(&mut opts))?;
+
+    let count = diff.deltas().len();
+    let mut result = Vec::with_capacity(count);
+    for i in 0..count {
+        result.push(file_diff_from(&repo, &diff, i, false)?);
+    }
+    Ok(result)
+}
+
 pub fn staged_patch_text(path: &str) -> AppResult<String> {
     let repo = super::repo::open(path)?;
     let diff = make_diff(&repo, DiffTarget::Staged, None, 3)?;

@@ -59,11 +59,7 @@ pub fn list(path: &str) -> AppResult<Vec<BranchInfo>> {
 fn configured_upstream(repo: &Repository, name: &str) -> Option<String> {
     if let Ok(buf) = repo.branch_upstream_name(&format!("refs/heads/{name}")) {
         if let Some(raw) = buf.as_str() {
-            return Some(
-                raw.strip_prefix("refs/remotes/")
-                    .unwrap_or(raw)
-                    .to_string(),
-            );
+            return Some(raw.strip_prefix("refs/remotes/").unwrap_or(raw).to_string());
         }
     }
     let config = repo.config().ok()?;
@@ -90,6 +86,10 @@ pub fn create(path: &str, name: &str, from_oid: Option<&str>, checkout: bool) ->
 }
 
 pub fn delete(path: &str, name: &str, remote: bool) -> AppResult<()> {
+    delete_with_force(path, name, remote, false)
+}
+
+pub fn delete_with_force(path: &str, name: &str, remote: bool, force: bool) -> AppResult<()> {
     let repo = super::repo::open(path)?;
     let kind = if remote {
         BranchType::Remote
@@ -97,6 +97,33 @@ pub fn delete(path: &str, name: &str, remote: bool) -> AppResult<()> {
         BranchType::Local
     };
     let mut branch = repo.find_branch(name, kind)?;
+
+    if !force && !remote {
+        let branch_oid = branch
+            .get()
+            .target()
+            .ok_or_else(|| AppError::other("branch has no target"))?;
+
+        let is_merged = if let Ok(head) = repo.head() {
+            if let Some(head_oid) = head.target() {
+                branch_oid == head_oid
+                    || repo
+                        .graph_descendant_of(head_oid, branch_oid)
+                        .unwrap_or(false)
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if !is_merged {
+            return Err(AppError::other(format!(
+                "branch '{name}' is not fully merged — use force delete if you're sure"
+            )));
+        }
+    }
+
     branch.delete()?;
     Ok(())
 }
@@ -121,10 +148,13 @@ pub fn delete_local_and_remote(
     refuse_if_checked_out_elsewhere(&repo, name)?;
     drop(repo);
 
-    super::remote::push_delete(path, remote, &format!("refs/heads/{remote_branch}"))?;
+    let git_ref = format!("refs/heads/{remote_branch}");
+    if super::remote::remote_has_ref(path, remote, &git_ref)? {
+        super::remote::push_delete(path, remote, &git_ref)?;
+    }
     let tracking = format!("{remote}/{remote_branch}");
     let _ = delete(path, &tracking, true);
-    delete(path, name, false)?;
+    delete_with_force(path, name, false, true)?;
     Ok(OpOutcome {
         status: "ok".into(),
         message: format!("Deleted {name} and {remote}/{remote_branch}"),
@@ -649,6 +679,71 @@ pub fn reset(path: &str, oid: &str, mode: &str) -> AppResult<()> {
         "soft" => ResetType::Soft,
         "mixed" => ResetType::Mixed,
         "hard" => ResetType::Hard,
+        "keep" => {
+            let head = repo.head()?.peel_to_commit()?;
+            let target = obj.peel_to_commit()?;
+
+            let mut opts = git2::StatusOptions::new();
+            opts.include_untracked(false).include_ignored(false);
+            let statuses = repo.statuses(Some(&mut opts))?;
+
+            for entry in statuses.iter() {
+                let status = entry.status();
+                if status.is_wt_modified() || status.is_wt_deleted() {
+                    let path = entry.path().unwrap_or("");
+                    let head_entry = head.tree()?.get_path(std::path::Path::new(path)).ok();
+                    let target_entry = target.tree()?.get_path(std::path::Path::new(path)).ok();
+
+                    if head_entry.map(|e| e.id()) != target_entry.map(|e| e.id()) {
+                        return Err(AppError::other(format!(
+                            "Cannot reset --keep: local changes to '{}' would be overwritten",
+                            path
+                        )));
+                    }
+                }
+            }
+
+            let head_tree = head.tree()?;
+            let target_tree = target.tree()?;
+            let mut paths = Vec::new();
+            let diff = repo.diff_tree_to_tree(Some(&head_tree), Some(&target_tree), None)?;
+            diff.foreach(
+                &mut |delta, _| {
+                    if let Some(path) = delta.new_file().path().or_else(|| delta.old_file().path())
+                    {
+                        paths.push(path.to_path_buf());
+                    }
+                    true
+                },
+                None,
+                None,
+                None,
+            )?;
+
+            repo.reset(&obj, ResetType::Mixed, None)?;
+            let workdir = repo
+                .workdir()
+                .ok_or_else(|| AppError::other("repository has no working directory"))?;
+            let mut checkout = CheckoutBuilder::new();
+            checkout.force();
+            for path in &paths {
+                let target_has = target_tree.get_path(path).is_ok();
+                if target_has {
+                    checkout.path(path);
+                } else {
+                    let abs = workdir.join(path);
+                    if abs.is_file() || abs.is_symlink() {
+                        let _ = std::fs::remove_file(&abs);
+                    } else if abs.is_dir() {
+                        let _ = std::fs::remove_dir_all(&abs);
+                    }
+                }
+            }
+            if paths.iter().any(|path| target_tree.get_path(path).is_ok()) {
+                repo.checkout_tree(&obj, Some(&mut checkout))?;
+            }
+            return Ok(());
+        }
         _ => return Err(AppError::other(format!("unknown reset mode: {mode}"))),
     };
     repo.reset(&obj, kind, None)?;

@@ -121,6 +121,9 @@ export interface FileStatus {
   origPath: string | null;
   staged: FileStatusKind | null;
   unstaged: FileStatusKind | null;
+  isSubmodule?: boolean;
+  submodulePointerChanged?: boolean;
+  submoduleHasChanges?: boolean;
 }
 
 export interface StatusSummary {
