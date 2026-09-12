@@ -36,9 +36,9 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.1.14",
-    "@rspack/core": "^1.1.14",
-    "@rspack/plugin-react-refresh": "^1.1.14",
+    "@rspack/cli": "^2.0.0",
+    "@rspack/core": "^2.0.0",
+    "@rspack/plugin-react-refresh": "^2.0.0",
     "@tauri-apps/cli": "^2.1.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
