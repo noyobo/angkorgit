@@ -38,6 +38,17 @@ pub fn blame_file(path: &str, file: &str, rev: Option<&str>) -> AppResult<FileBl
         None => None,
     };
     let content = file_content(&repo, file, newest)?;
+
+    // Empty files have no lines to blame
+    if content.is_empty() {
+        return Ok(FileBlame {
+            path: file.to_string(),
+            rev: newest.map(|oid| oid.to_string()),
+            lines: Vec::new(),
+            hunks: Vec::new(),
+        });
+    }
+
     if content.len() > MAX_BLAME_BYTES {
         return Err(AppError::other(format!(
             "{file} is too large to blame ({} MB)",
