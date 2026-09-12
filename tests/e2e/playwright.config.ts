@@ -9,7 +9,7 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
   },
   webServer: {
-    command: 'bun run --filter @angkorgit/desktop dev',
+    command: 'bun --filter @angkorgit/desktop dev',
     url: 'http://localhost:1420',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

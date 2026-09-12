@@ -1,6 +1,6 @@
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
-import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -84,11 +84,11 @@ export default defineConfig({
     ],
   },
   plugins: [
-    new rspack.HtmlPlugin({
+    new rspack.HtmlRspackPlugin({
       template: './index.html',
       filename: 'index.html',
     }),
-    isDev && new ReactRefreshPlugin(),
+    isDev && new ReactRefreshRspackPlugin(),
     new rspack.DefinePlugin({
       __GIT_HASH__: JSON.stringify(getGitHash()),
       'process.env.VITE_DEV': JSON.stringify(isDev ? 'true' : 'false'),
