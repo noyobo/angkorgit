@@ -208,6 +208,31 @@ export function TerminalPanel() {
     return panel.contains(active);
   };
 
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const updateFocusState = () => {
+      if (isFocused()) {
+        panel.setAttribute('data-terminal-focused', 'true');
+      } else {
+        panel.removeAttribute('data-terminal-focused');
+      }
+    };
+
+    const onFocus = () => updateFocusState();
+    const onBlur = () => updateFocusState();
+
+    panel.addEventListener('focusin', onFocus);
+    panel.addEventListener('focusout', onBlur);
+    updateFocusState();
+
+    return () => {
+      panel.removeEventListener('focusin', onFocus);
+      panel.removeEventListener('focusout', onBlur);
+    };
+  }, []);
+
   const tabShortcuts = Array.from({ length: 9 }, (_, i) => ({
     combo: `mod+${i + 1}`,
     handler: () => {

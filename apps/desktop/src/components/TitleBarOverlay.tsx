@@ -17,6 +17,11 @@ function overlayBlocksTabs(): boolean {
   return Boolean(ui.dialog || ui.paletteOpen || ui.conflictFile);
 }
 
+function terminalPanelHasFocus(): boolean {
+  if (typeof document === 'undefined') return false;
+  return !!document.querySelector('[data-terminal-focused="true"]');
+}
+
 function activate(path: string) {
   if (path === useRepo.getState().repo?.path) return;
   void useRepo
@@ -52,7 +57,7 @@ export function TitleBarOverlay() {
       Array.from({ length: 9 }, (_, i) => ({
         combo: `mod+${i + 1}`,
         handler: () => {
-          if (overlayBlocksTabs()) return;
+          if (overlayBlocksTabs() || terminalPanelHasFocus()) return;
           const path = useUi.getState().repoTabs[i];
           if (path) activate(path);
         },
@@ -71,7 +76,7 @@ export function TitleBarOverlay() {
       setShowHints(false);
     };
     const onDown = (event: KeyboardEvent) => {
-      if (overlayBlocksTabs()) {
+      if (overlayBlocksTabs() || terminalPanelHasFocus()) {
         hide();
         return;
       }
@@ -80,7 +85,7 @@ export function TitleBarOverlay() {
         if (timer !== undefined) return;
         timer = setTimeout(() => {
           timer = undefined;
-          if (!overlayBlocksTabs()) setShowHints(true);
+          if (!overlayBlocksTabs() && !terminalPanelHasFocus()) setShowHints(true);
         }, TAB_HINT_DELAY_MS);
         return;
       }
