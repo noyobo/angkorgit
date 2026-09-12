@@ -9,6 +9,7 @@ import { ProfilePromptHost } from '@/components/profilePrompt';
 import { StaleLocalsHost } from '@/components/staleLocalsDialog';
 import { DeleteBranchesHost } from '@/components/deleteBranchesDialog';
 import { RecentReposDialog } from '@/components/RecentReposDialog';
+import { SwitchBranchPanel } from '@/components/SwitchBranchPanel';
 import { PanelsDialog } from '@/components/PanelsDialog';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WelcomePage } from '@/features/repository/WelcomePage';
@@ -197,6 +198,7 @@ export function App() {
         <StaleLocalsHost />
         <DeleteBranchesHost />
         <RecentReposDialog />
+        <SwitchBranchPanel />
         <PanelsDialog />
       </MemoryRouter>
       <Toaster

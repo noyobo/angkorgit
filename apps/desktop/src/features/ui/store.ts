@@ -91,6 +91,7 @@ interface UiState {
   terminalOpen: boolean;
   paletteOpen: boolean;
   recentReposOpen: boolean;
+  branchSwitcherOpen: boolean;
   panelsOpen: boolean;
   dialog: DialogKind;
   dialogContext: DialogContext;
@@ -112,7 +113,6 @@ interface UiState {
   inspectorFocusSeq: number;
   graphFocusSeq: number;
   commitSummaryFocusSeq: number;
-  branchSwitcherOpenSeq: number;
   sidebarSections: Record<string, boolean>;
   sidebarCollapseEpoch: number;
   commitBoxHeight: number | null;
@@ -125,8 +125,8 @@ interface UiState {
   toggleTerminal: () => void;
   setPaletteOpen: (open: boolean) => void;
   setRecentReposOpen: (open: boolean) => void;
+  setBranchSwitcherOpen: (open: boolean) => void;
   setPanelsOpen: (open: boolean) => void;
-  openBranchSwitcher: () => void;
   openDialog: (dialog: DialogKind, context?: DialogContext) => void;
   closeDialog: () => void;
   setDiffView: (mode: DiffViewMode) => void;
@@ -187,6 +187,7 @@ export const useUi = create<UiState>()(
   terminalOpen: false,
   paletteOpen: false,
   recentReposOpen: false,
+  branchSwitcherOpen: false,
   panelsOpen: false,
   dialog: null,
   dialogContext: null,
@@ -208,7 +209,6 @@ export const useUi = create<UiState>()(
   inspectorFocusSeq: 0,
   graphFocusSeq: 0,
   commitSummaryFocusSeq: 0,
-  branchSwitcherOpenSeq: 0,
   sidebarSections: {},
   sidebarCollapseEpoch: 0,
   commitBoxHeight: null,
@@ -221,8 +221,8 @@ export const useUi = create<UiState>()(
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setRecentReposOpen: (recentReposOpen) => set({ recentReposOpen }),
+  setBranchSwitcherOpen: (branchSwitcherOpen) => set({ branchSwitcherOpen }),
   setPanelsOpen: (panelsOpen) => set({ panelsOpen }),
-  openBranchSwitcher: () => set((s) => ({ branchSwitcherOpenSeq: s.branchSwitcherOpenSeq + 1 })),
   openDialog: (dialog, context = null) => {
     captureDialogFocus();
     set({ dialog, dialogContext: context });

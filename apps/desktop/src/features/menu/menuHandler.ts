@@ -127,7 +127,7 @@ export async function handleMenuEvent(
 
       case 'show-branches':
         if (repo) {
-          ui.openBranchSwitcher();
+          ui.setBranchSwitcherOpen(true);
         }
         break;
 

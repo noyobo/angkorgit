@@ -46,7 +46,6 @@ import {
   pullOperation,
   fetchOperation,
   viewOnRemoteOperation,
-  checkoutOperation,
   type OperationContext,
 } from '@/features/repository/operations';
 import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
@@ -92,7 +91,6 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
 
   const path = repo?.path ?? '';
   const repoState = repo?.state ?? 'clean';
-  const locals = useMemo(() => branches.filter((b) => !b.isRemote && !b.isHead), [branches]);
   const otherRepos = useMemo(() => recents.filter((r) => r.path !== path).slice(0, 8), [recents, path]);
   const nextUndo = useMemo(() => [...undoStack].reverse().find((e) => e.repoPath === path), [undoStack, path]);
   const nextRedo = useMemo(() => [...redoStack].reverse().find((e) => e.repoPath === path), [redoStack, path]);
@@ -166,13 +164,6 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     const matches = q ? files.filter((f) => f.toLowerCase().includes(q)) : files;
     return matches.slice(0, 50);
   }, [mode, files, search]);
-
-  const visibleBranches = useMemo(() => {
-    if (mode !== 'commands') return [];
-    const q = search.trim().toLowerCase();
-    const matches = q ? locals.filter((b) => b.name.toLowerCase().includes(q)) : locals;
-    return matches.slice(0, 100);
-  }, [mode, locals, search]);
 
   const themeChoices = useMemo(() => {
     if (mode !== 'theme') return [];
@@ -433,7 +424,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             }} />
             <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" hint={`${modKey()}B`} onSelect={() => {
               close();
-              useUi.getState().openBranchSwitcher();
+              useUi.getState().setBranchSwitcherOpen(true);
             }} />
             <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} onSelect={enterFileHistory} />
             <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} onSelect={() => {
@@ -662,20 +653,6 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
             ))}
           </Command.Group>
         )}
-
-        <Command.Group heading="Checkout branch">
-          {visibleBranches.map((branch) => (
-            <PaletteItem
-              key={branch.name}
-              icon={<Check />}
-              label={branch.name}
-              onSelect={() => {
-                close();
-                void checkoutOperation(makeContext(), branch.name);
-              }}
-            />
-          ))}
-        </Command.Group>
 
         <Command.Group heading="View">
           <PaletteItem
