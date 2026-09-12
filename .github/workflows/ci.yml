@@ -31,22 +31,29 @@ jobs:
           filters: |
             frontend:
               - 'apps/desktop/src/**'
+              - 'apps/desktop/index.html'
               - 'apps/desktop/package.json'
               - 'apps/desktop/rspack.config.*'
               - 'apps/desktop/tsconfig*'
-              - 'apps/desktop/index.html'
+              - 'apps/desktop/tailwind.config.*'
+              - 'apps/desktop/postcss.config.*'
               - 'packages/**'
               - 'tests/unit/**'
+              - 'tsconfig.base.json'
               - 'package.json'
               - 'bun.lock'
               - 'bun.lockb'
             e2e:
               - 'apps/desktop/src/**'
+              - 'apps/desktop/index.html'
               - 'apps/desktop/package.json'
               - 'apps/desktop/rspack.config.*'
               - 'apps/desktop/tsconfig*'
+              - 'apps/desktop/tailwind.config.*'
+              - 'apps/desktop/postcss.config.*'
               - 'packages/**'
               - 'tests/e2e/**'
+              - 'tsconfig.base.json'
               - 'package.json'
               - 'bun.lock'
               - 'bun.lockb'
@@ -79,23 +86,72 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - run: bun run --filter '!@angkorgit/website' typecheck
       - run: bun run test
       - run: bun --filter @angkorgit/desktop build
+      - name: Upload desktop dist for e2e
+        if: needs.changes.outputs.e2e == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-dist
+          path: apps/desktop/dist
+          retention-days: 1
+          if-no-files-found: error
 
   e2e:
     name: Playwright (demo mode)
-    needs: changes
-    if: needs.changes.outputs.e2e == 'true'
+    needs: [changes, frontend]
+    if: |
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.changes.outputs.e2e == 'true' &&
+      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.ms-playwright
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ${{ github.workspace }}/.ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
+      - name: Download desktop dist
+        id: download-dist
+        if: needs.frontend.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-dist
+          path: apps/desktop/dist
+      - name: Build desktop for e2e
+        if: needs.frontend.result != 'success'
+        run: bun --filter @angkorgit/desktop build
+      - name: Install Playwright Chromium
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            bunx playwright install-deps chromium
+          else
+            bunx playwright install --with-deps chromium
+          fi
       - run: bun run test:e2e
 
   rust:
@@ -120,14 +176,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
+          shared-key: git-engine
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev libdbus-1-dev
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
 
   ci:
     name: CI
