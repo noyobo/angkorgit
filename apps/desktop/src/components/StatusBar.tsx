@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowDown, ArrowUp, Check, Columns3, GitBranch, GitPullRequest, PanelLeft, Pencil, ZoomIn } from 'lucide-react';
+import { Check, Columns3, GitBranch, GitPullRequest, PanelLeft, Pencil, ZoomIn } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import { useForge } from '@/features/forge/store';
 import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
 import { useUi } from '@/features/ui/store';
-import { capCount, currentPullRequestUrl } from '@/shared/utils';
+import { currentPullRequestUrl } from '@/shared/utils';
 import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
 
 const ZOOM_LEVELS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200];
@@ -57,26 +57,6 @@ export function StatusBar() {
         <GitBranch className="size-3 shrink-0" />
         <span className="select-none truncate font-mono">{branch ?? '—'}</span>
       </button>
-      {status && (status.ahead > 0 || status.behind > 0) && (
-        <span className="flex select-none items-center gap-1.5">
-          {status.ahead > 0 && (
-            <Hint label={`${status.ahead} commit${status.ahead === 1 ? '' : 's'} to push`}>
-              <span className="flex items-center gap-0.5 text-success">
-                <ArrowUp className="size-3" />
-                {capCount(status.ahead)}
-              </span>
-            </Hint>
-          )}
-          {status.behind > 0 && (
-            <Hint label={`${status.behind} commit${status.behind === 1 ? '' : 's'} to pull`}>
-              <span className="flex items-center gap-0.5 text-info">
-                <ArrowDown className="size-3" />
-                {capCount(status.behind)}
-              </span>
-            </Hint>
-          )}
-        </span>
-      )}
       <span className={cn('flex select-none items-center gap-1.5', changes > 0 && 'text-primary')}>
         {changes > 0 ? <Pencil className="size-3" /> : <Check className="size-3 text-success" />}
         {changes > 0 ? `${changes} change${changes === 1 ? '' : 's'}` : 'Clean'}

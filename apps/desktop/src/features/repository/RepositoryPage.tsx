@@ -5,7 +5,7 @@ import { useRepo } from './store';
 import { useGraph } from '@/features/graph/store';
 import { useUi } from '@/features/ui/store';
 import { WorkspaceLayout } from '@/features/ui/WorkspaceLayout';
-import { RepoTabs } from '@/components/RepoTabs';
+import { TitleBarOverlay } from '@/components/TitleBarOverlay';
 import { StatusBar } from '@/components/StatusBar';
 import { Toolbar } from '@/components/Toolbar';
 import { InteractiveRebaseDialog } from '@/features/graph/InteractiveRebaseDialog';
@@ -370,7 +370,7 @@ export function RepositoryPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.25 }}
     >
-      <RepoTabs />
+      <TitleBarOverlay />
       <Toolbar onRefresh={refreshAll} />
       <div className="relative min-h-0 flex-1">
         <RepoLoadingOverlay />
