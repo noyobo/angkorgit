@@ -1225,8 +1225,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           <Spinner className="size-6" />
         </div>
       ) : (
-        <Group orientation="vertical" id="angkorgit-conflict" className="min-h-0 flex-1">
-          <Panel defaultSize={60} minSize={25} className="relative">
+        <Group orientation="vertical" id="angkorgit-conflict-v2" className="min-h-0 flex-1">
+          <Panel defaultSize="60%" minSize="25%" className="relative">
             <div ref={topScrollRef} className="relative h-full overflow-y-auto pb-6">
               <div className="sticky top-0 z-10 grid grid-cols-2 border-b border-border-subtle bg-surface">
                 <label className="flex cursor-pointer items-center gap-2 border-r border-t-2 border-border-subtle border-t-info/60 px-3 py-1.5">
@@ -1311,7 +1311,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           <Separator className="group relative h-1.5 shrink-0 cursor-row-resize">
             <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border transition-colors group-hover:bg-primary/60 group-data-[resize-handle-state=drag]:bg-primary" />
           </Separator>
-          <Panel defaultSize={40} minSize={20} className="relative flex flex-col">
+          <Panel defaultSize="40%" minSize="20%" className="relative flex flex-col">
             <div className="flex items-center gap-2 border-b border-border-subtle bg-surface px-3 py-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Result</span>
               {total > 0 && (
