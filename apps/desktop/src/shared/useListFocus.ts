@@ -23,7 +23,7 @@ export function useListFocus<T>({
   const [activeIndex, setActiveIndex] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null!);
 
   // Reset when items or open state changes
   useEffect(() => {

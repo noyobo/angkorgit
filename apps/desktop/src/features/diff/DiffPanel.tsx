@@ -57,7 +57,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const [reloadToken, setReloadToken] = useState(0);
   const loadedKey = useRef<string | null>(null);
   const requestSeq = useRef(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null!);
   const [lineMenu, setLineMenu] = useState<{
     x: number;
     y: number;

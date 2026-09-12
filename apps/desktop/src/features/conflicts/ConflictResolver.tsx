@@ -186,7 +186,7 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   const repo = useRepo((s) => s.repo);
   const conflicts = useRepo((s) => s.conflicts);
   const openConflict = useUi((s) => s.openConflict);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null!);
   useEffect(() => {
     overlayRef.current?.focus({ preventScroll: true });
   }, []);
@@ -210,10 +210,10 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   } | null>(null);
   const blockRefs = useRef(new Map<number, HTMLDivElement>());
   const outputBlockRefs = useRef(new Map<number, HTMLDivElement>());
-  const topScrollRef = useRef<HTMLDivElement>(null);
-  const topListRef = useRef<HTMLDivElement>(null);
-  const outputScrollRef = useRef<HTMLDivElement>(null);
-  const outputListRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null!);
+  const topListRef = useRef<HTMLDivElement>(null!);
+  const outputScrollRef = useRef<HTMLDivElement>(null!);
+  const outputListRef = useRef<HTMLDivElement>(null!);
 
   const path = repo?.path ?? '';
   const repoState = repo?.state;

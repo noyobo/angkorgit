@@ -113,7 +113,7 @@ export function DiffMinimap({
   view: DiffViewMode;
   scrollRef: React.RefObject<HTMLDivElement>;
 }) {
-  const railRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null!);
   const indicatorRef = useRef<HTMLSpanElement>(null);
 
   const rows = useMemo(() => logicalRows(diff, view), [diff, view]);

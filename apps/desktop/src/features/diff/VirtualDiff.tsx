@@ -213,7 +213,7 @@ function LineContent({
   children: React.ReactNode;
 }) {
   const ranges = search?.get(line);
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null!);
   const [marks, setMarks] = useState<MarkRect[]>([]);
 
   useLayoutEffect(() => {
@@ -335,8 +335,8 @@ export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunk
 
   const width = useMemo(() => contentWidth(rowContents(rows)), [rows]);
 
-  const paneRef = useRef<HTMLDivElement>(null);
-  const layerRef = useRef<HTMLDivElement>(null);
+  const paneRef = useRef<HTMLDivElement>(null!);
+  const layerRef = useRef<HTMLDivElement>(null!);
   const panes = useMemo(() => [paneRef], []);
   const layers = useMemo(() => [layerRef], []);
   useHorizontalPan(panes, layers, width);
@@ -548,10 +548,10 @@ export function VirtualSplitDiff(props: CommonProps) {
   const virtualizer = useDiffVirtualizer(props.rows, props.scrollRef);
   const items = virtualizer.getVirtualItems();
   const total = virtualizer.getTotalSize();
-  const paneL = useRef<HTMLDivElement>(null);
-  const paneR = useRef<HTMLDivElement>(null);
-  const layerL = useRef<HTMLDivElement>(null);
-  const layerR = useRef<HTMLDivElement>(null);
+  const paneL = useRef<HTMLDivElement>(null!);
+  const paneR = useRef<HTMLDivElement>(null!);
+  const layerL = useRef<HTMLDivElement>(null!);
+  const layerR = useRef<HTMLDivElement>(null!);
   const panes = useMemo(() => [paneL, paneR], []);
   const layers = useMemo(() => [layerL, layerR], []);
 

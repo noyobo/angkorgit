@@ -72,7 +72,7 @@ function VirtualFileRows({
   scrollRef: React.RefObject<HTMLDivElement>;
   renderRow: (diff: CommitFileInfo) => React.ReactNode;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null!);
   const virtualizer = useVirtualizer({
     count: diffs.length,
     getScrollElement: () => scrollRef.current,
@@ -168,7 +168,7 @@ export function RangeDiffPanel({ fromOid, toOid, fromLabel, toLabel }: RangeDiff
 
   const filtered = useMemo(() => filterFiles(fileInfo, diffPath, filter), [fileInfo, filter]);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null!);
 
   const renderRow = (diff: CommitFileInfo) => {
     const meta = statusMeta[diff.status];
