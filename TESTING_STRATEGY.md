@@ -69,6 +69,91 @@ preload = ["./tests/setup.ts"]
 - `03-conflicts.test.ts` → `tests/unit/components/ConflictResolver.test.tsx`
 - `04-ui-panels.test.ts` → `tests/unit/components/Layout.test.tsx`
 
+## 示例：E2E → 单测迁移
+
+### 示例 1: CommandPalette.test.tsx
+
+```typescript
+import { describe, test, expect } from 'bun:test';
+import { render, screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
+import { App } from '@/app/App';
+
+describe('CommandPalette', () => {
+  test('opens with keyboard shortcut', async () => {
+    render(<App />);
+    
+    const angkorgitRepo = await screen.findByText('angkorgit', { exact: true });
+    await userEvent.click(angkorgitRepo);
+    await screen.findByPlaceholderText('Search commits…');
+    
+    await userEvent.keyboard('{Meta>}k{/Meta}');
+    
+    expect(screen.getByPlaceholderText('Type a command or branch name…')).toBeVisible();
+  });
+
+  test('previews theme and keeps it only on enter', async () => {
+    render(<App />);
+    
+    const angkorgitRepo = await screen.findByText('angkorgit', { exact: true });
+    await userEvent.click(angkorgitRepo);
+    await screen.findByPlaceholderText('Search commits…');
+    
+    const html = document.documentElement;
+    expect(html).toHaveClass(/theme-angkor-dusk/);
+    
+    await userEvent.keyboard('{Meta>}k{/Meta}');
+    const commandInput = screen.getByPlaceholderText('Type a command or branch name…');
+    await userEvent.type(commandInput, 'color theme');
+    await userEvent.click(screen.getByRole('option', { name: 'Color theme' }));
+    
+    const themeSearch = screen.getByPlaceholderText('Search themes…');
+    await userEvent.type(themeSearch, 'dracula');
+    
+    expect(html).toHaveClass(/theme-dracula/);
+    
+    await userEvent.keyboard('{Escape}');
+    
+    expect(html).toHaveClass(/theme-angkor-dusk/);
+    expect(screen.queryByPlaceholderText('Search themes…')).not.toBeInTheDocument();
+  });
+});
+```
+
+### 示例 2: CommitGraph.test.tsx
+
+```typescript
+import { describe, test, expect } from 'bun:test';
+import { render, screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
+import { App } from '@/app/App';
+
+describe('CommitGraph', () => {
+  test('opens demo repository and shows commit graph', async () => {
+    render(<App />);
+    
+    await userEvent.click(await screen.findByText('angkorgit', { exact: true }));
+    await screen.findByPlaceholderText('Search commits…');
+    
+    expect(screen.getByText('main', { exact: true })).toBeVisible();
+    expect(screen.getByText('Working copy')).toBeVisible();
+  });
+
+  test('selecting a commit opens the inspector', async () => {
+    render(<App />);
+    
+    await userEvent.click(await screen.findByText('angkorgit', { exact: true }));
+    await screen.findByPlaceholderText('Search commits…');
+    
+    const firstRow = screen.getAllByRole('row')[0];
+    await userEvent.click(firstRow);
+    
+    const inspector = screen.getByRole('complementary', { name: 'Inspector' });
+    expect(within(inspector).getByLabelText('4 modified')).toBeVisible();
+  });
+});
+```
+
 ### 阶段 3: 清理（10 分钟）
 ```bash
 # 删除 E2E 相关
