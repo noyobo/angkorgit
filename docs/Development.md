@@ -30,7 +30,7 @@
 
 ## Demo mode
 
-`src/core/ipc.ts` detects whether it runs inside Tauri. Outside (plain browser), every command is answered by `src/core/demo.ts` — a deterministic 400-commit synthetic repository with branches, merges, a dirty working copy and a conflict sample. Use it for all UI work; it is also what CI's Playwright job tests.
+`src/core/ipc.ts` detects whether it runs inside Tauri. Outside (plain browser), every command is answered by `src/core/demo.ts` — a deterministic 400-commit synthetic repository with branches, merges, a dirty working copy and a conflict sample. Use it for all UI work; it is also what CI's Playwright job tests. Pull-request CI is opt-in: draft PRs never run, and a ready PR only runs after you add the `ci` label.
 
 ## Working on the Rust engine
 

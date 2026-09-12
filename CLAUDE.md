@@ -1871,7 +1871,10 @@ plugin can be added), and the Homebrew cask.
   `pnpm install:mac` installs. Locally-built apps aren't Gatekeeper-quarantined; shared
   dmg recipients need right-click → Open (unsigned).
 - **CI** (`.github/workflows/ci.yml`): frontend typecheck+unit+build · Playwright ·
-  Rust fmt/clippy/test on ubuntu+macos+windows.
+  Rust fmt/clippy/test on ubuntu+macos+windows. Pushes to `main`/`dev` and
+  `workflow_dispatch` always run. Pull requests do **not** run by default: draft
+  PRs are skipped, and a non-draft PR only runs after the `ci` label is added
+  (that label is the approval gate — remove it to stop further PR runs).
 - **Website** (`.github/workflows/website.yml`): builds the Astro site (re-runs
   `website:images`) and deploys to **GitHub Pages** via `actions/deploy-pages`.
   The install-section version is fetched from the latest GitHub release at build
