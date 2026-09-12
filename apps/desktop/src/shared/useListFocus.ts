@@ -60,7 +60,9 @@ export function useListFocus<T>({
         setFocusedIndex(0);
         setActiveIndex(0);
         // Focus will be handled by the item with tabIndex={0}
-        const firstItem = listRef.current?.querySelector(`[data-list-index="0"]`) as HTMLElement | null;
+        const firstItem = listRef.current?.querySelector(
+          `[data-list-index="0"]`,
+        ) as HTMLElement | null;
         firstItem?.focus();
       } else if (e.key === 'Escape') {
         if (e.currentTarget.value === '' && onClose) {
@@ -79,14 +81,18 @@ export function useListFocus<T>({
         const nextIndex = Math.min(items.length - 1, index + 1);
         setActiveIndex(nextIndex);
         setFocusedIndex(nextIndex);
-        const nextItem = listRef.current?.querySelector(`[data-list-index="${nextIndex}"]`) as HTMLElement | null;
+        const nextItem = listRef.current?.querySelector(
+          `[data-list-index="${nextIndex}"]`,
+        ) as HTMLElement | null;
         nextItem?.focus();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const prevIndex = Math.max(0, index - 1);
         setActiveIndex(prevIndex);
         setFocusedIndex(prevIndex);
-        const prevItem = listRef.current?.querySelector(`[data-list-index="${prevIndex}"]`) as HTMLElement | null;
+        const prevItem = listRef.current?.querySelector(
+          `[data-list-index="${prevIndex}"]`,
+        ) as HTMLElement | null;
         prevItem?.focus();
       } else if (e.key === 'Tab' && !e.shiftKey) {
         e.preventDefault();
@@ -94,7 +100,9 @@ export function useListFocus<T>({
           const nextIndex = index + 1;
           setFocusedIndex(nextIndex);
           setActiveIndex(nextIndex);
-          const nextItem = listRef.current?.querySelector(`[data-list-index="${nextIndex}"]`) as HTMLElement | null;
+          const nextItem = listRef.current?.querySelector(
+            `[data-list-index="${nextIndex}"]`,
+          ) as HTMLElement | null;
           nextItem?.focus();
         }
       } else if (e.key === 'Tab' && e.shiftKey) {
@@ -103,7 +111,9 @@ export function useListFocus<T>({
           const prevIndex = index - 1;
           setFocusedIndex(prevIndex);
           setActiveIndex(prevIndex);
-          const prevItem = listRef.current?.querySelector(`[data-list-index="${prevIndex}"]`) as HTMLElement | null;
+          const prevItem = listRef.current?.querySelector(
+            `[data-list-index="${prevIndex}"]`,
+          ) as HTMLElement | null;
           prevItem?.focus();
         } else {
           // Back to input
@@ -126,7 +136,7 @@ export function useListFocus<T>({
   const getItemProps = useCallback(
     (index: number) => ({
       'data-list-index': index,
-      'tabIndex': focusedIndex === index ? 0 : -1,
+      tabIndex: focusedIndex === index ? 0 : -1,
       'aria-selected': activeIndex === index,
       onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => handleItemKeyDown(e, index),
       onFocus: () => {

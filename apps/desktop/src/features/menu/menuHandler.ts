@@ -1,19 +1,19 @@
 // Frontend menu event handlers
 // Wires native menu clicks to existing UI actions
 
-import { useRepo } from '@/features/repository/store';
-import { useGraph } from '@/features/graph/store';
-import { useUi } from '@/features/ui/store';
-import { killTerminalSession } from '@/features/terminal/sessions';
+import { toast } from 'sonner';
 import { ipc, openExternal } from '@/core/ipc';
+import { logger } from '@/core/logger';
+import { useGraph } from '@/features/graph/store';
 import {
-  pushOperation,
-  pullOperation,
   fetchOperation,
+  pullOperation,
+  pushOperation,
   viewOnRemoteOperation,
 } from '@/features/repository/operations';
-import { toast } from 'sonner';
-import { logger } from '@/core/logger';
+import { useRepo } from '@/features/repository/store';
+import { killTerminalSession } from '@/features/terminal/sessions';
+import { useUi } from '@/features/ui/store';
 
 type MenuEventId =
   | 'about'
@@ -77,9 +77,7 @@ export async function handleMenuEvent(
       case 'install-cli':
         void import('@/features/settings/cliTool').then(({ installCliTool }) =>
           installCliTool().catch((error) =>
-            toast.error(
-              `Could not install: ${(error as { message?: string }).message ?? error}`,
-            ),
+            toast.error(`Could not install: ${(error as { message?: string }).message ?? error}`),
           ),
         );
         break;
@@ -255,14 +253,13 @@ export async function handleMenuEvent(
         break;
 
       case 'delete-branch':
-        void import('@/features/repository/deleteBranches').then(
-          ({ openDeleteBranches }) =>
-            openDeleteBranches(async () => {
-              if (repoPath) {
-                await useRepo.getState().refresh();
-                await useGraph.getState().reload(repoPath);
-              }
-            }),
+        void import('@/features/repository/deleteBranches').then(({ openDeleteBranches }) =>
+          openDeleteBranches(async () => {
+            if (repoPath) {
+              await useRepo.getState().refresh();
+              await useGraph.getState().reload(repoPath);
+            }
+          }),
         );
         break;
 
@@ -310,8 +307,6 @@ export async function handleMenuEvent(
         console.warn('Unhandled menu event:', event);
     }
   } catch (error) {
-    toast.error(
-      `Menu action failed: ${(error as { message?: string }).message ?? error}`,
-    );
+    toast.error(`Menu action failed: ${(error as { message?: string }).message ?? error}`);
   }
 }

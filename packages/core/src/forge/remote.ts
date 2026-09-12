@@ -7,7 +7,10 @@ export interface ParsedRemote {
 }
 
 export function parseRemote(url: string): ParsedRemote | null {
-  const trimmed = url.trim().replace(/\/$/, '').replace(/\.git$/, '');
+  const trimmed = url
+    .trim()
+    .replace(/\/$/, '')
+    .replace(/\.git$/, '');
   const web = trimmed.match(/^(https?):\/\/(?:[^@/]+@)?([^/]+)\/(.+)$/);
   if (web) return { scheme: web[1], host: web[2], path: web[3] };
   const ssh = trimmed.match(/^ssh:\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+)$/);
@@ -75,7 +78,7 @@ export function parseForgeRemote(url: string): ForgeRemote | null {
       ...base,
     };
   }
-  
+
   // Unknown forge: assume standard owner/repo structure
   if (segments.length >= 2) {
     return {
@@ -85,6 +88,6 @@ export function parseForgeRemote(url: string): ForgeRemote | null {
       ...base,
     };
   }
-  
+
   return null;
 }

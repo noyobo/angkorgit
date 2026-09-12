@@ -1,10 +1,10 @@
 import type { HttpClient } from '../../ai/types';
-import type { ForgeRemote } from '../remote';
 import type { ForgeProvider } from '../provider';
+import type { ForgeRemote } from '../remote';
 import { createForgeJsonRequest, pullRequestCheckoutSpec, toUnix } from '../shared';
 import {
-  ForgeError,
   type CreatePullRequestInput,
+  ForgeError,
   type ForgeUser,
   type PullRequestCheckoutSpec,
   type PullRequestInfo,
@@ -49,7 +49,11 @@ export function gitlabForgeProvider(remote: ForgeRemote, http: HttpClient): Forg
 
   const requestJson = createForgeJsonRequest(http, 'gitlab', 'GitLab', gitlabMessage);
 
-  const request = async (method: 'GET' | 'POST', path: string, payload?: unknown): Promise<unknown> => {
+  const request = async (
+    method: 'GET' | 'POST',
+    path: string,
+    payload?: unknown,
+  ): Promise<unknown> => {
     const index = baseIndex();
     try {
       return await requestJson(`${bases[index]}${path}`, method, payload);
@@ -88,7 +92,8 @@ export function gitlabForgeProvider(remote: ForgeRemote, http: HttpClient): Forg
         'GET',
         `/projects/${projectId}/merge_requests?state=opened&order_by=updated_at&sort=desc&per_page=50`,
       )) as GitlabMergeRequest[];
-      if (!Array.isArray(data)) throw new ForgeError('GitLab returned an unexpected response', 'gitlab');
+      if (!Array.isArray(data))
+        throw new ForgeError('GitLab returned an unexpected response', 'gitlab');
       return data.map(mapMergeRequest);
     },
     async defaultBranch(): Promise<string> {
@@ -99,7 +104,13 @@ export function gitlabForgeProvider(remote: ForgeRemote, http: HttpClient): Forg
       const data = (await request(
         'GET',
         `/projects/${projectId}/members/all?per_page=100`,
-      )) as Array<{ id?: number; username?: string; name?: string; avatar_url?: string; state?: string }>;
+      )) as Array<{
+        id?: number;
+        username?: string;
+        name?: string;
+        avatar_url?: string;
+        state?: string;
+      }>;
       if (!Array.isArray(data)) return [];
       return data
         .filter((user) => user.id !== undefined && user.username && user.state !== 'blocked')
@@ -111,7 +122,8 @@ export function gitlabForgeProvider(remote: ForgeRemote, http: HttpClient): Forg
         }));
     },
     async createPullRequest(input: CreatePullRequestInput): Promise<PullRequestInfo> {
-      const title = input.draft && !/^draft:/i.test(input.title) ? `Draft: ${input.title}` : input.title;
+      const title =
+        input.draft && !/^draft:/i.test(input.title) ? `Draft: ${input.title}` : input.title;
       const reviewerIds = (input.reviewerIds ?? [])
         .map((id) => Number(id))
         .filter((id) => Number.isFinite(id));

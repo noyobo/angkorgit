@@ -1,7 +1,7 @@
+import { pickProfile } from '@/components/profilePrompt';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
-import { useSettings, type IdentityProfile } from '@/features/settings/store';
-import { pickProfile } from '@/components/profilePrompt';
+import { type IdentityProfile, useSettings } from '@/features/settings/store';
 
 export function serializeAccountBindings(accounts: Record<string, string> | undefined): string {
   return Object.entries(accounts ?? {})

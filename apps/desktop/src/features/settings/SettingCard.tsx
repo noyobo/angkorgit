@@ -38,7 +38,9 @@ export function SettingCard({
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-medium">{title}</h3>
-          {description && <p className="mt-0.5 text-xs leading-relaxed text-faint">{description}</p>}
+          {description && (
+            <p className="mt-0.5 text-xs leading-relaxed text-faint">{description}</p>
+          )}
         </div>
         {action && <div className="shrink-0">{action}</div>}
       </div>

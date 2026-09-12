@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Command } from 'cmdk';
-import { toast } from 'sonner';
-import { Check, FolderTree, GitBranch } from 'lucide-react';
 import { cn } from '@angkorgit/design-system';
-import { PaletteShell } from './PaletteShell';
-import { useRepo } from '@/features/repository/store';
-import { useUi } from '@/features/ui/store';
+import { Command } from 'cmdk';
+import { Check, FolderTree, GitBranch } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { ipc } from '@/core/ipc';
 import { useGraph } from '@/features/graph/store';
 import { useUndo } from '@/features/history/undoStore';
-import { ipc } from '@/core/ipc';
+import { useRepo } from '@/features/repository/store';
+import { useUi } from '@/features/ui/store';
 import { toastOutcome } from '@/shared/toastOutcome';
 import { formatDate, timeAgo } from '@/shared/utils';
+import { PaletteShell } from './PaletteShell';
 
 export function SwitchBranchPanel() {
   const repo = useRepo((s) => s.repo);
@@ -58,7 +58,9 @@ export function SwitchBranchPanel() {
         .getState()
         .open(held.path)
         .catch((error) =>
-          toast.error(`Could not open ${held.name}: ${(error as { message?: string }).message ?? error}`),
+          toast.error(
+            `Could not open ${held.name}: ${(error as { message?: string }).message ?? error}`,
+          ),
         );
       return;
     }
@@ -77,7 +79,10 @@ export function SwitchBranchPanel() {
           label: opLabel,
           action: () => ipc.checkout(path, name),
         });
-        toastOutcome(result as { status?: string; message?: string } | undefined, `${opLabel} done`);
+        toastOutcome(
+          result as { status?: string; message?: string } | undefined,
+          `${opLabel} done`,
+        );
         await useRepo.getState().refresh();
         await useGraph.getState().reload(path);
       } catch (error) {
@@ -90,13 +95,13 @@ export function SwitchBranchPanel() {
     if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       e.currentTarget.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
       );
     }
     if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       e.currentTarget.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       );
     }
   };

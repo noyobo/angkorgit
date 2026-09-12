@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import { toast } from 'sonner';
+import { create } from 'zustand';
 import { ipc } from '@/core/ipc';
 import { useGraph } from '@/features/graph/store';
 
@@ -30,7 +30,13 @@ export interface UndoEntry {
   extra: Record<string, string>;
 }
 
-const HARD_KINDS: ReadonlySet<UndoKind> = new Set(['merge', 'cherryPick', 'rebase', 'reset', 'revert']);
+const HARD_KINDS: ReadonlySet<UndoKind> = new Set([
+  'merge',
+  'cherryPick',
+  'rebase',
+  'reset',
+  'revert',
+]);
 const HEAD_KINDS: ReadonlySet<UndoKind> = new Set([
   'commit',
   'checkout',
@@ -43,7 +49,11 @@ const HEAD_KINDS: ReadonlySet<UndoKind> = new Set([
 
 async function snapshot(path: string): Promise<Snapshot> {
   const info = await ipc.repoInfo(path);
-  return { headRef: info.headBranch ?? null, headOid: info.headOid ?? null, detached: info.isDetached };
+  return {
+    headRef: info.headBranch ?? null,
+    headOid: info.headOid ?? null,
+    detached: info.isDetached,
+  };
 }
 
 async function headMatches(path: string, expected: Snapshot): Promise<boolean> {
@@ -105,7 +115,8 @@ async function applyTransition(
     }
     case 'branchDelete': {
       const branch = entry.extra.branch;
-      if (direction === 'undo') await ipc.createBranch(path, branch, entry.extra.oid || null, false);
+      if (direction === 'undo')
+        await ipc.createBranch(path, branch, entry.extra.oid || null, false);
       else await ipc.deleteBranch(path, branch, false);
       return;
     }
@@ -167,8 +178,7 @@ export const useUndo = create<UndoState>((set, get) => ({
   undo: async (path) => {
     const entry = get().peekUndo(path);
     if (!entry) return false;
-    const pop = () =>
-      set((s) => ({ undoStack: s.undoStack.filter((e) => e !== entry) }));
+    const pop = () => set((s) => ({ undoStack: s.undoStack.filter((e) => e !== entry) }));
 
     try {
       if (HEAD_KINDS.has(entry.kind) && !(await headMatches(path, entry.after))) {
@@ -198,8 +208,7 @@ export const useUndo = create<UndoState>((set, get) => ({
   redo: async (path) => {
     const entry = get().peekRedo(path);
     if (!entry) return false;
-    const pop = () =>
-      set((s) => ({ redoStack: s.redoStack.filter((e) => e !== entry) }));
+    const pop = () => set((s) => ({ redoStack: s.redoStack.filter((e) => e !== entry) }));
 
     try {
       if (HEAD_KINDS.has(entry.kind) && !(await headMatches(path, entry.before))) {

@@ -1,6 +1,3 @@
-import { useRef } from 'react';
-import { create } from 'zustand';
-import { UserRound } from 'lucide-react';
 import {
   Button,
   Dialog,
@@ -9,7 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@angkorgit/design-system';
-import { useSettings, type IdentityProfile } from '@/features/settings/store';
+import { UserRound } from 'lucide-react';
+import { useRef } from 'react';
+import { create } from 'zustand';
+import { type IdentityProfile, useSettings } from '@/features/settings/store';
 
 interface ProfilePromptState {
   request: { repoName: string; resolve: (value: IdentityProfile | null) => void } | null;

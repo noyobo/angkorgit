@@ -1,12 +1,12 @@
-import { create } from 'zustand';
 import {
   createForgeProvider,
-  parseForgeRemote,
-  pickForgeRemote,
   type ForgeProvider,
   type ForgeRemote,
   type PullRequestInfo,
+  parseForgeRemote,
+  pickForgeRemote,
 } from '@angkorgit/core';
+import { create } from 'zustand';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
 
@@ -43,7 +43,11 @@ const cache = new Map<string, ForgeSnapshot>();
 const inFlight = new Set<string>();
 const keySeq = new Map<string, number>();
 
-const emptySnapshot = (remoteName: string, remoteUrl: string, remote: ForgeRemote | null): ForgeSnapshot => ({
+const emptySnapshot = (
+  remoteName: string,
+  remoteUrl: string,
+  remote: ForgeRemote | null,
+): ForgeSnapshot => ({
   remoteName,
   remoteUrl,
   remote,
@@ -141,7 +145,9 @@ export const useForge = create<ForgeState>((set, get) => ({
       remoteUrl: origin.url,
       remote,
       loading: true,
-      ...(cached ? {} : { prs: [], hasAccount: false, error: null, errorDetail: null, loadedAt: null }),
+      ...(cached
+        ? {}
+        : { prs: [], hasAccount: false, error: null, errorDetail: null, loadedAt: null }),
     });
 
     const stillCurrent = () =>
@@ -164,9 +170,23 @@ export const useForge = create<ForgeState>((set, get) => ({
       const hasAccount = accounts.some((account) => hostMatches(account.host, remote.host));
       let snapshot: ForgeSnapshot;
       if (!hasAccount) {
-        snapshot = { ...base, hasAccount: false, prs: [], error: null, errorDetail: null, loadedAt: Date.now() };
+        snapshot = {
+          ...base,
+          hasAccount: false,
+          prs: [],
+          error: null,
+          errorDetail: null,
+          loadedAt: Date.now(),
+        };
       } else if (outcome.prs) {
-        snapshot = { ...base, hasAccount: true, prs: outcome.prs, error: null, errorDetail: null, loadedAt: Date.now() };
+        snapshot = {
+          ...base,
+          hasAccount: true,
+          prs: outcome.prs,
+          error: null,
+          errorDetail: null,
+          loadedAt: Date.now(),
+        };
       } else {
         const raw = outcome.raw ?? 'request failed';
         snapshot = {

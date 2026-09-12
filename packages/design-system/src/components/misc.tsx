@@ -1,8 +1,8 @@
-import * as React from 'react';
-import * as SwitchPrimitive from '@radix-ui/react-switch';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import * as SelectPrimitive from '@radix-ui/react-select';
+import * as SwitchPrimitive from '@radix-ui/react-switch';
 import { Check, ChevronDown, Loader2, Minus } from 'lucide-react';
+import * as React from 'react';
 import { cn } from '../lib/cn';
 
 export function Badge({
@@ -100,7 +100,11 @@ export const Checkbox = React.forwardRef<
     {...props}
   >
     <CheckboxPrimitive.Indicator className="flex items-center justify-center">
-      {props.checked === 'indeterminate' ? <Minus className="size-3" /> : <Check className="size-3" />}
+      {props.checked === 'indeterminate' ? (
+        <Minus className="size-3" />
+      ) : (
+        <Check className="size-3" />
+      )}
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
 ));

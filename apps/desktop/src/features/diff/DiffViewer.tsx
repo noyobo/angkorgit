@@ -1,10 +1,18 @@
-import { useMemo } from 'react';
 import type { DiffHunk, DiffLine, FileDiff } from '@angkorgit/core';
 import { cn } from '@angkorgit/design-system';
+import { useMemo } from 'react';
 import { useUi } from '@/features/ui/store';
 import { languageOf } from '@/shared/highlight';
-import { CodeLine, gutter, lineBg, pairHunkLines, prepareCommentStates, wrapUnavailable, type SearchRanges } from './diffShared';
-import { flattenDiff, VirtualInlineDiff, VirtualSplitDiff, type LineMenuInfo } from './VirtualDiff';
+import {
+  CodeLine,
+  gutter,
+  lineBg,
+  pairHunkLines,
+  prepareCommentStates,
+  type SearchRanges,
+  wrapUnavailable,
+} from './diffShared';
+import { flattenDiff, type LineMenuInfo, VirtualInlineDiff, VirtualSplitDiff } from './VirtualDiff';
 
 interface HunkProps {
   hunk: DiffHunk;
@@ -98,7 +106,9 @@ function WrappedSplitHunk({ hunk, language, useWordDiff, actions, search }: Hunk
           <div
             className={cn(
               'flex w-1/2 border-r border-border-subtle',
-              pair.left ? lineBg(pair.left.kind === 'context' ? 'context' : 'deletion') : 'bg-surface-raised/40',
+              pair.left
+                ? lineBg(pair.left.kind === 'context' ? 'context' : 'deletion')
+                : 'bg-surface-raised/40',
             )}
             style={searchTint(pair.left, search)}
             data-search-current={isCurrent(pair.left, search)}
@@ -122,7 +132,9 @@ function WrappedSplitHunk({ hunk, language, useWordDiff, actions, search }: Hunk
           <div
             className={cn(
               'flex w-1/2',
-              pair.right ? lineBg(pair.right.kind === 'context' ? 'context' : 'addition') : 'bg-surface-raised/40',
+              pair.right
+                ? lineBg(pair.right.kind === 'context' ? 'context' : 'addition')
+                : 'bg-surface-raised/40',
             )}
             style={searchTint(pair.right, search)}
             data-search-current={isCurrent(pair.right, search)}
@@ -155,13 +167,21 @@ function ImageDiff({ diff }: { diff: FileDiff }) {
     <div className="flex gap-4 p-4">
       {diff.oldImage && (
         <figure className="flex-1 rounded-lg border border-danger/40 bg-surface p-3 text-center">
-          <img src={`data:${mime};base64,${diff.oldImage}`} alt="Previous version" className="mx-auto max-h-72 max-w-full" />
+          <img
+            src={`data:${mime};base64,${diff.oldImage}`}
+            alt="Previous version"
+            className="mx-auto max-h-72 max-w-full"
+          />
           <figcaption className="mt-2 text-xs text-danger">Before</figcaption>
         </figure>
       )}
       {diff.newImage && (
         <figure className="flex-1 rounded-lg border border-success/40 bg-surface p-3 text-center">
-          <img src={`data:${mime};base64,${diff.newImage}`} alt="New version" className="mx-auto max-h-72 max-w-full" />
+          <img
+            src={`data:${mime};base64,${diff.newImage}`}
+            alt="New version"
+            className="mx-auto max-h-72 max-w-full"
+          />
           <figcaption className="mt-2 text-xs text-success">After</figcaption>
         </figure>
       )}
@@ -229,7 +249,11 @@ export function DiffViewer({
           actions: hunkActions?.(i),
           search,
         };
-        return split ? <WrappedSplitHunk key={i} {...props} /> : <WrappedInlineHunk key={i} {...props} />;
+        return split ? (
+          <WrappedSplitHunk key={i} {...props} />
+        ) : (
+          <WrappedInlineHunk key={i} {...props} />
+        );
       })}
     </div>
   );

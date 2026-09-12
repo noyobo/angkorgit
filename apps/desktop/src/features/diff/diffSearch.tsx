@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { CaseSensitive, ChevronDown, ChevronUp, X } from 'lucide-react';
 import type { DiffLine, FileDiff } from '@angkorgit/core';
-import { Button, Hint, Kbd, cn } from '@angkorgit/design-system';
+import { Button, cn, Hint, Kbd } from '@angkorgit/design-system';
+import { CaseSensitive, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useUi } from '@/features/ui/store';
 import type { SearchRange, SearchRanges } from './diffShared';
 import { flattenDiff, HEADER_H, LINE_H, panControllers } from './VirtualDiff';
@@ -110,7 +110,8 @@ export function useDiffFind(diff: FileDiff | null, scrollRef: React.RefObject<HT
   }, [diff]);
 
   const next = () => matches.length > 0 && setCurrent((c) => (c + 1) % matches.length);
-  const prev = () => matches.length > 0 && setCurrent((c) => (c - 1 + matches.length) % matches.length);
+  const prev = () =>
+    matches.length > 0 && setCurrent((c) => (c - 1 + matches.length) % matches.length);
   const close = () => setOpen(false);
 
   const findBar = open ? (
@@ -149,12 +150,26 @@ export function useDiffFind(diff: FileDiff | null, scrollRef: React.RefObject<HT
         </Button>
       </Hint>
       <Hint label="Previous match (⇧↩)">
-        <Button variant="ghost" size="icon-sm" aria-label="Previous match" className="size-6" disabled={matches.length === 0} onClick={prev}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Previous match"
+          className="size-6"
+          disabled={matches.length === 0}
+          onClick={prev}
+        >
           <ChevronUp className="size-3.5" />
         </Button>
       </Hint>
       <Hint label="Next match (↩)">
-        <Button variant="ghost" size="icon-sm" aria-label="Next match" className="size-6" disabled={matches.length === 0} onClick={next}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Next match"
+          className="size-6"
+          disabled={matches.length === 0}
+          onClick={next}
+        >
           <ChevronDown className="size-3.5" />
         </Button>
       </Hint>
@@ -165,7 +180,13 @@ export function useDiffFind(diff: FileDiff | null, scrollRef: React.RefObject<HT
           </span>
         }
       >
-        <Button variant="ghost" size="icon-sm" aria-label="Close search" className="size-6" onClick={close}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Close search"
+          className="size-6"
+          onClick={close}
+        >
           <X className="size-3.5" />
         </Button>
       </Hint>

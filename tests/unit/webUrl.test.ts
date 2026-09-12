@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { webUrl, type WebUrlOptions } from '@angkorgit/core';
+import { type WebUrlOptions, webUrl } from '@angkorgit/core';
 
 describe('webUrl - unified forge URL builder', () => {
   describe('invalid URLs', () => {
@@ -11,7 +11,9 @@ describe('webUrl - unified forge URL builder', () => {
 
     test('returns null for unknown forges requesting PR URLs', () => {
       // Unknown forges return null for PR creation (no known URL pattern)
-      expect(webUrl('https://gitea.example.com/owner/repo.git', { kind: 'pr', branch: 'main' })).toBeNull();
+      expect(
+        webUrl('https://gitea.example.com/owner/repo.git', { kind: 'pr', branch: 'main' }),
+      ).toBeNull();
       expect(webUrl('https://sr.ht/~user/repo', { kind: 'pr', branch: 'main' })).toBeNull();
     });
   });
@@ -31,9 +33,9 @@ describe('webUrl - unified forge URL builder', () => {
       });
 
       test('feature branch with slash', () => {
-        expect(webUrl('git@github.com:user/repo.git', { kind: 'browse', branch: 'feature/foo' })).toBe(
-          'https://github.com/user/repo/tree/feature%2Ffoo',
-        );
+        expect(
+          webUrl('git@github.com:user/repo.git', { kind: 'browse', branch: 'feature/foo' }),
+        ).toBe('https://github.com/user/repo/tree/feature%2Ffoo');
       });
 
       test('scp-style SSH', () => {
@@ -46,7 +48,10 @@ describe('webUrl - unified forge URL builder', () => {
     describe('GitLab', () => {
       test('with subgroups and branch', () => {
         expect(
-          webUrl('https://gitlab.com/group/subgroup/project.git', { kind: 'browse', branch: 'develop' }),
+          webUrl('https://gitlab.com/group/subgroup/project.git', {
+            kind: 'browse',
+            branch: 'develop',
+          }),
         ).toBe('https://gitlab.com/group/subgroup/project/tree/develop');
       });
 
@@ -59,9 +64,9 @@ describe('webUrl - unified forge URL builder', () => {
 
     describe('Bitbucket Cloud', () => {
       test('with branch', () => {
-        expect(webUrl('https://bitbucket.org/user/repo.git', { kind: 'browse', branch: 'main' })).toBe(
-          'https://bitbucket.org/user/repo/branch/main',
-        );
+        expect(
+          webUrl('https://bitbucket.org/user/repo.git', { kind: 'browse', branch: 'main' }),
+        ).toBe('https://bitbucket.org/user/repo/branch/main');
       });
 
       test('without branch', () => {
@@ -78,13 +83,15 @@ describe('webUrl - unified forge URL builder', () => {
             kind: 'browse',
             branch: 'feature/test',
           }),
-        ).toBe('https://bitbucket.company.com/scm/project/repo/browse?at=refs%2Fheads%2Ffeature%2Ftest');
+        ).toBe(
+          'https://bitbucket.company.com/scm/project/repo/browse?at=refs%2Fheads%2Ffeature%2Ftest',
+        );
       });
 
       test('without branch', () => {
-        expect(
-          webUrl('ssh://git@bitbucket.corp.dev/scm/PROJ/repo.git', { kind: 'browse' }),
-        ).toBe('https://bitbucket.corp.dev/scm/PROJ/repo');
+        expect(webUrl('ssh://git@bitbucket.corp.dev/scm/PROJ/repo.git', { kind: 'browse' })).toBe(
+          'https://bitbucket.corp.dev/scm/PROJ/repo',
+        );
       });
     });
 
@@ -187,14 +194,17 @@ describe('webUrl - unified forge URL builder', () => {
     describe('GitHub', () => {
       test('HTTPS remote with feature branch', () => {
         expect(
-          webUrl('https://github.com/cheat2001/angkorgit.git', { kind: 'pr', branch: 'feature/test1' }),
+          webUrl('https://github.com/cheat2001/angkorgit.git', {
+            kind: 'pr',
+            branch: 'feature/test1',
+          }),
         ).toBe('https://github.com/cheat2001/angkorgit/compare/feature%2Ftest1?expand=1');
       });
 
       test('scp-style SSH remote', () => {
-        expect(webUrl('git@github.com:cheat2001/angkorgit.git', { kind: 'pr', branch: 'main' })).toBe(
-          'https://github.com/cheat2001/angkorgit/compare/main?expand=1',
-        );
+        expect(
+          webUrl('git@github.com:cheat2001/angkorgit.git', { kind: 'pr', branch: 'main' }),
+        ).toBe('https://github.com/cheat2001/angkorgit/compare/main?expand=1');
       });
 
       test('ssh:// protocol', () => {

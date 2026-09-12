@@ -1,24 +1,25 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef } from 'react';
-import { Panel, Group, Separator, type PanelImperativeHandle } from 'react-resizable-panels';
 import { cn } from '@angkorgit/design-system';
-import { CommitGraph } from '@/features/graph/CommitGraph';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
+import { Group, Panel, type PanelImperativeHandle, Separator } from 'react-resizable-panels';
 import { DiffPanel } from '@/features/diff/DiffPanel';
 import { RangeDiffPanel } from '@/features/diff/RangeDiffPanel';
 import { EditorPanel } from '@/features/editor/EditorPanel';
+import { CommitGraph } from '@/features/graph/CommitGraph';
 import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
 import { Inspector } from '@/features/inspector/Inspector';
 import { Sidebar } from '@/features/sidebar/Sidebar';
-import { useUi, type CenterDiffTarget, type RangeDiffTarget } from './store';
+import { type CenterDiffTarget, type RangeDiffTarget, useUi } from './store';
 import { workspaceView } from './workspace';
 
 const TerminalPanel = lazy(() =>
   import('@/features/terminal/TerminalPanel').then((m) => ({ default: m.TerminalPanel })),
 );
 
-const SIDEBAR_DEFAULT_SIZE = 18;
-const INSPECTOR_DEFAULT_SIZE = 28;
-const INSPECTOR_MIN_SIZE = 20;
-const DIFF_DOCK_DEFAULT_SIZE = 48;
+// react-resizable-panels v4: numbers are px. `"28"`/`"28%"` = percent.
+const SIDEBAR_DEFAULT_SIZE = '18%';
+const INSPECTOR_DEFAULT_SIZE = '28%';
+const INSPECTOR_MIN_SIZE = '20%';
+const DIFF_DOCK_DEFAULT_SIZE = '48%';
 
 function GraphPane({
   repoPath,
@@ -45,7 +46,12 @@ function GraphPane({
       {centerEditor ? (
         <EditorPanel key={centerEditor} file={centerEditor} />
       ) : rangeDiff ? (
-        <RangeDiffPanel fromOid={rangeDiff.fromOid} toOid={rangeDiff.toOid} fromLabel={rangeDiff.fromLabel} toLabel={rangeDiff.toLabel} />
+        <RangeDiffPanel
+          fromOid={rangeDiff.fromOid}
+          toOid={rangeDiff.toOid}
+          fromLabel={rangeDiff.fromLabel}
+          toLabel={rangeDiff.toLabel}
+        />
       ) : diffInCenter && centerDiff ? (
         <DiffPanel target={centerDiff} />
       ) : (
@@ -136,27 +142,27 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
   if (view.layout === 'preview') {
     return (
       <div className="h-full" data-workspace-layout="preview">
-        <Group orientation="vertical" id="angkorgit-preview-v1">
-          <Panel minSize={30}>
+        <Group orientation="vertical" id="angkorgit-preview-v2">
+          <Panel minSize="30%">
             {view.showDiffDock ? (
-              <Group orientation="horizontal" id="angkorgit-preview-cols-v2">
-                <Panel id="graph" defaultSize={28} minSize={18}>
+              <Group orientation="horizontal" id="angkorgit-preview-cols-v3">
+                <Panel id="graph" defaultSize="28%" minSize="18%">
                   {graph}
                 </Panel>
                 <Separator className={cn('w-px bg-border-subtle', view.focusMode && 'hidden')} />
                 <Panel
                   panelRef={inspectorPanel}
                   id="inspector"
-                  defaultSize={24}
+                  defaultSize="24%"
                   minSize={INSPECTOR_MIN_SIZE}
-                  maxSize={40}
+                  maxSize="40%"
                   collapsible={view.focusMode}
                   collapsedSize={0}
                 >
                   {!view.focusMode && <Inspector />}
                 </Panel>
                 <Separator className="w-px bg-border-subtle" />
-                <Panel id="diff" defaultSize={DIFF_DOCK_DEFAULT_SIZE} minSize={22}>
+                <Panel id="diff" defaultSize={DIFF_DOCK_DEFAULT_SIZE} minSize="22%">
                   <DiffDock target={centerDiff} />
                 </Panel>
               </Group>
@@ -167,7 +173,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
           {terminalOpen && (
             <>
               <Separator className="h-px bg-border-subtle" />
-              <Panel defaultSize={30} minSize={12} maxSize={60}>
+              <Panel defaultSize="30%" minSize="12%" maxSize="60%">
                 <TerminalSlot />
               </Panel>
             </>
@@ -179,26 +185,26 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
 
   return (
     <div className="h-full" data-workspace-layout="standard">
-      <Group orientation="horizontal" id="angkorgit-main-v2">
+      <Group orientation="horizontal" id="angkorgit-main-v3">
         <Panel
           panelRef={sidebarPanel}
           id="sidebar"
           defaultSize={SIDEBAR_DEFAULT_SIZE}
-          minSize={13}
-          maxSize={30}
+          minSize="13%"
+          maxSize="30%"
           collapsible
           collapsedSize={0}
         >
           {view.showSidebar && <Sidebar />}
         </Panel>
         <Separator className={cn('w-px bg-border-subtle', !view.showSidebar && 'hidden')} />
-        <Panel id="center" defaultSize={54} minSize={30}>
-          <Group orientation="vertical" id="angkorgit-center">
-            <Panel minSize={30}>{graph}</Panel>
+        <Panel id="center" defaultSize="54%" minSize="30%">
+          <Group orientation="vertical" id="angkorgit-center-v2">
+            <Panel minSize="30%">{graph}</Panel>
             {terminalOpen && (
               <>
                 <Separator className="h-px bg-border-subtle" />
-                <Panel defaultSize={30} minSize={12} maxSize={60}>
+                <Panel defaultSize="30%" minSize="12%" maxSize="60%">
                   <TerminalSlot />
                 </Panel>
               </>
@@ -211,7 +217,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
           id="inspector"
           defaultSize={INSPECTOR_DEFAULT_SIZE}
           minSize={INSPECTOR_MIN_SIZE}
-          maxSize={45}
+          maxSize="45%"
           collapsible={view.focusMode}
           collapsedSize={0}
         >

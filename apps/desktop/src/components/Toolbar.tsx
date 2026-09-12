@@ -1,29 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { toastOutcome } from '@/shared/toastOutcome';
-import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Check,
-  ChevronDown,
-  Command,
-  GitBranchPlus,
-  Home,
-  PanelLeft,
-  Redo2,
-  RefreshCw,
-  Undo2,
-  Settings,
-  SquareTerminal,
-  Tag,
-  Archive,
-  ArchiveRestore,
-  UserRound,
-} from 'lucide-react';
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -34,27 +12,49 @@ import {
   Kbd,
   Separator,
   Spinner,
-  cn,
 } from '@angkorgit/design-system';
-import { ipc } from '@/core/ipc';
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Check,
+  ChevronDown,
+  Command,
+  GitBranchPlus,
+  Home,
+  PanelLeft,
+  Redo2,
+  RefreshCw,
+  Settings,
+  SquareTerminal,
+  Tag,
+  Undo2,
+  UserRound,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { BranchChip } from '@/components/BranchChip';
 import { confirmDialog } from '@/components/confirm';
 import { RepoMark } from '@/components/RepoMark';
-import { BranchChip } from '@/components/BranchChip';
-import { useRepo } from '@/features/repository/store';
+import { ipc } from '@/core/ipc';
+import { logger } from '@/core/logger';
+import { useUndo } from '@/features/history/undoStore';
+import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
 import { abortMergeFlow } from '@/features/repository/merge';
 import {
-  pushOperation,
-  pullOperation,
   fetchOperation,
   type OperationContext,
+  pullOperation,
+  pushOperation,
 } from '@/features/repository/operations';
-import { sidebarVisible, useUi } from '@/features/ui/store';
-import { useUndo } from '@/features/history/undoStore';
-import { useSettings, type IdentityProfile } from '@/features/settings/store';
+import { useRepo } from '@/features/repository/store';
 import { applyProfileToRepo } from '@/features/settings/profiles';
-import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
+import { type IdentityProfile, useSettings } from '@/features/settings/store';
+import { sidebarVisible, useUi } from '@/features/ui/store';
+import { toastOutcome } from '@/shared/toastOutcome';
 import { capCount, modKey } from '@/shared/utils';
-import { logger } from '@/core/logger';
 
 function RepoSwitcher() {
   const repo = useRepo((s) => s.repo);
@@ -85,7 +85,9 @@ function RepoSwitcher() {
         aria-label="Open recent repositories"
       >
         <RepoMark name={repo.name} size={22} />
-        <span className="select-none text-sm font-semibold leading-tight text-foreground">{repo.name}</span>
+        <span className="select-none text-sm font-semibold leading-tight text-foreground">
+          {repo.name}
+        </span>
       </button>
     </Hint>
   );
@@ -214,8 +216,7 @@ function StateActions({ onRefresh }: { onRefresh: () => Promise<void> }) {
       void logger.click('clear-state', 'toolbar-state-menu');
       const ok = await confirmDialog({
         title: `Clear ${state} state?`,
-        description:
-          `Git still marks this repository as mid-${state}. Clearing removes that marker and keeps every file and commit exactly as it is now. Use this when the ${state} is already finished.`,
+        description: `Git still marks this repository as mid-${state}. Clearing removes that marker and keeps every file and commit exactly as it is now. Use this when the ${state} is already finished.`,
         confirmLabel: 'Clear state',
       });
       if (!ok) return;
@@ -366,7 +367,10 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
     source: 'toolbar-button',
   });
 
-  const run = async (label: string, op: () => Promise<{ status: string; message: string } | void>) => {
+  const run = async (
+    label: string,
+    op: () => Promise<{ status: string; message: string } | void>,
+  ) => {
     if (busy) return;
     void logger.click(label, 'toolbar-button');
     setBusy(label);
@@ -388,10 +392,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
   return (
     <header className="flex h-12 shrink-0 items-center gap-1 border-b border-border-subtle bg-surface px-2">
       <Hint label="Back to repositories">
-        <Button variant="ghost" size="icon" aria-label="Home" onClick={() => {
-          void logger.click('home', 'toolbar-button');
-          navigate('/welcome');
-        }}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Home"
+          onClick={() => {
+            void logger.click('home', 'toolbar-button');
+            navigate('/welcome');
+          }}
+        >
           <Home />
         </Button>
       </Hint>
@@ -446,13 +455,21 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
               void fetchOperation(makeContext()).finally(() => setBusy(null));
             }}
           >
-            <RefreshCw className={busy === 'Fetch' || busy === 'Fetch and clear' ? 'animate-spin' : ''} />
+            <RefreshCw
+              className={busy === 'Fetch' || busy === 'Fetch and clear' ? 'animate-spin' : ''}
+            />
             <span className="select-none">Fetch</span>
           </Button>
         </Hint>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="rounded-l-none" aria-label="Fetch options" disabled={!!busy}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-l-none"
+              aria-label="Fetch options"
+              disabled={!!busy}
+            >
               <ChevronDown className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -462,7 +479,11 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
                 if (busy) return;
                 setBusy('Fetch and clear');
                 const ctx = makeContext();
-                void fetchAndClearLocalBranches(ctx.path, ctx.remotes[0]?.name ?? 'origin', onRefresh).finally(() => setBusy(null));
+                void fetchAndClearLocalBranches(
+                  ctx.path,
+                  ctx.remotes[0]?.name ?? 'origin',
+                  onRefresh,
+                ).finally(() => setBusy(null));
               }}
             >
               Fetch and clear local branches…
@@ -483,7 +504,7 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         <Button
           variant="ghost"
           size="sm"
-            disabled={!!busy}
+          disabled={!!busy}
           onClick={() => {
             if (busy) return;
             setBusy('Pull');
@@ -523,31 +544,52 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
         </Hint>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="rounded-l-none" aria-label="Push options" disabled={!!busy}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="rounded-l-none"
+              aria-label="Push options"
+              disabled={!!busy}
+            >
               <ChevronDown className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem onClick={() => {
-              if (busy) return;
-              setBusy('Push (force)');
-              void pushOperation(makeContext(), { force: true, label: 'Push (force)' }).finally(() => setBusy(null));
-            }} destructive>
+            <DropdownMenuItem
+              onClick={() => {
+                if (busy) return;
+                setBusy('Push (force)');
+                void pushOperation(makeContext(), { force: true, label: 'Push (force)' }).finally(
+                  () => setBusy(null),
+                );
+              }}
+              destructive
+            >
               Force push
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              if (busy) return;
-              setBusy('Push with tags');
-              void pushOperation(makeContext(), { tags: true, label: 'Push with tags' }).finally(() => setBusy(null));
-            }}>
+            <DropdownMenuItem
+              onClick={() => {
+                if (busy) return;
+                setBusy('Push with tags');
+                void pushOperation(makeContext(), { tags: true, label: 'Push with tags' }).finally(
+                  () => setBusy(null),
+                );
+              }}
+            >
               Push with tags
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              if (busy) return;
-              setBusy('Fetch tags');
-              void fetchOperation(makeContext(), { tags: true, prune: false, label: 'Fetch tags' }).finally(() => setBusy(null));
-            }}>
+            <DropdownMenuItem
+              onClick={() => {
+                if (busy) return;
+                setBusy('Fetch tags');
+                void fetchOperation(makeContext(), {
+                  tags: true,
+                  prune: false,
+                  label: 'Fetch tags',
+                }).finally(() => setBusy(null));
+              }}
+            >
               Fetch tags
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -565,18 +607,28 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           </span>
         }
       >
-        <Button variant="ghost" size="icon" aria-label="Create branch" onClick={() => {
-          void logger.click('create-branch', 'toolbar-button');
-          openDialog('createBranch');
-        }}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Create branch"
+          onClick={() => {
+            void logger.click('create-branch', 'toolbar-button');
+            openDialog('createBranch');
+          }}
+        >
           <GitBranchPlus />
         </Button>
       </Hint>
       <Hint label="Create tag">
-        <Button variant="ghost" size="icon" aria-label="Create tag" onClick={() => {
-          void logger.click('create-tag', 'toolbar-button');
-          openDialog('createTag');
-        }}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Create tag"
+          onClick={() => {
+            void logger.click('create-tag', 'toolbar-button');
+            openDialog('createTag');
+          }}
+        >
           <Tag />
         </Button>
       </Hint>
@@ -589,14 +641,25 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
           </span>
         }
       >
-        <Button variant="ghost" size="icon" aria-label="Stash changes" onClick={() => {
-          void logger.click('stash-changes', 'toolbar-button');
-          openDialog('createStash');
-        }}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Stash changes"
+          onClick={() => {
+            void logger.click('stash-changes', 'toolbar-button');
+            openDialog('createStash');
+          }}
+        >
           <Archive />
         </Button>
       </Hint>
-      <Hint label={latestStash ? `Pop latest stash: ${latestStash.message}` : 'Pop latest stash (nothing stashed)'}>
+      <Hint
+        label={
+          latestStash
+            ? `Pop latest stash: ${latestStash.message}`
+            : 'Pop latest stash (nothing stashed)'
+        }
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -622,10 +685,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Command palette" onClick={() => {
-            void logger.click('command-palette', 'toolbar-button');
-            setPaletteOpen(true);
-          }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Command palette"
+            onClick={() => {
+              void logger.click('command-palette', 'toolbar-button');
+              setPaletteOpen(true);
+            }}
+          >
             <Command />
           </Button>
         </Hint>
@@ -637,10 +705,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Toggle terminal" onClick={() => {
-            void logger.click('toggle-terminal', 'toolbar-button');
-            toggleTerminal();
-          }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle terminal"
+            onClick={() => {
+              void logger.click('toggle-terminal', 'toolbar-button');
+              toggleTerminal();
+            }}
+          >
             <SquareTerminal />
           </Button>
         </Hint>
@@ -673,10 +746,15 @@ export function Toolbar({ onRefresh }: { onRefresh: () => Promise<void> }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => {
-            void logger.click('settings', 'toolbar-button');
-            openDialog('settings');
-          }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Settings"
+            onClick={() => {
+              void logger.click('settings', 'toolbar-button');
+              openDialog('settings');
+            }}
+          >
             <Settings />
           </Button>
         </Hint>

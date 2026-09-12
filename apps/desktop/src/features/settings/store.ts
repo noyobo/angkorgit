@@ -1,14 +1,14 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import {
   AI_PROVIDER_PRESETS,
-  DEFAULT_AI_STYLE,
   type AiConfig,
   type AiProviderKind,
   type AiStyleConfig,
   type CommitStyle,
+  DEFAULT_AI_STYLE,
   type ReviewStyle,
 } from '@angkorgit/core';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { ipc, isTauri } from '@/core/ipc';
 
 export type Theme =
@@ -37,22 +37,102 @@ export interface ThemeMeta {
 }
 
 export const THEMES: ThemeMeta[] = [
-  { id: 'dark', label: 'AngKor Dark', base: 'dark', swatch: { bg: '#0d1220', fg: '#e5e9f0', dots: ['#d97706', '#22c55e', '#38bdf8'] } },
-  { id: 'light', label: 'AngKor Light', base: 'light', swatch: { bg: '#f5f7fa', fg: '#1b2437', dots: ['#d97706', '#15803d', '#0369a1'] } },
-  { id: 'angkor-dusk', label: 'Angkor Dusk', base: 'dark', swatch: { bg: '#1e150d', fg: '#eae1d1', dots: ['#e08c16', '#22c55e', '#38bdf8'] } },
-  { id: 'angkor-dawn', label: 'Angkor Dawn', base: 'light', swatch: { bg: '#f3edde', fg: '#31251a', dots: ['#b45f06', '#15803d', '#0369a1'] } },
-  { id: 'vscode-dark', label: 'VS Code Dark+', base: 'dark', swatch: { bg: '#1e1e1e', fg: '#d4d4d4', dots: ['#569cd6', '#ce9178', '#dcdcaa'] } },
-  { id: 'vscode-light', label: 'VS Code Light+', base: 'light', swatch: { bg: '#ffffff', fg: '#333333', dots: ['#0000ff', '#a31515', '#795e26'] } },
-  { id: 'github-dark', label: 'GitHub Dark', base: 'dark', swatch: { bg: '#0d1117', fg: '#c9d1d9', dots: ['#ff7b72', '#a5d6ff', '#d2a8ff'] } },
-  { id: 'github-light', label: 'GitHub Light', base: 'light', swatch: { bg: '#ffffff', fg: '#24292f', dots: ['#cf222e', '#0a3069', '#8250df'] } },
-  { id: 'one-dark-pro', label: 'One Dark Pro', base: 'dark', swatch: { bg: '#282c34', fg: '#abb2bf', dots: ['#c678dd', '#98c379', '#61afef'] } },
-  { id: 'tokyo-night', label: 'Tokyo Night', base: 'dark', swatch: { bg: '#1a1b26', fg: '#c0caf5', dots: ['#bb9af7', '#9ece6a', '#7aa2f7'] } },
-  { id: 'catppuccin-mocha', label: 'Catppuccin Mocha', base: 'dark', swatch: { bg: '#1e1e2e', fg: '#cdd6f4', dots: ['#cba6f7', '#a6e3a1', '#89b4fa'] } },
-  { id: 'catppuccin-latte', label: 'Catppuccin Latte', base: 'light', swatch: { bg: '#eff1f5', fg: '#4c4f69', dots: ['#8839ef', '#40a02b', '#1e66f5'] } },
-  { id: 'dracula', label: 'Dracula', base: 'dark', swatch: { bg: '#282a36', fg: '#f8f8f2', dots: ['#ff79c6', '#f1fa8c', '#50fa7b'] } },
-  { id: 'nord', label: 'Nord', base: 'dark', swatch: { bg: '#2e3440', fg: '#d8dee9', dots: ['#81a1c1', '#a3be8c', '#88c0d0'] } },
-  { id: 'ayu-dark', label: 'Ayu Dark', base: 'dark', swatch: { bg: '#0a0e14', fg: '#b3b1ad', dots: ['#ff8f40', '#c2d94c', '#ffb454'] } },
-  { id: 'ayu-light', label: 'Ayu Light', base: 'light', swatch: { bg: '#fafafa', fg: '#5c6773', dots: ['#fa8d3e', '#86b300', '#399ee6'] } },
+  {
+    id: 'dark',
+    label: 'AngKor Dark',
+    base: 'dark',
+    swatch: { bg: '#0d1220', fg: '#e5e9f0', dots: ['#d97706', '#22c55e', '#38bdf8'] },
+  },
+  {
+    id: 'light',
+    label: 'AngKor Light',
+    base: 'light',
+    swatch: { bg: '#f5f7fa', fg: '#1b2437', dots: ['#d97706', '#15803d', '#0369a1'] },
+  },
+  {
+    id: 'angkor-dusk',
+    label: 'Angkor Dusk',
+    base: 'dark',
+    swatch: { bg: '#1e150d', fg: '#eae1d1', dots: ['#e08c16', '#22c55e', '#38bdf8'] },
+  },
+  {
+    id: 'angkor-dawn',
+    label: 'Angkor Dawn',
+    base: 'light',
+    swatch: { bg: '#f3edde', fg: '#31251a', dots: ['#b45f06', '#15803d', '#0369a1'] },
+  },
+  {
+    id: 'vscode-dark',
+    label: 'VS Code Dark+',
+    base: 'dark',
+    swatch: { bg: '#1e1e1e', fg: '#d4d4d4', dots: ['#569cd6', '#ce9178', '#dcdcaa'] },
+  },
+  {
+    id: 'vscode-light',
+    label: 'VS Code Light+',
+    base: 'light',
+    swatch: { bg: '#ffffff', fg: '#333333', dots: ['#0000ff', '#a31515', '#795e26'] },
+  },
+  {
+    id: 'github-dark',
+    label: 'GitHub Dark',
+    base: 'dark',
+    swatch: { bg: '#0d1117', fg: '#c9d1d9', dots: ['#ff7b72', '#a5d6ff', '#d2a8ff'] },
+  },
+  {
+    id: 'github-light',
+    label: 'GitHub Light',
+    base: 'light',
+    swatch: { bg: '#ffffff', fg: '#24292f', dots: ['#cf222e', '#0a3069', '#8250df'] },
+  },
+  {
+    id: 'one-dark-pro',
+    label: 'One Dark Pro',
+    base: 'dark',
+    swatch: { bg: '#282c34', fg: '#abb2bf', dots: ['#c678dd', '#98c379', '#61afef'] },
+  },
+  {
+    id: 'tokyo-night',
+    label: 'Tokyo Night',
+    base: 'dark',
+    swatch: { bg: '#1a1b26', fg: '#c0caf5', dots: ['#bb9af7', '#9ece6a', '#7aa2f7'] },
+  },
+  {
+    id: 'catppuccin-mocha',
+    label: 'Catppuccin Mocha',
+    base: 'dark',
+    swatch: { bg: '#1e1e2e', fg: '#cdd6f4', dots: ['#cba6f7', '#a6e3a1', '#89b4fa'] },
+  },
+  {
+    id: 'catppuccin-latte',
+    label: 'Catppuccin Latte',
+    base: 'light',
+    swatch: { bg: '#eff1f5', fg: '#4c4f69', dots: ['#8839ef', '#40a02b', '#1e66f5'] },
+  },
+  {
+    id: 'dracula',
+    label: 'Dracula',
+    base: 'dark',
+    swatch: { bg: '#282a36', fg: '#f8f8f2', dots: ['#ff79c6', '#f1fa8c', '#50fa7b'] },
+  },
+  {
+    id: 'nord',
+    label: 'Nord',
+    base: 'dark',
+    swatch: { bg: '#2e3440', fg: '#d8dee9', dots: ['#81a1c1', '#a3be8c', '#88c0d0'] },
+  },
+  {
+    id: 'ayu-dark',
+    label: 'Ayu Dark',
+    base: 'dark',
+    swatch: { bg: '#0a0e14', fg: '#b3b1ad', dots: ['#ff8f40', '#c2d94c', '#ffb454'] },
+  },
+  {
+    id: 'ayu-light',
+    label: 'Ayu Light',
+    base: 'light',
+    swatch: { bg: '#fafafa', fg: '#5c6773', dots: ['#fa8d3e', '#86b300', '#399ee6'] },
+  },
 ];
 
 export const themeBase = (id: Theme): 'dark' | 'light' =>
@@ -134,7 +214,8 @@ function applyZoom(zoom: number): void {
       getCurrentWebview()
         .setZoom(zoom)
         .catch(() => {
-          (document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = String(zoom);
+          (document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom =
+            String(zoom);
         }),
     );
   } else {
@@ -260,10 +341,7 @@ function stripApiKeys(
   profiles: Partial<Record<AiProviderKind, AiProfile>>,
 ): Partial<Record<AiProviderKind, AiProfile>> {
   return Object.fromEntries(
-    Object.entries(profiles).map(([provider, profile]) => [
-      provider,
-      { ...profile, apiKey: '' },
-    ]),
+    Object.entries(profiles).map(([provider, profile]) => [provider, { ...profile, apiKey: '' }]),
   ) as Partial<Record<AiProviderKind, AiProfile>>;
 }
 
@@ -299,7 +377,9 @@ export const useSettings = create<SettingsState>()(
       setFollowSystem: (followSystem) => {
         if (followSystem) {
           const s = get();
-          const pair = s.themePairId ? THEME_PAIRS.find((p) => p.id === s.themePairId) : findThemePair(s.theme);
+          const pair = s.themePairId
+            ? THEME_PAIRS.find((p) => p.id === s.themePairId)
+            : findThemePair(s.theme);
           if (pair) {
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const targetTheme = isDark ? pair.dark : pair.light;
@@ -422,7 +502,7 @@ export const useSettings = create<SettingsState>()(
           if (migrate) useSettings.setState({ aiKeysMigrated: true });
           if (!useSettings.getState().ai.apiKey) void loadAiKey(active);
         });
-        
+
         // Set up system theme listener
         if (typeof window !== 'undefined') {
           const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

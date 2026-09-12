@@ -1,21 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ExternalLink,
-  Globe,
-  KeyRound,
-  MoreHorizontal,
-  Plus,
-  RefreshCw,
-  Star,
-  Trash2,
-} from 'lucide-react';
-import { GithubIcon, GitlabIcon } from '@/components/BrandIcons';
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -28,11 +14,25 @@ import {
   SelectTrigger,
   SelectValue,
   Spinner,
-  cn,
 } from '@angkorgit/design-system';
-import { ipc, openExternal, type AccountCheckStatus, type HostingAccount } from '@/core/ipc';
-import { timeAgo } from '@/shared/utils';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  Globe,
+  KeyRound,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Star,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { GithubIcon, GitlabIcon } from '@/components/BrandIcons';
 import { confirmDialog } from '@/components/confirm';
+import { type AccountCheckStatus, type HostingAccount, ipc, openExternal } from '@/core/ipc';
+import { timeAgo } from '@/shared/utils';
 import { Field, SettingCard } from './SettingCard';
 
 type ProviderKind = 'github' | 'gitlab' | 'gitlab-self' | 'bitbucket' | 'other';
@@ -299,9 +299,8 @@ export function AccountsTab() {
   };
 
   const reconnect = (account: HostingAccount) => {
-    const kind = (
-      Object.keys(PROVIDERS) as ProviderKind[]
-    ).find((k) => k === account.provider) ?? 'other';
+    const kind =
+      (Object.keys(PROVIDERS) as ProviderKind[]).find((k) => k === account.provider) ?? 'other';
     setProvider(kind);
     setHost(account.host);
     setUsername(kind === 'bitbucket' ? (account.email ?? '') : account.username);
@@ -315,7 +314,10 @@ export function AccountsTab() {
   };
 
   const connect = async () => {
-    const cleanHost = host.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const cleanHost = host
+      .trim()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '');
     if (!cleanHost || !token.trim()) return;
     setBusy(true);
     try {
@@ -409,7 +411,10 @@ export function AccountsTab() {
         {loading && (
           <div className="flex flex-col gap-2">
             {[0, 1].map((row) => (
-              <div key={row} className="flex items-center gap-3 rounded-lg border border-border-subtle p-3">
+              <div
+                key={row}
+                className="flex items-center gap-3 rounded-lg border border-border-subtle p-3"
+              >
                 <div className="size-8 animate-pulse rounded-md bg-surface-raised" />
                 <div className="flex flex-1 flex-col gap-1.5">
                   <div className="h-3.5 w-36 animate-pulse rounded bg-surface-raised" />
@@ -442,17 +447,25 @@ export function AccountsTab() {
                   <p className="flex flex-wrap items-center gap-x-2 text-xs text-faint">
                     <AccountStatus account={account} check={checks[key]} />
                     <span>· token in the system keychain</span>
-                    {account.verified && account.verifiedAt && <span>· checked {timeAgo(account.verifiedAt)}</span>}
+                    {account.verified && account.verifiedAt && (
+                      <span>· checked {timeAgo(account.verifiedAt)}</span>
+                    )}
                   </p>
                 </div>
-                {(!account.verified || checks[key] === 'no_token' || checks[key] === 'unauthorized') && (
+                {(!account.verified ||
+                  checks[key] === 'no_token' ||
+                  checks[key] === 'unauthorized') && (
                   <Button variant="secondary" size="sm" onClick={() => reconnect(account)}>
                     <RefreshCw className="size-3.5" /> Reconnect
                   </Button>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" aria-label={`${account.username} on ${account.host} actions`}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`${account.username} on ${account.host} actions`}
+                    >
                       <MoreHorizontal className="size-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -520,7 +533,13 @@ export function AccountsTab() {
               </Field>
               <Field
                 label={provider === 'bitbucket' ? 'Atlassian account email' : 'Username'}
-                hint={provider === 'bitbucket' ? 'Bitbucket username is detected' : provider === 'other' ? undefined : 'detected from the token'}
+                hint={
+                  provider === 'bitbucket'
+                    ? 'Bitbucket username is detected'
+                    : provider === 'other'
+                      ? undefined
+                      : 'detected from the token'
+                }
               >
                 <Input
                   placeholder={provider === 'bitbucket' ? 'you@company.com' : 'optional'}
@@ -563,7 +582,11 @@ export function AccountsTab() {
                     Cancel
                   </Button>
                 )}
-                <Button size="sm" onClick={() => void connect()} disabled={busy || !token.trim() || !host.trim()}>
+                <Button
+                  size="sm"
+                  onClick={() => void connect()}
+                  disabled={busy || !token.trim() || !host.trim()}
+                >
                   {busy ? <Spinner className="text-primary-foreground" /> : null}
                   Connect
                 </Button>

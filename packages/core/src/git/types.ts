@@ -1,4 +1,3 @@
-
 export interface RepositoryInfo {
   path: string;
   name: string;
@@ -31,13 +30,7 @@ export interface WorktreeAddRequest {
   base?: string | null;
 }
 
-export type RepoState =
-  | 'clean'
-  | 'merge'
-  | 'rebase'
-  | 'cherrypick'
-  | 'revert'
-  | 'bisect';
+export type RepoState = 'clean' | 'merge' | 'rebase' | 'cherrypick' | 'revert' | 'bisect';
 
 export interface RecentRepository {
   path: string;

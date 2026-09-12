@@ -1,5 +1,5 @@
+import { cn, Hint } from '@angkorgit/design-system';
 import { ChevronDown, GitBranch } from 'lucide-react';
-import { Hint, cn } from '@angkorgit/design-system';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
 
@@ -25,7 +25,9 @@ export function BranchChip() {
         onClick={() => setBranchSwitcherOpen(true)}
       >
         <GitBranch className="size-3.5 shrink-0 text-muted group-hover:text-foreground" />
-        <span className="max-w-44 select-none truncate font-mono text-foreground">{branch ?? '—'}</span>
+        <span className="max-w-44 select-none truncate font-mono text-foreground">
+          {branch ?? '—'}
+        </span>
         <ChevronDown className="size-3 shrink-0 text-faint" />
       </button>
     </Hint>

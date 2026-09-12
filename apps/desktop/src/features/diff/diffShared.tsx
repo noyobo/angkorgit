@@ -1,7 +1,7 @@
-import { memo, useMemo } from 'react';
 import type { DiffHunk, DiffLine, FileDiff } from '@angkorgit/core';
-import { wordDiff, type WordSegment } from '@angkorgit/core';
+import { type WordSegment, wordDiff } from '@angkorgit/core';
 import { cn } from '@angkorgit/design-system';
+import { memo, useMemo } from 'react';
 import { highlightLineState, supportsBlockComments } from '@/shared/highlight';
 
 const WRAP_LINE_LIMIT = 3000;
@@ -116,7 +116,10 @@ export const CodeLine = memo(function CodeLine({
   const html = useMemo(() => {
     const inComment = startsInComment(line);
     if (useWordDiff && pair && line.kind !== 'context' && pair.content !== line.content) {
-      const diff = side === 'old' ? wordDiff(line.content, pair.content) : wordDiff(pair.content, line.content);
+      const diff =
+        side === 'old'
+          ? wordDiff(line.content, pair.content)
+          : wordDiff(pair.content, line.content);
       return segmentsToHtml(side === 'old' ? diff.old : diff.new, language, side, inComment);
     }
     return highlightLineState(line.content, language, inComment).html;

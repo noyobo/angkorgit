@@ -1,4 +1,7 @@
 import type { HttpClient } from '../ai/types';
+import { bitbucketForgeProvider } from './providers/bitbucket';
+import { githubForgeProvider } from './providers/github';
+import { gitlabForgeProvider } from './providers/gitlab';
 import type { ForgeRemote } from './remote';
 import type {
   CreatePullRequestInput,
@@ -6,9 +9,6 @@ import type {
   PullRequestCheckoutSpec,
   PullRequestInfo,
 } from './types';
-import { githubForgeProvider } from './providers/github';
-import { gitlabForgeProvider } from './providers/gitlab';
-import { bitbucketForgeProvider } from './providers/bitbucket';
 
 export interface ForgeProvider {
   readonly kind: ForgeRemote['kind'];

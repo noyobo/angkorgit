@@ -1,6 +1,6 @@
-import { create } from 'zustand';
 import type { CommitInfo, HistoryPage, HistoryPosition } from '@angkorgit/core';
 import { GraphLayout, type GraphRow } from '@angkorgit/core';
+import { create } from 'zustand';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
@@ -67,7 +67,8 @@ function historyBranch(filters: GraphFilters): string | undefined {
   return useRepo.getState().repo?.headBranch || undefined;
 }
 
-const sameQuery = (a: FindQuery | null, b: FindQuery) => a !== null && a.text === b.text && a.author === b.author;
+const sameQuery = (a: FindQuery | null, b: FindQuery) =>
+  a !== null && a.text === b.text && a.author === b.author;
 
 export const useGraph = create<GraphState>((set, get) => {
   const appendPage = (page: HistoryPage, layout: GraphLayout) => {
@@ -194,7 +195,8 @@ export const useGraph = create<GraphState>((set, get) => {
         .reload(path)
         .then(() => {
           const find = get().find;
-          if (find && get().lastPath === path) void get().setFind(path, { text: find.text, author: find.author });
+          if (find && get().lastPath === path)
+            void get().setFind(path, { text: find.text, author: find.author });
         });
     },
 
@@ -225,7 +227,15 @@ export const useGraph = create<GraphState>((set, get) => {
           branch: historyBranch(filters),
         });
         if (seq !== findSeq || get().lastPath !== path) return null;
-        set({ find: { ...wanted, matches: result.matches, truncated: result.truncated, active: 0, loading: false } });
+        set({
+          find: {
+            ...wanted,
+            matches: result.matches,
+            truncated: result.truncated,
+            active: 0,
+            loading: false,
+          },
+        });
         if (result.matches.length === 0) return null;
         return get().goToMatch(path, 0);
       } catch {
@@ -271,7 +281,10 @@ export const useGraph = create<GraphState>((set, get) => {
     stepFind: async (path, direction) => {
       const find = get().find;
       if (!find || find.matches.length === 0) return null;
-      return get().goToMatch(path, (find.active + direction + find.matches.length) % find.matches.length);
+      return get().goToMatch(
+        path,
+        (find.active + direction + find.matches.length) % find.matches.length,
+      );
     },
 
     select: (oid) => set({ selectedOid: oid, selectedOids: oid ? [oid] : [], locatedOid: null }),
@@ -293,7 +306,8 @@ export const useGraph = create<GraphState>((set, get) => {
         const clickedIdx = s.commits.findIndex((c) => c.oid === oid);
         if (clickedIdx < 0) return s;
         if (anchorIdx < 0) return { selectedOid: oid, selectedOids: [oid] };
-        const [lo, hi] = anchorIdx <= clickedIdx ? [anchorIdx, clickedIdx] : [clickedIdx, anchorIdx];
+        const [lo, hi] =
+          anchorIdx <= clickedIdx ? [anchorIdx, clickedIdx] : [clickedIdx, anchorIdx];
         return { selectedOids: s.commits.slice(lo, hi + 1).map((c) => c.oid) };
       }),
   };

@@ -1,6 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-import { create } from 'zustand';
-import { AlertTriangle } from 'lucide-react';
 import type { EligibleBranch } from '@angkorgit/core';
 import {
   Button,
@@ -11,6 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@angkorgit/design-system';
+import { AlertTriangle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { create } from 'zustand';
 import { BranchPickList } from './BranchPickList';
 
 interface StaleLocalsState {

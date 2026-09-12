@@ -1,5 +1,5 @@
-import type { Terminal } from '@xterm/xterm';
 import type { FitAddon } from '@xterm/addon-fit';
+import type { Terminal } from '@xterm/xterm';
 import { ipc } from '@/core/ipc';
 
 export interface TerminalSession {

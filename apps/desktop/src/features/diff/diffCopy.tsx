@@ -1,7 +1,7 @@
+import type { FileDiff } from '@angkorgit/core';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import type { FileDiff } from '@angkorgit/core';
 import { useUi } from '@/features/ui/store';
 
 interface CaretState {
@@ -36,7 +36,10 @@ const isEditableTarget = (): boolean => {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 };
 
-export function useDiffSelectAll(diff: FileDiff | null, scrollRef: React.RefObject<HTMLDivElement>) {
+export function useDiffSelectAll(
+  diff: FileDiff | null,
+  scrollRef: React.RefObject<HTMLDivElement>,
+) {
   const diffView = useUi((s) => s.diffView);
   const wrapLines = useUi((s) => s.wrapLines);
   const [selectedSide, setSelectedSide] = useState<DiffSide | null>(null);
@@ -84,9 +87,19 @@ export function useDiffSelectAll(diff: FileDiff | null, scrollRef: React.RefObje
       const rect = range.getBoundingClientRect();
       const base = layer.getBoundingClientRect();
       if (rect.height > 0) {
-        setCaretPos({ layer, left: rect.left - base.left, top: rect.top - base.top, height: rect.height });
+        setCaretPos({
+          layer,
+          left: rect.left - base.left,
+          top: rect.top - base.top,
+          height: rect.height,
+        });
       } else {
-        setCaretPos({ layer, left: e.clientX - base.left, top: e.clientY - base.top - 8, height: 16 });
+        setCaretPos({
+          layer,
+          left: e.clientX - base.left,
+          top: e.clientY - base.top - 8,
+          height: 16,
+        });
       }
     };
     window.addEventListener('keydown', onKey, { capture: true });

@@ -9,9 +9,9 @@ import type {
   FileDiff,
   HistoryPage,
   HistoryPosition,
+  HistoryQuery,
   HistorySearch,
   HistorySearchQuery,
-  HistoryQuery,
   HttpRequest,
   HttpResponse,
   RebaseTodoEntry,
@@ -107,7 +107,10 @@ async function invoke<T>(command: string, args?: Record<string, unknown>): Promi
   }
 }
 
-export async function listen(event: string, handler: (payload: unknown) => void): Promise<() => void> {
+export async function listen(
+  event: string,
+  handler: (payload: unknown) => void,
+): Promise<() => void> {
   if (!isTauri()) return () => {};
   const { listen } = await import('@tauri-apps/api/event');
   const unlisten = await listen(event, (e) => handler(e.payload));
@@ -176,7 +179,8 @@ export const ipc = {
   },
 
   async configGet(path: string | null, key: string): Promise<string | null> {
-    if (!isTauri()) return key === 'user.name' ? 'Demo User' : key === 'user.email' ? 'demo@angkorgit.dev' : null;
+    if (!isTauri())
+      return key === 'user.name' ? 'Demo User' : key === 'user.email' ? 'demo@angkorgit.dev' : null;
     return invoke('config_get', { path, key });
   },
   async configSet(path: string | null, key: string, value: string, global: boolean): Promise<void> {
@@ -325,7 +329,12 @@ export const ipc = {
     if (!isTauri()) return demo.demoBranches;
     return invoke('branch_list', { path });
   },
-  async createBranch(path: string, name: string, fromOid: string | null, checkout: boolean): Promise<void> {
+  async createBranch(
+    path: string,
+    name: string,
+    fromOid: string | null,
+    checkout: boolean,
+  ): Promise<void> {
     if (!isTauri()) return;
     return invoke('branch_create', { path, name, fromOid, checkout });
   },
@@ -339,12 +348,17 @@ export const ipc = {
     remote: string,
     remoteBranch: string,
   ): Promise<OpOutcome> {
-    if (!isTauri()) return { status: 'ok', message: `Deleted ${name} and ${remote}/${remoteBranch} (demo)` };
+    if (!isTauri())
+      return { status: 'ok', message: `Deleted ${name} and ${remote}/${remoteBranch} (demo)` };
     return invoke('branch_delete_local_and_remote', { path, name, remote, remoteBranch });
   },
   async remoteHasRef(path: string, remote: string, gitRef: string): Promise<boolean> {
     if (!isTauri()) {
-      return gitRef === 'refs/heads/develop' || gitRef === 'refs/heads/main' || gitRef === 'refs/tags/v0.4.0';
+      return (
+        gitRef === 'refs/heads/develop' ||
+        gitRef === 'refs/heads/main' ||
+        gitRef === 'refs/tags/v0.4.0'
+      );
     }
     return invoke('remote_has_ref', { path, remote, gitRef });
   },
@@ -397,11 +411,7 @@ export const ipc = {
     }
     return invoke('rebase_commits', { path, baseOid });
   },
-  async rebaseInteractive(
-    path: string,
-    baseOid: string,
-    todo: RebaseTodoEntry[],
-  ): Promise<string> {
+  async rebaseInteractive(path: string, baseOid: string, todo: RebaseTodoEntry[]): Promise<string> {
     if (!isTauri()) {
       await delay(200);
       return baseOid;
@@ -465,21 +475,40 @@ export const ipc = {
       withTags,
       setUpstream,
     };
-    
+
     await logger.push(attemptId, source ?? 'unknown', meta);
-    
+
     if (!isTauri()) {
       await delay(400);
-      await logger.push(attemptId, source ?? 'unknown', { ...meta, status: 'ok', result: 'completed-demo' });
+      await logger.push(attemptId, source ?? 'unknown', {
+        ...meta,
+        status: 'ok',
+        result: 'completed-demo',
+      });
       return { status: 'ok', message: `Pushed to ${remote} (demo)` };
     }
-    
+
     try {
-      const result = await invoke<OpOutcome>('remote_push', { path, remote, branch: branch ?? null, force, withTags, setUpstream });
-      await logger.push(attemptId, source ?? 'unknown', { ...meta, status: result.status, result: 'completed' });
+      const result = await invoke<OpOutcome>('remote_push', {
+        path,
+        remote,
+        branch: branch ?? null,
+        force,
+        withTags,
+        setUpstream,
+      });
+      await logger.push(attemptId, source ?? 'unknown', {
+        ...meta,
+        status: result.status,
+        result: 'completed',
+      });
       return result;
     } catch (error) {
-      await logger.push(attemptId, source ?? 'unknown', { ...meta, error: String(error), result: 'failed' });
+      await logger.push(attemptId, source ?? 'unknown', {
+        ...meta,
+        error: String(error),
+        result: 'failed',
+      });
       throw error;
     }
   },
@@ -530,7 +559,12 @@ export const ipc = {
     if (!isTauri()) return demo.demoTags;
     return invoke('tag_list', { path });
   },
-  async tagCreate(path: string, name: string, target: string | null, message: string | null): Promise<void> {
+  async tagCreate(
+    path: string,
+    name: string,
+    target: string | null,
+    message: string | null,
+  ): Promise<void> {
     if (!isTauri()) return;
     return invoke('tag_create', { path, name, target, message });
   },
@@ -539,12 +573,21 @@ export const ipc = {
     return invoke('tag_delete', { path, name });
   },
   async deleteTagLocalAndRemote(path: string, name: string, remote: string): Promise<OpOutcome> {
-    if (!isTauri()) return { status: 'ok', message: `Deleted ${name} and ${remote}/${name} (demo)` };
+    if (!isTauri())
+      return { status: 'ok', message: `Deleted ${name} and ${remote}/${name} (demo)` };
     return invoke('tag_delete_local_and_remote', { path, name, remote });
   },
 
   async submodules(path: string): Promise<SubmoduleInfo[]> {
-    if (!isTauri()) return [{ name: 'vendor/libfoo', path: 'vendor/libfoo', url: 'https://github.com/demo/libfoo', headOid: 'abc123' }];
+    if (!isTauri())
+      return [
+        {
+          name: 'vendor/libfoo',
+          path: 'vendor/libfoo',
+          url: 'https://github.com/demo/libfoo',
+          headOid: 'abc123',
+        },
+      ];
     return invoke('submodule_list', { path });
   },
   async submoduleUpdate(path: string, name: string): Promise<void> {
@@ -572,7 +615,12 @@ export const ipc = {
     return invoke('worktree_prune', { path });
   },
 
-  async diffFile(path: string, file: string, staged: boolean, contextLines?: number): Promise<FileDiff> {
+  async diffFile(
+    path: string,
+    file: string,
+    staged: boolean,
+    contextLines?: number,
+  ): Promise<FileDiff> {
     if (!isTauri()) return demo.demoFileDiffFor(file);
     return invoke('diff_file', { path, file, staged, contextLines: contextLines ?? null });
   },
@@ -600,7 +648,12 @@ export const ipc = {
       contextLines: contextLines ?? null,
     });
   },
-  async rangeDiff(path: string, fromOid: string, toOid: string, contextLines?: number): Promise<FileDiff[]> {
+  async rangeDiff(
+    path: string,
+    fromOid: string,
+    toOid: string,
+    contextLines?: number,
+  ): Promise<FileDiff[]> {
     if (!isTauri()) return demo.demoCommitDiff();
     return invoke('diff_range', {
       path,
@@ -700,7 +753,14 @@ export const ipc = {
     email?: string | null,
   ): Promise<HostingAccount[]> {
     if (!isTauri()) return [{ host, username, provider, verified, email, isDefault: true }];
-    return invoke('account_add', { host, username, provider, token, verified, email: email ?? null });
+    return invoke('account_add', {
+      host,
+      username,
+      provider,
+      token,
+      verified,
+      email: email ?? null,
+    });
   },
   async accountRemove(host: string, username: string): Promise<HostingAccount[]> {
     if (!isTauri()) return [];
@@ -760,7 +820,11 @@ export const ipc = {
     return invoke('ai_cli_run', { request });
   },
 
-  async forgeRequest(repoPath: string | null, host: string, request: HttpRequest): Promise<HttpResponse> {
+  async forgeRequest(
+    repoPath: string | null,
+    host: string,
+    request: HttpRequest,
+  ): Promise<HttpResponse> {
     if (!isTauri()) {
       await delay(200);
       return demo.demoForgeResponse(request);

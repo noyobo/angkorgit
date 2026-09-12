@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { sidebarToggle, workspaceView, type WorkspaceLayout } from './workspace';
+import { sidebarToggle, type WorkspaceLayout, workspaceView } from './workspace';
 
 export type { WorkspaceLayout };
 
@@ -184,114 +184,127 @@ export const useUi = create<UiState>()(
     (set) => ({
       layout: 'standard',
       sidebarOpen: true,
-  terminalOpen: false,
-  paletteOpen: false,
-  recentReposOpen: false,
-  branchSwitcherOpen: false,
-  panelsOpen: false,
-  dialog: null,
-  dialogContext: null,
-  diffView: 'inline',
-  wordDiff: true,
-  fullFileDiff: false,
-  wrapLines: false,
-  selectedFile: null,
-  centerDiff: null,
-  rangeDiff: null,
-  centerEditor: null,
-  centerFileHistory: null,
-  conflictFile: null,
-  repoTabs: [],
-  worktreeTabs: [],
-  fileTree: false,
-      fileFilterOpen: false,
-  fileFilterFocusSeq: 0,
-  inspectorFocusSeq: 0,
-  graphFocusSeq: 0,
-  commitSummaryFocusSeq: 0,
-  sidebarSections: {},
-  sidebarCollapseEpoch: 0,
-  commitBoxHeight: null,
-  graphColumns: DEFAULT_GRAPH_COLUMNS,
-  graphTail: true,
-
-  setLayout: (layout) => set({ layout }),
-  toggleSidebar: () => set((s) => sidebarToggle(s)),
-  setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
-  toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
-  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
-  setRecentReposOpen: (recentReposOpen) => set({ recentReposOpen }),
-  setBranchSwitcherOpen: (branchSwitcherOpen) => set({ branchSwitcherOpen }),
-  setPanelsOpen: (panelsOpen) => set({ panelsOpen }),
-  openDialog: (dialog, context = null) => {
-    captureDialogFocus();
-    set({ dialog, dialogContext: context });
-  },
-  closeDialog: () => {
-    set({ dialog: null, dialogContext: null });
-    restoreDialogFocus();
-  },
-  setDiffView: (diffView) => set({ diffView }),
-  setWordDiff: (wordDiff) => set({ wordDiff }),
-  setFullFileDiff: (fullFileDiff) => set({ fullFileDiff }),
-  setWrapLines: (wrapLines) => set({ wrapLines }),
-  selectFile: (selectedFile) => set({ selectedFile }),
-  openCenterDiff: (centerDiff) => set({ centerDiff, rangeDiff: null }),
-  closeCenterDiff: () => set({ centerDiff: null }),
-  openRangeDiff: (rangeDiff) => set({ rangeDiff, centerDiff: null }),
-  closeRangeDiff: () => set({ rangeDiff: null }),
-  openEditor: (centerEditor) => set({ centerEditor }),
-  closeEditor: () => set({ centerEditor: null }),
-  openFileHistory: (centerFileHistory) =>
-    set({ centerFileHistory, centerDiff: null }),
-  closeFileHistory: () => set({ centerFileHistory: null }),
-  openConflict: (conflictFile) => set({ conflictFile }),
-  addRepoTab: (path) =>
-    set((s) => (s.repoTabs.includes(path) ? s : { repoTabs: [...s.repoTabs, path] })),
-  closeRepoTab: (path) =>
-    set((s) => ({
-      repoTabs: s.repoTabs.filter((t) => t !== path),
-      worktreeTabs: s.worktreeTabs.filter((t) => t !== path),
-    })),
-  closeAllTabs: () =>
-    set({
+      terminalOpen: false,
+      paletteOpen: false,
+      recentReposOpen: false,
+      branchSwitcherOpen: false,
+      panelsOpen: false,
+      dialog: null,
+      dialogContext: null,
+      diffView: 'inline',
+      wordDiff: true,
+      fullFileDiff: false,
+      wrapLines: false,
+      selectedFile: null,
+      centerDiff: null,
+      rangeDiff: null,
+      centerEditor: null,
+      centerFileHistory: null,
+      conflictFile: null,
       repoTabs: [],
       worktreeTabs: [],
-    }),
-  moveRepoTab: (from, to) =>
-    set((s) => {
-      const fromIdx = s.repoTabs.indexOf(from);
-      const toIdx = s.repoTabs.indexOf(to);
-      if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return s;
-      const repoTabs = [...s.repoTabs];
-      repoTabs.splice(fromIdx, 1);
-      repoTabs.splice(toIdx, 0, from);
-      return { repoTabs };
-    }),
-  markWorktreeTab: (path, isWorktree) =>
-    set((s) => {
-      const has = s.worktreeTabs.includes(path);
-      if (has === isWorktree) return s;
-      return {
-        worktreeTabs: isWorktree ? [...s.worktreeTabs, path] : s.worktreeTabs.filter((t) => t !== path),
-      };
-    }),
-  setSidebarSection: (id, open) =>
-    set((s) => (s.sidebarSections[id] === open ? s : { sidebarSections: { ...s.sidebarSections, [id]: open } })),
-  collapseSidebarSections: (ids) =>
-    set((s) => ({
-      sidebarSections: { ...s.sidebarSections, ...Object.fromEntries(ids.map((id) => [id, false])) },
-      sidebarCollapseEpoch: s.sidebarCollapseEpoch + 1,
-    })),
-  setCommitBoxHeight: (commitBoxHeight) => set({ commitBoxHeight }),
-  setGraphColumn: (column, on) =>
-    set((s) => ({ graphColumns: { ...s.graphColumns, [column]: on } })),
-  setGraphTail: (graphTail) => set({ graphTail }),
-  setFileTree: (fileTree) => set({ fileTree }),
-  setFileFilterOpen: (on) => set((s) => ({ fileFilterOpen: on, fileFilterFocusSeq: on ? s.fileFilterFocusSeq + 1 : s.fileFilterFocusSeq })),
-  focusInspector: () => set((s) => ({ inspectorFocusSeq: s.inspectorFocusSeq + 1 })),
-  focusGraph: () => set((s) => ({ graphFocusSeq: s.graphFocusSeq + 1 })),
-  focusCommitSummary: () => set((s) => ({ commitSummaryFocusSeq: s.commitSummaryFocusSeq + 1 })),
+      fileTree: false,
+      fileFilterOpen: false,
+      fileFilterFocusSeq: 0,
+      inspectorFocusSeq: 0,
+      graphFocusSeq: 0,
+      commitSummaryFocusSeq: 0,
+      sidebarSections: {},
+      sidebarCollapseEpoch: 0,
+      commitBoxHeight: null,
+      graphColumns: DEFAULT_GRAPH_COLUMNS,
+      graphTail: true,
+
+      setLayout: (layout) => set({ layout }),
+      toggleSidebar: () => set((s) => sidebarToggle(s)),
+      setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+      toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
+      setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+      setRecentReposOpen: (recentReposOpen) => set({ recentReposOpen }),
+      setBranchSwitcherOpen: (branchSwitcherOpen) => set({ branchSwitcherOpen }),
+      setPanelsOpen: (panelsOpen) => set({ panelsOpen }),
+      openDialog: (dialog, context = null) => {
+        captureDialogFocus();
+        set({ dialog, dialogContext: context });
+      },
+      closeDialog: () => {
+        set({ dialog: null, dialogContext: null });
+        restoreDialogFocus();
+      },
+      setDiffView: (diffView) => set({ diffView }),
+      setWordDiff: (wordDiff) => set({ wordDiff }),
+      setFullFileDiff: (fullFileDiff) => set({ fullFileDiff }),
+      setWrapLines: (wrapLines) => set({ wrapLines }),
+      selectFile: (selectedFile) => set({ selectedFile }),
+      openCenterDiff: (centerDiff) => set({ centerDiff, rangeDiff: null }),
+      closeCenterDiff: () => set({ centerDiff: null }),
+      openRangeDiff: (rangeDiff) => set({ rangeDiff, centerDiff: null }),
+      closeRangeDiff: () => set({ rangeDiff: null }),
+      openEditor: (centerEditor) => set({ centerEditor }),
+      closeEditor: () => set({ centerEditor: null }),
+      openFileHistory: (centerFileHistory) => set({ centerFileHistory, centerDiff: null }),
+      closeFileHistory: () => set({ centerFileHistory: null }),
+      openConflict: (conflictFile) => set({ conflictFile }),
+      addRepoTab: (path) =>
+        set((s) => (s.repoTabs.includes(path) ? s : { repoTabs: [...s.repoTabs, path] })),
+      closeRepoTab: (path) =>
+        set((s) => ({
+          repoTabs: s.repoTabs.filter((t) => t !== path),
+          worktreeTabs: s.worktreeTabs.filter((t) => t !== path),
+        })),
+      closeAllTabs: () =>
+        set({
+          repoTabs: [],
+          worktreeTabs: [],
+        }),
+      moveRepoTab: (from, to) =>
+        set((s) => {
+          const fromIdx = s.repoTabs.indexOf(from);
+          const toIdx = s.repoTabs.indexOf(to);
+          if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return s;
+          const repoTabs = [...s.repoTabs];
+          repoTabs.splice(fromIdx, 1);
+          repoTabs.splice(toIdx, 0, from);
+          return { repoTabs };
+        }),
+      markWorktreeTab: (path, isWorktree) =>
+        set((s) => {
+          const has = s.worktreeTabs.includes(path);
+          if (has === isWorktree) return s;
+          return {
+            worktreeTabs: isWorktree
+              ? [...s.worktreeTabs, path]
+              : s.worktreeTabs.filter((t) => t !== path),
+          };
+        }),
+      setSidebarSection: (id, open) =>
+        set((s) =>
+          s.sidebarSections[id] === open
+            ? s
+            : { sidebarSections: { ...s.sidebarSections, [id]: open } },
+        ),
+      collapseSidebarSections: (ids) =>
+        set((s) => ({
+          sidebarSections: {
+            ...s.sidebarSections,
+            ...Object.fromEntries(ids.map((id) => [id, false])),
+          },
+          sidebarCollapseEpoch: s.sidebarCollapseEpoch + 1,
+        })),
+      setCommitBoxHeight: (commitBoxHeight) => set({ commitBoxHeight }),
+      setGraphColumn: (column, on) =>
+        set((s) => ({ graphColumns: { ...s.graphColumns, [column]: on } })),
+      setGraphTail: (graphTail) => set({ graphTail }),
+      setFileTree: (fileTree) => set({ fileTree }),
+      setFileFilterOpen: (on) =>
+        set((s) => ({
+          fileFilterOpen: on,
+          fileFilterFocusSeq: on ? s.fileFilterFocusSeq + 1 : s.fileFilterFocusSeq,
+        })),
+      focusInspector: () => set((s) => ({ inspectorFocusSeq: s.inspectorFocusSeq + 1 })),
+      focusGraph: () => set((s) => ({ graphFocusSeq: s.graphFocusSeq + 1 })),
+      focusCommitSummary: () =>
+        set((s) => ({ commitSummaryFocusSeq: s.commitSummaryFocusSeq + 1 })),
     }),
     {
       name: 'angkorgit-ui',

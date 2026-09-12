@@ -16,7 +16,10 @@ describe('wordDiff', () => {
 
   it('handles insertion at the end', () => {
     const { new: n } = wordDiff('return value', 'return value ?? fallback');
-    const added = n.filter((s) => s.kind === 'added').map((s) => s.text).join('');
+    const added = n
+      .filter((s) => s.kind === 'added')
+      .map((s) => s.text)
+      .join('');
     expect(added).toContain('fallback');
   });
 

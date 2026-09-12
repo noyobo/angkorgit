@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  type AiConfig,
+  type HttpRequest,
   listAiModels,
   parseAnthropicModels,
   parseGeminiModels,
   parseOllamaModels,
   parseOpenAiModels,
-  type AiConfig,
-  type HttpRequest,
 } from '@angkorgit/core';
 
 const baseConfig: AiConfig = { provider: 'openai', apiKey: 'sk-test', model: '' };
@@ -36,14 +36,19 @@ describe('ai model list parsing', () => {
       models: [
         { name: 'models/gemini-2.0-flash', supportedGenerationMethods: ['generateContent'] },
         { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
-        { name: 'models/gemini-2.5-pro', supportedGenerationMethods: ['generateContent', 'countTokens'] },
+        {
+          name: 'models/gemini-2.5-pro',
+          supportedGenerationMethods: ['generateContent', 'countTokens'],
+        },
       ],
     });
     expect(parseGeminiModels(body)).toEqual(['gemini-2.0-flash', 'gemini-2.5-pro']);
   });
 
   it('parses ollama tag lists', () => {
-    const body = JSON.stringify({ models: [{ name: 'llama3.1:8b' }, { name: 'qwen2.5-coder:7b' }] });
+    const body = JSON.stringify({
+      models: [{ name: 'llama3.1:8b' }, { name: 'qwen2.5-coder:7b' }],
+    });
     expect(parseOllamaModels(body)).toEqual(['llama3.1:8b', 'qwen2.5-coder:7b']);
   });
 

@@ -1,4 +1,4 @@
-import { parseForgeRemote, type ForgeRemote } from './remote';
+import { type ForgeRemote, parseForgeRemote } from './remote';
 
 /**
  * Web URL options - unified interface for building forge URLs
@@ -10,36 +10,36 @@ export type WebUrlOptions =
 
 /**
  * Build a forge web URL - unified URL builder for all forge link types.
- * 
+ *
  * This is the single source of truth for forge URL construction.
  * All URL building goes through parseForgeRemote, ensuring consistent
  * forge detection and eliminating duplicate hostname checks.
- * 
+ *
  * @param remoteUrl - Git remote URL (SSH, HTTPS, or scp format)
  * @param options - URL kind and kind-specific parameters
  * @returns Forge web URL or null if the remote cannot be parsed
- * 
+ *
  * @example
  * // Browse repository root
  * webUrl('git@github.com:user/repo.git', { kind: 'browse' })
  * // => 'https://github.com/user/repo'
- * 
+ *
  * // Browse a specific branch
  * webUrl('git@github.com:user/repo.git', { kind: 'browse', branch: 'main' })
  * // => 'https://github.com/user/repo/tree/main'
- * 
+ *
  * // File URL
- * webUrl('git@gitlab.com:group/project.git', { 
- *   kind: 'file', 
- *   filePath: 'src/index.ts', 
- *   branch: 'main' 
+ * webUrl('git@gitlab.com:group/project.git', {
+ *   kind: 'file',
+ *   filePath: 'src/index.ts',
+ *   branch: 'main'
  * })
  * // => 'https://gitlab.com/group/project/-/blob/main/src/index.ts'
- * 
+ *
  * // Pull request creation URL
- * webUrl('git@bitbucket.org:team/repo.git', { 
- *   kind: 'pr', 
- *   branch: 'feature/test' 
+ * webUrl('git@bitbucket.org:team/repo.git', {
+ *   kind: 'pr',
+ *   branch: 'feature/test'
  * })
  * // => 'https://bitbucket.org/team/repo/pull-requests/new?source=feature%2Ftest'
  */
@@ -89,11 +89,7 @@ function buildBrowseUrl(remote: ForgeRemote, branch?: string | null): string {
 /**
  * Build a file URL for viewing a specific file at a given branch/ref
  */
-function buildFileUrl(
-  remote: ForgeRemote,
-  filePath: string,
-  branch: string | null,
-): string {
+function buildFileUrl(remote: ForgeRemote, filePath: string, branch: string | null): string {
   const { webUrl, kind, owner, repo } = remote;
   const ref = branch ?? 'HEAD';
   const encodedPath = filePath.split('/').map(encodeURIComponent).join('/');

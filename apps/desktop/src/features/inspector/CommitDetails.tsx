@@ -1,14 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { toast } from 'sonner';
-import { ArchiveRestore, ChevronDown, ChevronRight, ChevronUp, Cloud, Copy, Maximize2, Monitor, Sparkles, Tag as TagIcon } from 'lucide-react';
 import type { CommitFileInfo, CommitInfo, FileDiff } from '@angkorgit/core';
 import { aiCapabilities, filterFiles } from '@angkorgit/core';
-import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 import {
   Badge,
   Button,
   Checkbox,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -17,28 +13,43 @@ import {
   DropdownMenuTrigger,
   Hint,
   Logo,
-  cn,
 } from '@angkorgit/design-system';
-import { ipc } from '@/core/ipc';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import {
+  ArchiveRestore,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Cloud,
+  Copy,
+  Maximize2,
+  Monitor,
+  Sparkles,
+  Tag as TagIcon,
+} from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { Avatar } from '@/components/Avatar';
 import { FileFilterInput } from '@/components/FileFilterInput';
+import {
+  FileTree,
+  type FileTreeFold,
+  FileTreeFoldButton,
+  type FileTreeFoldState,
+  INITIAL_FOLD,
+  nextFold,
+  treeIndent,
+} from '@/components/FileTree';
+import { ipc } from '@/core/ipc';
+import { AiResultDialog } from '@/features/ai/AiResultDialog';
+import { AiText } from '@/features/ai/AiText';
+import { aiConfigured, getAiProvider } from '@/features/ai/client';
+import { explainKeyFor, useAiWork } from '@/features/ai/workStore';
+import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 import { useGraph } from '@/features/graph/store';
 import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
 import { focusRequests, useUi } from '@/features/ui/store';
-import { aiConfigured, getAiProvider } from '@/features/ai/client';
-import { AiText } from '@/features/ai/AiText';
-import { AiResultDialog } from '@/features/ai/AiResultDialog';
-import { explainKeyFor, useAiWork } from '@/features/ai/workStore';
-import { Avatar } from '@/components/Avatar';
-import {
-  FileTree,
-  FileTreeFoldButton,
-  INITIAL_FOLD,
-  nextFold,
-  treeIndent,
-  type FileTreeFold,
-  type FileTreeFoldState,
-} from '@/components/FileTree';
 import { basename, dirname, formatDate, timeAgo } from '@/shared/utils';
 
 const diffPath = (diff: CommitFileInfo) => diff.path;
@@ -48,7 +59,12 @@ const FILE_ROW_HEIGHT = 34;
 
 const statusMeta: Record<
   CommitFileInfo['status'],
-  { label: string; mark: string; className: string; tone: 'info' | 'success' | 'danger' | 'primary' }
+  {
+    label: string;
+    mark: string;
+    className: string;
+    tone: 'info' | 'success' | 'danger' | 'primary';
+  }
 > = {
   modified: { label: 'modified', mark: 'M', className: 'text-info', tone: 'info' },
   new: { label: 'added', mark: 'A', className: 'text-success', tone: 'success' },
@@ -85,7 +101,10 @@ function diffToText(diffs: FileDiff[]): string {
       (d) =>
         `--- ${d.oldPath ?? d.path}\n+++ ${d.path}\n` +
         d.hunks
-          .map((h) => `${h.header}\n${h.lines.map((l) => `${l.kind === 'addition' ? '+' : l.kind === 'deletion' ? '-' : ' '}${l.content}`).join('\n')}`)
+          .map(
+            (h) =>
+              `${h.header}\n${h.lines.map((l) => `${l.kind === 'addition' ? '+' : l.kind === 'deletion' ? '-' : ' '}${l.content}`).join('\n')}`,
+          )
           .join('\n'),
     )
     .join('\n\n');
@@ -270,7 +289,9 @@ export function CommitDetails({
     }
   };
 
-  const [stashFileMenu, setStashFileMenu] = useState<{ x: number; y: number; path: string } | null>(null);
+  const [stashFileMenu, setStashFileMenu] = useState<{ x: number; y: number; path: string } | null>(
+    null,
+  );
   const [fileMenu, setFileMenu] = useState<{ x: number; y: number; path: string } | null>(null);
   const restoreFromStash = async (files: string[]) => {
     if (!stash || files.length === 0) return;
@@ -312,55 +333,69 @@ export function CommitDetails({
             }
           }}
         >
-        {stash && (
-          <Checkbox
-            checked={picked.has(diff.path)}
-            aria-label={`Select ${diff.path} to apply`}
-            onCheckedChange={() => togglePick(diff.path, false)}
+          {stash && (
+            <Checkbox
+              checked={picked.has(diff.path)}
+              aria-label={`Select ${diff.path} to apply`}
+              onCheckedChange={() => togglePick(diff.path, false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (e.shiftKey) {
+                  e.preventDefault();
+                  togglePick(diff.path, true);
+                }
+              }}
+            />
+          )}
+          <button
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
             onClick={(e) => {
-              e.stopPropagation();
-              if (e.shiftKey) {
-                e.preventDefault();
-                togglePick(diff.path, true);
+              if (stash && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+                togglePick(diff.path, e.shiftKey);
+                return;
               }
+              if (active) closeCenterDiff();
+              else openCenterDiff({ path: diff.path, oid: diffOid, oldPath: diff.oldPath });
             }}
-          />
-        )}
-        <button
-          className="flex min-w-0 flex-1 items-center gap-2 text-left"
-          onClick={(e) => {
-            if (stash && (e.shiftKey || e.metaKey || e.ctrlKey)) {
-              togglePick(diff.path, e.shiftKey);
-              return;
-            }
-            if (active) closeCenterDiff();
-            else openCenterDiff({ path: diff.path, oid: diffOid, oldPath: diff.oldPath });
-          }}
-        >
-          <Badge tone={meta?.tone ?? 'neutral'} className="w-5 shrink-0 justify-center px-0 font-mono">
-            {meta?.mark ?? '?'}
-          </Badge>
-          <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-            <span className="max-w-full shrink-0 truncate">{basename(diff.path)}</span>
-            {!fileTree && dirname(diff.path) && (
-              <span className="min-w-0 flex-1 truncate text-[11px] text-faint">{dirname(diff.path)}</span>
-            )}
-          </span>
-          {diff.additions > 0 && <span className="shrink-0 font-mono text-[11px] text-success">+{diff.additions}</span>}
-          {diff.deletions > 0 && <span className="shrink-0 font-mono text-[11px] text-danger">−{diff.deletions}</span>}
-          <ChevronRight className={cn('size-3.5 shrink-0 text-faint transition-transform', active && 'rotate-90')} />
-        </button>
-        {stash && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Apply ${diff.path} from the stash`}
-            className="-my-1 -mr-1 shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-            onClick={() => void restoreFromStash([diff.path])}
           >
-            <ArchiveRestore className="size-3.5 text-primary" />
-          </Button>
-        )}
+            <Badge
+              tone={meta?.tone ?? 'neutral'}
+              className="w-5 shrink-0 justify-center px-0 font-mono"
+            >
+              {meta?.mark ?? '?'}
+            </Badge>
+            <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+              <span className="max-w-full shrink-0 truncate">{basename(diff.path)}</span>
+              {!fileTree && dirname(diff.path) && (
+                <span className="min-w-0 flex-1 truncate text-[11px] text-faint">
+                  {dirname(diff.path)}
+                </span>
+              )}
+            </span>
+            {diff.additions > 0 && (
+              <span className="shrink-0 font-mono text-[11px] text-success">+{diff.additions}</span>
+            )}
+            {diff.deletions > 0 && (
+              <span className="shrink-0 font-mono text-[11px] text-danger">−{diff.deletions}</span>
+            )}
+            <ChevronRight
+              className={cn(
+                'size-3.5 shrink-0 text-faint transition-transform',
+                active && 'rotate-90',
+              )}
+            />
+          </button>
+          {stash && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Apply ${diff.path} from the stash`}
+              className="-my-1 -mr-1 shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+              onClick={() => void restoreFromStash([diff.path])}
+            >
+              <ArchiveRestore className="size-3.5 text-primary" />
+            </Button>
+          )}
         </div>
       </Hint>
     );
@@ -385,7 +420,9 @@ export function CommitDetails({
       if (stillRunning()) useAiWork.getState().setExplain(key, text);
     } catch (error) {
       if (stillRunning()) {
-        toast.error(`AI request failed: ${(error as { message?: string } | null)?.message ?? String(error)}`);
+        toast.error(
+          `AI request failed: ${(error as { message?: string } | null)?.message ?? String(error)}`,
+        );
       }
     } finally {
       useAiWork.getState().endExplain(key, run);
@@ -414,7 +451,11 @@ export function CommitDetails({
                 className="mt-1.5 flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-muted transition-colors hover:bg-surface-raised hover:text-foreground"
                 onClick={() => setBodyExpanded((v) => !v)}
               >
-                {bodyExpanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                {bodyExpanded ? (
+                  <ChevronUp className="size-3" />
+                ) : (
+                  <ChevronDown className="size-3" />
+                )}
                 {bodyExpanded ? 'Show less' : 'Show full message'}
               </button>
             )}
@@ -425,10 +466,16 @@ export function CommitDetails({
           <div className="flex items-center gap-2.5">
             <Avatar name={commit.author.name} email={commit.author.email} size={28} />
             <span className="flex min-w-0 flex-1 select-none flex-col leading-tight">
-              <span className="truncate text-xs font-medium text-foreground">{commit.author.name}</span>
-              <span className="truncate text-[11px] text-faint" title={formatDate(commit.author.time)}>
+              <span className="truncate text-xs font-medium text-foreground">
+                {commit.author.name}
+              </span>
+              <span
+                className="truncate text-[11px] text-faint"
+                title={formatDate(commit.author.time)}
+              >
                 {timeAgo(commit.author.time)} · {formatDate(commit.author.time)}
-                {commit.committer.email !== commit.author.email && ` · committed by ${commit.committer.name}`}
+                {commit.committer.email !== commit.author.email &&
+                  ` · committed by ${commit.committer.name}`}
               </span>
             </span>
             <Hint label="Copy full hash">
@@ -447,7 +494,9 @@ export function CommitDetails({
           {(commit.parents.length > 0 || commit.refs.length > 0) && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border-subtle pt-2">
               {commit.parents.length > 0 && (
-                <span className="text-[11px] text-faint">{commit.parents.length > 1 ? 'Parents' : 'Parent'}</span>
+                <span className="text-[11px] text-faint">
+                  {commit.parents.length > 1 ? 'Parents' : 'Parent'}
+                </span>
               )}
               {commit.parents.map((parent) => (
                 <button
@@ -465,12 +514,20 @@ export function CommitDetails({
               {commit.refs.map((ref) => (
                 <Badge
                   key={ref.name}
-                  tone={ref.kind === 'tag' ? 'primary' : ref.kind === 'remoteBranch' ? 'info' : 'success'}
+                  tone={
+                    ref.kind === 'tag'
+                      ? 'primary'
+                      : ref.kind === 'remoteBranch'
+                        ? 'info'
+                        : 'success'
+                  }
                   className="max-w-48"
                 >
                   {ref.kind === 'tag' && <TagIcon className="size-2.5 shrink-0" />}
                   {ref.kind === 'remoteBranch' && <Cloud className="size-2.5 shrink-0" />}
-                  {(ref.kind === 'localBranch' || ref.kind === 'head') && <Monitor className="size-2.5 shrink-0" />}
+                  {(ref.kind === 'localBranch' || ref.kind === 'head') && (
+                    <Monitor className="size-2.5 shrink-0" />
+                  )}
                   <span className="truncate">{ref.shorthand}</span>
                 </Badge>
               ))}
@@ -479,7 +536,13 @@ export function CommitDetails({
         </div>
 
         <div className="mt-2 flex justify-end">
-          <Button variant="ghost" size="sm" className="text-muted" onClick={() => void explain()} disabled={loading}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted"
+            onClick={() => void explain()}
+            disabled={loading}
+          >
             {aiBusy ? (
               <>
                 <Logo size={14} animated="loop" className="logo-draw-loop" />
@@ -538,7 +601,10 @@ export function CommitDetails({
               <span className="ml-1 text-faint">
                 {filtering ? (
                   <>
-                    {shownDiffs.length} <span className="font-normal normal-case tracking-normal">of {diffs.length}</span>
+                    {shownDiffs.length}{' '}
+                    <span className="font-normal normal-case tracking-normal">
+                      of {diffs.length}
+                    </span>
                   </>
                 ) : (
                   diffs.length
@@ -549,7 +615,10 @@ export function CommitDetails({
           <span className="flex min-w-0 items-center gap-1 text-[11px] font-normal normal-case tracking-normal">
             {loading ? 'Loading…' : error ? '' : <ChangeSummary diffs={diffs} />}
             {fileTree && !loading && !error && (
-              <FileTreeFoldButton state={foldState} onFold={(mode) => setFold((f) => nextFold(f, mode))} />
+              <FileTreeFoldButton
+                state={foldState}
+                onFold={(mode) => setFold((f) => nextFold(f, mode))}
+              />
             )}
           </span>
         </p>
@@ -587,7 +656,8 @@ export function CommitDetails({
                   className="h-6 shrink-0 px-2 text-[11px]"
                   onClick={() => void restoreFromStash([...picked])}
                 >
-                  <ArchiveRestore className="size-3" /> Apply {picked.size} {picked.size === 1 ? 'file' : 'files'}
+                  <ArchiveRestore className="size-3" /> Apply {picked.size}{' '}
+                  {picked.size === 1 ? 'file' : 'files'}
                 </Button>
               </>
             )}
@@ -599,7 +669,7 @@ export function CommitDetails({
               value={fileQuery}
               onChange={setFileQuery}
               onClose={() => useUi.getState().setFileFilterOpen(false)}
-            focusSeq={fileFilterFocusSeq}
+              focusSeq={fileFilterFocusSeq}
               placeholder="Filter files…"
             />
           </div>
@@ -622,7 +692,13 @@ export function CommitDetails({
         ) : shownDiffs.length === 0 && filtering ? (
           <p className="px-2 py-1.5 text-xs text-faint">No files match the filter.</p>
         ) : fileTree ? (
-          <FileTree items={shownDiffs} pathOf={diffPath} renderFile={renderDiffRow} fold={fold} onFoldState={setFoldState} />
+          <FileTree
+            items={shownDiffs}
+            pathOf={diffPath}
+            renderFile={renderDiffRow}
+            fold={fold}
+            onFoldState={setFoldState}
+          />
         ) : shownDiffs.length > VIRTUAL_FILE_THRESHOLD ? (
           <VirtualFileRows diffs={shownDiffs} scrollRef={scrollRef} renderRow={renderDiffRow} />
         ) : (
@@ -635,7 +711,9 @@ export function CommitDetails({
             <span style={{ position: 'fixed', left: stashFileMenu.x, top: stashFileMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{stashFileMenu.path}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {stashFileMenu.path}
+            </DropdownMenuLabel>
             <DropdownMenuItem onClick={() => void restoreFromStash([stashFileMenu.path])}>
               <ArchiveRestore /> Apply this file to the working copy
             </DropdownMenuItem>
@@ -662,7 +740,9 @@ export function CommitDetails({
             <span style={{ position: 'fixed', left: fileMenu.x, top: fileMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{fileMenu.path}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {fileMenu.path}
+            </DropdownMenuLabel>
             <FileActionsMenu
               repoPath={repoPath}
               filePath={fileMenu.path}

@@ -1,13 +1,13 @@
+import { Button, cn, Hint } from '@angkorgit/design-system';
+import { FolderTree, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { FolderTree, Plus, X } from 'lucide-react';
-import { Button, Hint, cn } from '@angkorgit/design-system';
 import { pickDirectory, startWindowDrag } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
 import { useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
-import { modKey, isMac } from '@/shared/utils';
+import { isMac, modKey } from '@/shared/utils';
 
 const TAB_HINT_DELAY_MS = 200;
 const TRAFFIC_LIGHT_INSET = 78;
@@ -136,7 +136,11 @@ export function TitleBarOverlay() {
       onPointerDown={startWindowDrag}
     >
       {isMac && (
-        <div data-tauri-drag-region className="h-full shrink-0" style={{ width: TRAFFIC_LIGHT_INSET }} />
+        <div
+          data-tauri-drag-region
+          className="h-full shrink-0"
+          style={{ width: TRAFFIC_LIGHT_INSET }}
+        />
       )}
       <div
         ref={stripRef}

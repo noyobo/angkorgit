@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  ForgeError,
   bitbucketForgeProvider,
   createForgeProvider,
+  ForgeError,
   githubApiBase,
   githubForgeProvider,
   gitlabForgeProvider,
-  parseForgeRemote,
-  pickForgeRemote,
   type HttpRequest,
   type HttpResponse,
+  parseForgeRemote,
+  pickForgeRemote,
 } from '@angkorgit/core';
 
 function fakeHttp(handler: (request: HttpRequest) => HttpResponse) {
@@ -196,7 +196,9 @@ describe('githubForgeProvider', () => {
         ? JSON.stringify({ default_branch: 'develop' })
         : '{}',
     }));
-    await expect(githubForgeProvider(githubRemote(), http).defaultBranch()).resolves.toBe('develop');
+    await expect(githubForgeProvider(githubRemote(), http).defaultBranch()).resolves.toBe(
+      'develop',
+    );
   });
 
   it('checks out same-repo branches with tracking and fork PRs via refs/pull', async () => {
@@ -346,8 +348,16 @@ describe('bitbucketForgeProvider', () => {
     state: 'OPEN',
     created_on: '2026-08-20T10:00:00Z',
     updated_on: '2026-08-21T11:30:00Z',
-    author: { display_name: 'Sokha Chan', nickname: 'sokha', links: { avatar: { href: 'https://bb/a.png' } } },
-    source: { branch: { name: 'docs/update' }, commit: { hash: 'ff00aa' }, repository: { full_name: 'team/repo' } },
+    author: {
+      display_name: 'Sokha Chan',
+      nickname: 'sokha',
+      links: { avatar: { href: 'https://bb/a.png' } },
+    },
+    source: {
+      branch: { name: 'docs/update' },
+      commit: { hash: 'ff00aa' },
+      repository: { full_name: 'team/repo' },
+    },
     destination: { branch: { name: 'main' } },
     links: { html: { href: 'https://bitbucket.org/team/repo/pull-requests/3' } },
     ...overrides,
@@ -396,7 +406,10 @@ describe('bitbucketForgeProvider', () => {
     }));
     await expect(
       bitbucketForgeProvider(bitbucketRemote(), http).listOpenPullRequests(),
-    ).rejects.toMatchObject({ status: 400, message: expect.stringContaining('source branch not found') });
+    ).rejects.toMatchObject({
+      status: 400,
+      message: expect.stringContaining('source branch not found'),
+    });
   });
 
   it('tracks same-repo branches and has no checkout for fork pull requests', () => {
@@ -572,7 +585,13 @@ describe('reviewer candidates and requests', () => {
         return {
           status: 200,
           body: JSON.stringify([
-            { id: 5, username: 'maly', name: 'Maly Sok', avatar_url: 'https://a/maly', state: 'active' },
+            {
+              id: 5,
+              username: 'maly',
+              name: 'Maly Sok',
+              avatar_url: 'https://a/maly',
+              state: 'active',
+            },
             { id: 6, username: 'gone', name: 'Blocked', state: 'blocked' },
           ]),
         };

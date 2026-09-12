@@ -1,5 +1,5 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@angkorgit/design-system';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { avatarHue, initials } from '@/shared/utils';
 
 const hashCache = new Map<string, Promise<string>>();
@@ -14,13 +14,11 @@ function emailHash(email: string): Promise<string> {
   const normalized = normalizeEmail(email);
   let promise = hashCache.get(normalized);
   if (!promise) {
-    promise = crypto.subtle
-      .digest('SHA-256', new TextEncoder().encode(normalized))
-      .then((buf) =>
-        Array.from(new Uint8Array(buf))
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join(''),
-      );
+    promise = crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)).then((buf) =>
+      Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join(''),
+    );
     hashCache.set(normalized, promise);
   }
   return promise;

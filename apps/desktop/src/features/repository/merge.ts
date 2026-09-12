@@ -1,9 +1,9 @@
 import { toast } from 'sonner';
-import { ipc } from '@/core/ipc';
 import { confirmDialog } from '@/components/confirm';
-import { useRepo } from '@/features/repository/store';
-import { useGraph } from '@/features/graph/store';
+import { ipc } from '@/core/ipc';
 import { useCommitDraft } from '@/features/commit/draftStore';
+import { useGraph } from '@/features/graph/store';
+import { useRepo } from '@/features/repository/store';
 
 export async function abortMergeFlow(path: string): Promise<void> {
   const ok = await confirmDialog({

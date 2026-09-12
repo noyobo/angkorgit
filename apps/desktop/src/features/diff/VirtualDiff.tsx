@@ -1,7 +1,7 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type { DiffLine, FileDiff } from '@angkorgit/core';
 import { cn } from '@angkorgit/design-system';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CodeLine, lineBg, pairHunkLines, type SearchRanges } from './diffShared';
 
 export const LINE_H = 20;
@@ -43,7 +43,13 @@ export function flattenDiff(diff: FileDiff, split: boolean): FlatRow[] {
         }
       }
       hunk.lines.forEach((line, lineIndex) => {
-        rows.push({ kind: 'line', line, pair: counterpart.get(line) ?? null, hunkIndex, lineIndex });
+        rows.push({
+          kind: 'line',
+          line,
+          pair: counterpart.get(line) ?? null,
+          hunkIndex,
+          lineIndex,
+        });
       });
     }
   });
@@ -328,7 +334,15 @@ function HeaderContent({
   );
 }
 
-export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunkActions, onLineContextMenu, search }: CommonProps) {
+export function VirtualInlineDiff({
+  rows,
+  language,
+  useWordDiff,
+  scrollRef,
+  hunkActions,
+  onLineContextMenu,
+  search,
+}: CommonProps) {
   const virtualizer = useDiffVirtualizer(rows, scrollRef);
   const items = virtualizer.getVirtualItems();
   const total = virtualizer.getTotalSize();
@@ -354,15 +368,28 @@ export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunk
               key={item.key}
               className={cn(
                 'absolute left-0 flex w-full',
-                row.kind === 'header' ? 'border-y border-border-subtle bg-surface-raised/60' : lineBg(row.kind === 'line' ? row.line.kind : 'context'),
+                row.kind === 'header'
+                  ? 'border-y border-border-subtle bg-surface-raised/60'
+                  : lineBg(row.kind === 'line' ? row.line.kind : 'context'),
               )}
               style={{ top: 0, height: item.size, transform: `translateY(${item.start}px)` }}
             >
               {row.kind === 'line' && (
                 <>
-                  <GutterCell text={row.line.oldLineNo?.toString() ?? ''} className="border-r border-border-subtle" />
-                  <GutterCell text={row.line.newLineNo?.toString() ?? ''} className="border-r border-border-subtle" />
-                  <span className={cn('w-6 text-center font-mono text-xs leading-5', marker(row.line.kind).cls)}>
+                  <GutterCell
+                    text={row.line.oldLineNo?.toString() ?? ''}
+                    className="border-r border-border-subtle"
+                  />
+                  <GutterCell
+                    text={row.line.newLineNo?.toString() ?? ''}
+                    className="border-r border-border-subtle"
+                  />
+                  <span
+                    className={cn(
+                      'w-6 text-center font-mono text-xs leading-5',
+                      marker(row.line.kind).cls,
+                    )}
+                  >
                     {marker(row.line.kind).char}
                   </span>
                 </>
@@ -372,7 +399,12 @@ export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunk
         })}
       </div>
 
-      <div ref={paneRef} data-diff-pane="new" className="relative min-w-0 flex-1 cursor-text overflow-hidden" style={{ height: total }}>
+      <div
+        ref={paneRef}
+        data-diff-pane="new"
+        className="relative min-w-0 flex-1 cursor-text overflow-hidden"
+        style={{ height: total }}
+      >
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {items.map((item) => {
             const row = rows[item.index];
@@ -390,7 +422,12 @@ export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunk
             );
           })}
         </div>
-        <div ref={layerRef} data-diff-layer className="absolute inset-y-0 left-0" style={{ width, minWidth: '100%', tabSize: 4 }}>
+        <div
+          ref={layerRef}
+          data-diff-layer
+          className="absolute inset-y-0 left-0"
+          style={{ width, minWidth: '100%', tabSize: 4 }}
+        >
           {items.map((item) => {
             const row = rows[item.index];
             if (row.kind !== 'line') return null;
@@ -398,7 +435,12 @@ export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunk
               <div
                 key={item.key}
                 className="absolute left-0"
-                style={{ top: 0, height: item.size, transform: `translateY(${item.start}px)`, ...ROW_W }}
+                style={{
+                  top: 0,
+                  height: item.size,
+                  transform: `translateY(${item.start}px)`,
+                  ...ROW_W,
+                }}
                 onContextMenu={
                   onLineContextMenu ? (e) => onLineContextMenu(e, { line: row.line }) : undefined
                 }
@@ -426,7 +468,11 @@ export function VirtualInlineDiff({ rows, language, useWordDiff, scrollRef, hunk
               className="absolute left-0 w-full"
               style={{ top: 0, height: item.size, transform: `translateY(${item.start}px)` }}
             >
-              <HeaderContent header={row.header} hunkIndex={row.hunkIndex} hunkActions={hunkActions} />
+              <HeaderContent
+                header={row.header}
+                hunkIndex={row.hunkIndex}
+                hunkActions={hunkActions}
+              />
             </div>
           );
         })}
@@ -465,8 +511,16 @@ function SplitHalf({
   };
 
   return (
-    <div className={cn('flex w-1/2 min-w-0 items-start', side === 'old' && 'border-r border-border-subtle')}>
-      <div className="relative w-10 shrink-0 border-r border-border-subtle bg-surface" style={{ height: total }}>
+    <div
+      className={cn(
+        'flex w-1/2 min-w-0 items-start',
+        side === 'old' && 'border-r border-border-subtle',
+      )}
+    >
+      <div
+        className="relative w-10 shrink-0 border-r border-border-subtle bg-surface"
+        style={{ height: total }}
+      >
         {items.map((item) => {
           const row = rows[item.index];
           const line = row.kind === 'pair' ? (side === 'old' ? row.left : row.right) : null;
@@ -477,13 +531,20 @@ function SplitHalf({
               style={{ top: 0, height: item.size, transform: `translateY(${item.start}px)` }}
             >
               {line && (
-                <GutterCell text={(side === 'old' ? line.oldLineNo : line.newLineNo)?.toString() ?? ''} />
+                <GutterCell
+                  text={(side === 'old' ? line.oldLineNo : line.newLineNo)?.toString() ?? ''}
+                />
               )}
             </div>
           );
         })}
       </div>
-      <div ref={paneRef} data-diff-pane={side} className="relative min-w-0 flex-1 cursor-text overflow-hidden" style={{ height: total }}>
+      <div
+        ref={paneRef}
+        data-diff-pane={side}
+        className="relative min-w-0 flex-1 cursor-text overflow-hidden"
+        style={{ height: total }}
+      >
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {items.map((item) => {
             const row = rows[item.index];
@@ -496,7 +557,12 @@ function SplitHalf({
             );
           })}
         </div>
-        <div ref={layerRef} data-diff-layer className="absolute inset-y-0 left-0" style={{ width, minWidth: '100%', tabSize: 4 }}>
+        <div
+          ref={layerRef}
+          data-diff-layer
+          className="absolute inset-y-0 left-0"
+          style={{ width, minWidth: '100%', tabSize: 4 }}
+        >
           {items.map((item) => {
             const row = rows[item.index];
             const line = row.kind === 'pair' ? (side === 'old' ? row.left : row.right) : null;
@@ -505,7 +571,12 @@ function SplitHalf({
               <div
                 key={item.key}
                 className="absolute left-0"
-                style={{ top: 0, height: item.size, transform: `translateY(${item.start}px)`, ...ROW_W }}
+                style={{
+                  top: 0,
+                  height: item.size,
+                  transform: `translateY(${item.start}px)`,
+                  ...ROW_W,
+                }}
                 onContextMenu={
                   onLineContextMenu ? (e) => onLineContextMenu(e, { line, side }) : undefined
                 }
@@ -534,7 +605,11 @@ function SplitHalf({
               style={{ top: 0, height: item.size, transform: `translateY(${item.start}px)` }}
             >
               {side === 'old' ? (
-                <HeaderContent header={row.header} hunkIndex={row.hunkIndex} hunkActions={hunkActions} />
+                <HeaderContent
+                  header={row.header}
+                  hunkIndex={row.hunkIndex}
+                  hunkActions={hunkActions}
+                />
               ) : null}
             </div>
           );
@@ -561,8 +636,24 @@ export function VirtualSplitDiff(props: CommonProps) {
 
   return (
     <div className="flex items-start">
-      <SplitHalf {...props} items={items} total={total} width={width} side="old" paneRef={paneL} layerRef={layerL} />
-      <SplitHalf {...props} items={items} total={total} width={width} side="new" paneRef={paneR} layerRef={layerR} />
+      <SplitHalf
+        {...props}
+        items={items}
+        total={total}
+        width={width}
+        side="old"
+        paneRef={paneL}
+        layerRef={layerL}
+      />
+      <SplitHalf
+        {...props}
+        items={items}
+        total={total}
+        width={width}
+        side="new"
+        paneRef={paneR}
+        layerRef={layerR}
+      />
     </div>
   );
 }

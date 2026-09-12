@@ -63,7 +63,10 @@ export function useShortcuts(shortcuts: Shortcut[]): void {
         if (shortcut.skipInInput && inEditable(event)) continue;
         if (!hasModifier && !shortcut.allowInInput && inEditable(event)) continue;
         event.preventDefault();
-        void logger.key(shortcut.combo, shortcut.label || 'handler', { overlayOpen, inEditable: inEditable(event) });
+        void logger.key(shortcut.combo, shortcut.label || 'handler', {
+          overlayOpen,
+          inEditable: inEditable(event),
+        });
         shortcut.handler(event);
         return;
       }

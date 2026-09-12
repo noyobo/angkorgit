@@ -1,10 +1,10 @@
 import type { HttpClient } from '../../ai/types';
-import type { ForgeRemote } from '../remote';
 import type { ForgeProvider } from '../provider';
+import type { ForgeRemote } from '../remote';
 import { createForgeJsonRequest, pullRequestCheckoutSpec, toUnix } from '../shared';
 import {
-  ForgeError,
   type CreatePullRequestInput,
+  ForgeError,
   type ForgeUser,
   type PullRequestCheckoutSpec,
   type PullRequestInfo,
@@ -107,7 +107,8 @@ export function githubForgeProvider(remote: ForgeRemote, http: HttpClient): Forg
         'GET',
         `/repos/${repoPath}/pulls?state=open&sort=updated&direction=desc&per_page=50`,
       )) as GithubPull[];
-      if (!Array.isArray(data)) throw new ForgeError('GitHub returned an unexpected response', 'github');
+      if (!Array.isArray(data))
+        throw new ForgeError('GitHub returned an unexpected response', 'github');
       return data.map(mapPull);
     },
     async defaultBranch(): Promise<string> {

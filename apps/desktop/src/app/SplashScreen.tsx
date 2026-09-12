@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
 import { Logo, TemplePattern } from '@angkorgit/design-system';
+import { motion } from 'framer-motion';
 import { useSettings } from '@/features/settings/store';
 
 export function SplashScreen() {

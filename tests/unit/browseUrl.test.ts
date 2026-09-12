@@ -8,9 +8,7 @@ describe('buildBrowseUrl', () => {
   });
 
   test('GitHub HTTPS without branch', () => {
-    expect(buildBrowseUrl('https://github.com/user/repo.git')).toBe(
-      'https://github.com/user/repo',
-    );
+    expect(buildBrowseUrl('https://github.com/user/repo.git')).toBe('https://github.com/user/repo');
   });
 
   test('GitHub SSH with branch', () => {
@@ -40,7 +38,9 @@ describe('buildBrowseUrl', () => {
   test('Bitbucket Server with branch', () => {
     expect(
       buildBrowseUrl('https://bitbucket.company.com/scm/project/repo.git', 'feature/test'),
-    ).toBe('https://bitbucket.company.com/scm/project/repo/browse?at=refs%2Fheads%2Ffeature%2Ftest');
+    ).toBe(
+      'https://bitbucket.company.com/scm/project/repo/browse?at=refs%2Fheads%2Ffeature%2Ftest',
+    );
   });
 
   test('Gitea-style forge with branch', () => {
@@ -50,9 +50,7 @@ describe('buildBrowseUrl', () => {
   });
 
   test('strips .git suffix', () => {
-    expect(buildBrowseUrl('https://github.com/user/repo.git')).toBe(
-      'https://github.com/user/repo',
-    );
+    expect(buildBrowseUrl('https://github.com/user/repo.git')).toBe('https://github.com/user/repo');
   });
 
   test('handles SSH URLs with custom ports', () => {

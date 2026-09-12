@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  DEFAULT_COMMIT_STYLE,
-  aiCapabilities,
-  commitStyleInstructions,
-  ensureCommitPrefix,
-  resolveCommitPrefix,
   type AiCompletionRequest,
   type AiProvider,
+  aiCapabilities,
   type CommitStyle,
+  commitStyleInstructions,
+  DEFAULT_COMMIT_STYLE,
+  ensureCommitPrefix,
+  resolveCommitPrefix,
 } from '@angkorgit/core';
 
 function style(overrides: Partial<CommitStyle> = {}): CommitStyle {
@@ -47,8 +47,12 @@ describe('resolveCommitPrefix', () => {
   });
 
   it('expands {branch} and {ticket}', () => {
-    expect(resolveCommitPrefix([{ pattern: '*', prefix: '({branch})' }], 'hotfix/x')).toBe('(hotfix/x)');
-    expect(resolveCommitPrefix([{ pattern: '*', prefix: '{ticket}:' }], 'feature/ABC-123-login')).toBe('ABC-123:');
+    expect(resolveCommitPrefix([{ pattern: '*', prefix: '({branch})' }], 'hotfix/x')).toBe(
+      '(hotfix/x)',
+    );
+    expect(
+      resolveCommitPrefix([{ pattern: '*', prefix: '{ticket}:' }], 'feature/ABC-123-login'),
+    ).toBe('ABC-123:');
   });
 
   it('skips a {ticket} rule when the branch has no ticket and falls through', () => {
@@ -74,13 +78,21 @@ describe('resolveCommitPrefix', () => {
   });
 
   it('keeps dollar sequences in branch names literal', () => {
-    expect(resolveCommitPrefix([{ pattern: '*', prefix: '[{branch}]' }], 'fix/a$&b')).toBe('[fix/a$&b]');
-    expect(resolveCommitPrefix([{ pattern: '*', prefix: '[{suffix}]' }], "fix/a$'b")).toBe("[a$'b]");
+    expect(resolveCommitPrefix([{ pattern: '*', prefix: '[{branch}]' }], 'fix/a$&b')).toBe(
+      '[fix/a$&b]',
+    );
+    expect(resolveCommitPrefix([{ pattern: '*', prefix: '[{suffix}]' }], "fix/a$'b")).toBe(
+      "[a$'b]",
+    );
   });
 
   it('does not let regex metacharacters in patterns escape', () => {
-    expect(resolveCommitPrefix([{ pattern: 'release-1.0', prefix: '[rel]' }], 'release-1x0')).toBeNull();
-    expect(resolveCommitPrefix([{ pattern: 'release-1.0', prefix: '[rel]' }], 'release-1.0')).toBe('[rel]');
+    expect(
+      resolveCommitPrefix([{ pattern: 'release-1.0', prefix: '[rel]' }], 'release-1x0'),
+    ).toBeNull();
+    expect(resolveCommitPrefix([{ pattern: 'release-1.0', prefix: '[rel]' }], 'release-1.0')).toBe(
+      '[rel]',
+    );
   });
 });
 
@@ -94,12 +106,15 @@ describe('commitStyleInstructions', () => {
   });
 
   it('custom preset uses the user instructions and falls back when empty', () => {
-    expect(commitStyleInstructions(style({ preset: 'custom', instructions: 'Write in past tense.' }), null)).toContain(
-      'Write in past tense.',
-    );
-    expect(commitStyleInstructions(style({ preset: 'custom', instructions: '  ' }), null)).toContain(
-      'conventional-commit',
-    );
+    expect(
+      commitStyleInstructions(
+        style({ preset: 'custom', instructions: 'Write in past tense.' }),
+        null,
+      ),
+    ).toContain('Write in past tense.');
+    expect(
+      commitStyleInstructions(style({ preset: 'custom', instructions: '  ' }), null),
+    ).toContain('conventional-commit');
   });
 
   it('tells the model about a resolved prefix', () => {
@@ -110,10 +125,14 @@ describe('commitStyleInstructions', () => {
 describe('generateCommitMessage with style', () => {
   it('enforces the prefix even when the model ignores it', async () => {
     const requests: AiCompletionRequest[] = [];
-    const message = await aiCapabilities.generateCommitMessage(fakeAi('fix login redirect', requests), 'diff', {
-      style: style({ prefixRules: [{ pattern: 'staging', prefix: '[support]' }] }),
-      branch: 'staging',
-    });
+    const message = await aiCapabilities.generateCommitMessage(
+      fakeAi('fix login redirect', requests),
+      'diff',
+      {
+        style: style({ prefixRules: [{ pattern: 'staging', prefix: '[support]' }] }),
+        branch: 'staging',
+      },
+    );
     expect(message).toBe('[support] fix login redirect');
     expect(requests[0].messages[1].content).toContain('[support]');
   });

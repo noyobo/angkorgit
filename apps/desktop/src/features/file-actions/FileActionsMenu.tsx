@@ -1,18 +1,18 @@
-import { Copy, ExternalLink, Folder, Globe, Pencil } from 'lucide-react';
-import { DropdownMenuItem, DropdownMenuSeparator } from '@angkorgit/design-system';
-import type { ExternalEditor } from '@/features/settings/store';
 import type { RemoteInfo } from '@angkorgit/core';
+import { DropdownMenuItem, DropdownMenuSeparator } from '@angkorgit/design-system';
+import { Copy, ExternalLink, Folder, Globe, Pencil } from 'lucide-react';
+import type { ExternalEditor } from '@/features/settings/store';
 import {
-  revealFileAction,
-  openInEditorAction,
-  openWithDefaultAction,
+  buildFileRemoteUrl,
   copyAbsolutePathAction,
   copyRelativePathAction,
-  viewOnRemoteAction,
-  getRevealLabel,
-  getOpenInEditorLabel,
-  buildFileRemoteUrl,
   type FileActionContext,
+  getOpenInEditorLabel,
+  getRevealLabel,
+  openInEditorAction,
+  openWithDefaultAction,
+  revealFileAction,
+  viewOnRemoteAction,
 } from './operations';
 
 export interface FileActionsMenuProps {
@@ -35,10 +35,10 @@ export interface FileActionsMenuProps {
 
 /**
  * FileActionsMenu - Reusable file action menu items
- * 
+ *
  * Provides the standard file chrome actions (Reveal, Open in editor, View on remote, Copy path)
  * for use in dropdown menus across Working Copy, Diff Panel, and Inspector.
- * 
+ *
  * Usage:
  * ```tsx
  * <DropdownMenuContent>

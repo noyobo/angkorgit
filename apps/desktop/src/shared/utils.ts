@@ -37,8 +37,10 @@ export function initials(name: string): string {
     .join('');
 }
 
-export const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
-export const isWindows = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('WIN');
+export const isMac =
+  typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
+export const isWindows =
+  typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('WIN');
 
 export function modKey(): string {
   return isMac ? '⌘' : 'Ctrl';

@@ -1,12 +1,11 @@
-import { memo } from 'react';
-import type { GraphRow as GraphRowData, RefInfo } from '@angkorgit/core';
+import type { CommitInfo, GraphRow as GraphRowData, RefInfo } from '@angkorgit/core';
 import { Badge, cn } from '@angkorgit/design-system';
-import { Archive, Check, Cloud, GitMerge, Monitor, Tag as TagIcon, FolderTree } from 'lucide-react';
-import type { CommitInfo } from '@angkorgit/core';
-import { Avatar } from '@/components/Avatar';
+import { Archive, Check, Cloud, FolderTree, GitMerge, Monitor, Tag as TagIcon } from 'lucide-react';
+import { memo } from 'react';
 import { toast } from 'sonner';
-import { formatDate, timeAgo } from '@/shared/utils';
+import { Avatar } from '@/components/Avatar';
 import { DEFAULT_GRAPH_COLUMNS, type GraphColumns } from '@/features/ui/store';
+import { formatDate, timeAgo } from '@/shared/utils';
 
 export const ROW_HEIGHT = 32;
 export const REF_COL_WIDTH = 150;
@@ -83,7 +82,6 @@ function StashNode({ color }: { color?: number }) {
   );
 }
 
-
 function GraphGutter({
   row,
   width,
@@ -106,7 +104,11 @@ function GraphGutter({
   const nx = Math.min(x(node.lane), width - AVATAR_SIZE / 2 - NODE_RING - NODE_HALO - 1);
   const total = width + GUTTER_GAP;
   return (
-    <div data-graph-gutter className="relative shrink-0 overflow-hidden" style={{ width: total, height: ROW_HEIGHT }}>
+    <div
+      data-graph-gutter
+      className="relative shrink-0 overflow-hidden"
+      style={{ width: total, height: ROW_HEIGHT }}
+    >
       <svg width={total} height={ROW_HEIGHT} aria-hidden>
         {showTail && (
           <>
@@ -175,7 +177,14 @@ function GraphGutter({
           <line x1={nx} y1={0} x2={nx} y2={CY} stroke={laneColor(node.color)} strokeWidth={2} />
         )}
         {node.continues && (
-          <line x1={nx} y1={CY} x2={nx} y2={ROW_HEIGHT} stroke={laneColor(node.color)} strokeWidth={2} />
+          <line
+            x1={nx}
+            y1={CY}
+            x2={nx}
+            y2={ROW_HEIGHT}
+            stroke={laneColor(node.color)}
+            strokeWidth={2}
+          />
         )}
         {node.isMerge && (
           <circle
@@ -203,7 +212,11 @@ function GraphGutter({
             outlineOffset: isStash ? -1.5 : undefined,
           }}
         >
-          {isStash ? <StashNode color={node.color} /> : <Avatar name={author.name} email={author.email} size={AVATAR_SIZE} />}
+          {isStash ? (
+            <StashNode color={node.color} />
+          ) : (
+            <Avatar name={author.name} email={author.email} size={AVATAR_SIZE} />
+          )}
         </span>
       )}
     </div>
@@ -220,7 +233,8 @@ export interface RefGroup {
   stash?: boolean;
 }
 
-const groupRank = (g: RefGroup) => (g.detachedHead ? 0 : g.local ? 1 : g.remote ? 2 : g.stash ? 4 : 3);
+const groupRank = (g: RefGroup) =>
+  g.detachedHead ? 0 : g.local ? 1 : g.remote ? 2 : g.stash ? 4 : 3;
 
 export function groupRefs(refs: RefInfo[]): RefGroup[] {
   const out: RefGroup[] = [];
@@ -229,7 +243,14 @@ export function groupRefs(refs: RefInfo[]): RefGroup[] {
   for (const ref of refs) {
     if (ref.kind === 'head') {
       if (!hasLocal) {
-        out.push({ label: 'HEAD', primary: ref, local: false, remote: false, tag: false, detachedHead: true });
+        out.push({
+          label: 'HEAD',
+          primary: ref,
+          local: false,
+          remote: false,
+          tag: false,
+          detachedHead: true,
+        });
       }
     } else if (ref.kind === 'localBranch') {
       const i = index.get(ref.shorthand);
@@ -238,7 +259,14 @@ export function groupRefs(refs: RefInfo[]): RefGroup[] {
         out[i].primary = ref;
       } else {
         index.set(ref.shorthand, out.length);
-        out.push({ label: ref.shorthand, primary: ref, local: true, remote: false, tag: false, detachedHead: false });
+        out.push({
+          label: ref.shorthand,
+          primary: ref,
+          local: true,
+          remote: false,
+          tag: false,
+          detachedHead: false,
+        });
       }
     } else if (ref.kind === 'remoteBranch') {
       const base = ref.shorthand.split('/').slice(1).join('/') || ref.shorthand;
@@ -247,19 +275,46 @@ export function groupRefs(refs: RefInfo[]): RefGroup[] {
         out[i].remote = true;
       } else {
         index.set(base, out.length);
-        out.push({ label: base, primary: ref, local: false, remote: true, tag: false, detachedHead: false });
+        out.push({
+          label: base,
+          primary: ref,
+          local: false,
+          remote: true,
+          tag: false,
+          detachedHead: false,
+        });
       }
     } else if (ref.kind === 'stash') {
-      out.push({ label: ref.shorthand, primary: ref, local: false, remote: false, tag: false, detachedHead: false, stash: true });
+      out.push({
+        label: ref.shorthand,
+        primary: ref,
+        local: false,
+        remote: false,
+        tag: false,
+        detachedHead: false,
+        stash: true,
+      });
     } else {
-      out.push({ label: ref.shorthand, primary: ref, local: false, remote: false, tag: true, detachedHead: false });
+      out.push({
+        label: ref.shorthand,
+        primary: ref,
+        local: false,
+        remote: false,
+        tag: true,
+        detachedHead: false,
+      });
     }
   }
   return out.sort((a, b) => groupRank(a) - groupRank(b));
 }
 
 export function estimateChipWidth(group: RefGroup, head: boolean): number {
-  const icons = (group.local ? 1 : 0) + (group.remote ? 1 : 0) + (group.tag ? 1 : 0) + (group.stash ? 1 : 0) + (head || group.detachedHead ? 1 : 0);
+  const icons =
+    (group.local ? 1 : 0) +
+    (group.remote ? 1 : 0) +
+    (group.tag ? 1 : 0) +
+    (group.stash ? 1 : 0) +
+    (head || group.detachedHead ? 1 : 0);
   return Math.round(group.label.length * CHAR_WIDTH + CHIP_PADDING + icons * CHIP_ICON);
 }
 
@@ -277,8 +332,6 @@ function fitGroups(groups: RefGroup[], available: number, isHead: boolean): RefG
   }
   return shown;
 }
-
-
 
 function RefCell({
   refs,
@@ -311,29 +364,38 @@ function RefCell({
         const head = (isHead && group.local && !headMarked) || group.detachedHead;
         if (head) headMarked = true;
         const worktree = group.local ? worktrees?.get(group.label) : undefined;
-        const separated = group.remote && !group.local && (resettableBranches?.has(group.label) ?? false);
+        const separated =
+          group.remote && !group.local && (resettableBranches?.has(group.label) ?? false);
         return (
           <Badge
             key={group.primary.name}
-            tone={group.stash ? 'neutral' : group.tag || group.detachedHead ? 'primary' : group.local ? 'success' : 'info'}
+            tone={
+              group.stash
+                ? 'neutral'
+                : group.tag || group.detachedHead
+                  ? 'primary'
+                  : group.local
+                    ? 'success'
+                    : 'info'
+            }
             className={cn(
               'min-w-0 shrink whitespace-nowrap',
-              !group.tag && !group.stash &&
+              !group.tag &&
+                !group.stash &&
                 'cursor-pointer hover:z-20 hover:shrink-0 hover:!bg-surface-overlay hover:shadow-soft',
               group.stash && 'max-w-[11rem] cursor-pointer border-dashed hover:!bg-surface-overlay',
-              head &&
-                'border-success bg-success text-background shadow-soft hover:!bg-success',
+              head && 'border-success bg-success text-background shadow-soft hover:!bg-success',
             )}
             title={
               group.stash
                 ? `${group.label}\nStash — click the row to see its files, right-click to apply, pop or drop`
                 : group.tag || group.detachedHead
-                ? group.detachedHead
-                  ? 'HEAD is detached at this commit'
-                  : group.label
-                : separated
-                  ? `${group.primary.shorthand} — double-click to reset ${group.label} to it, right-click for actions`
-                  : `${group.label}${group.local ? ' · local' : ''}${group.remote ? ' · origin' : ''}${worktree ? ` · in worktree ${worktree}` : ''} — ${worktree ? 'double-click to switch to that worktree' : 'double-click to checkout'}, right-click for actions`
+                  ? group.detachedHead
+                    ? 'HEAD is detached at this commit'
+                    : group.label
+                  : separated
+                    ? `${group.primary.shorthand} — double-click to reset ${group.label} to it, right-click for actions`
+                    : `${group.label}${group.local ? ' · local' : ''}${group.remote ? ' · origin' : ''}${worktree ? ` · in worktree ${worktree}` : ''} — ${worktree ? 'double-click to switch to that worktree' : 'double-click to checkout'}, right-click for actions`
             }
             onDoubleClick={(e) => {
               if (group.tag || group.detachedHead || group.stash) return;
@@ -452,7 +514,9 @@ export const CommitRow = memo(function CommitRow({
       {columns.message ? (
         <>
           {isMergeCommit && <GitMerge className="size-3.5 shrink-0 text-faint" />}
-          <span className={cn('min-w-0 flex-1 truncate', isMergeCommit && !selected && 'text-muted')}>
+          <span
+            className={cn('min-w-0 flex-1 truncate', isMergeCommit && !selected && 'text-muted')}
+          >
             {commit.summary || <span className="text-faint">(no message)</span>}
           </span>
         </>
@@ -467,32 +531,32 @@ export const CommitRow = memo(function CommitRow({
         </span>
       )}
       {columns.hash && (
-      <button
-        type="button"
-        className={cn(
-          'w-14 shrink-0 rounded px-0.5 font-mono text-[11px] text-faint hover:bg-surface-raised hover:text-foreground',
-          columns.message ? 'text-right' : 'text-left',
-        )}
-        title="Copy full hash"
-        onClick={(e) => {
-          e.stopPropagation();
-          void navigator.clipboard.writeText(commit.oid);
-          toast.success('Commit hash copied');
-        }}
-      >
-        {commit.shortOid.slice(0, 7)}
-      </button>
+        <button
+          type="button"
+          className={cn(
+            'w-14 shrink-0 rounded px-0.5 font-mono text-[11px] text-faint hover:bg-surface-raised hover:text-foreground',
+            columns.message ? 'text-right' : 'text-left',
+          )}
+          title="Copy full hash"
+          onClick={(e) => {
+            e.stopPropagation();
+            void navigator.clipboard.writeText(commit.oid);
+            toast.success('Commit hash copied');
+          }}
+        >
+          {commit.shortOid.slice(0, 7)}
+        </button>
       )}
       {columns.date && (
-      <span
-        className={cn(
-          'w-[4.5rem] shrink-0 whitespace-nowrap text-[11px] text-faint',
-          columns.message ? 'text-right' : 'text-left',
-        )}
-        title={formatDate(commit.author.time)}
-      >
-        {timeAgo(commit.author.time)}
-      </span>
+        <span
+          className={cn(
+            'w-[4.5rem] shrink-0 whitespace-nowrap text-[11px] text-faint',
+            columns.message ? 'text-right' : 'text-left',
+          )}
+          title={formatDate(commit.author.time)}
+        >
+          {timeAgo(commit.author.time)}
+        </span>
       )}
       {!columns.message && <span className="min-w-0 flex-1" />}
     </div>

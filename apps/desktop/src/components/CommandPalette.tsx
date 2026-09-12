@@ -1,9 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
+import { Kbd, Spinner } from '@angkorgit/design-system';
 import { Command, useCommandState } from 'cmdk';
-import { toast } from 'sonner';
-import { toastOutcome } from '@/shared/toastOutcome';
-import { logger } from '@/core/logger';
 import {
   Archive,
   ArchiveRestore,
@@ -36,29 +33,32 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { Kbd, Spinner } from '@angkorgit/design-system';
-import { ipc, openExternal, pickDirectory } from '@/core/ipc';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { confirmDialog } from '@/components/confirm';
-import { useRepo } from '@/features/repository/store';
-import { abortMergeFlow } from '@/features/repository/merge';
-import {
-  pushOperation,
-  pullOperation,
-  fetchOperation,
-  viewOnRemoteOperation,
-  type OperationContext,
-} from '@/features/repository/operations';
-import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
-import { openDeleteBranches } from '@/features/repository/deleteBranches';
-import { sidebarVisible, useUi } from '@/features/ui/store';
-import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
-import { applyTheme, THEMES, useSettings, type Theme } from '@/features/settings/store';
-import { installCliTool } from '@/features/settings/cliTool';
-import { killTerminalSession } from '@/features/terminal/sessions';
-import { useUndo } from '@/features/history/undoStore';
+import { ipc, openExternal, pickDirectory } from '@/core/ipc';
+import { logger } from '@/core/logger';
 import { useCommitDraft } from '@/features/commit/draftStore';
 import { useForge } from '@/features/forge/store';
-import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
+import { useUndo } from '@/features/history/undoStore';
+import { openDeleteBranches } from '@/features/repository/deleteBranches';
+import { fetchAndClearLocalBranches } from '@/features/repository/fetchClear';
+import { abortMergeFlow } from '@/features/repository/merge';
+import {
+  fetchOperation,
+  type OperationContext,
+  pullOperation,
+  pushOperation,
+  viewOnRemoteOperation,
+} from '@/features/repository/operations';
+import { useRepo } from '@/features/repository/store';
+import { installCliTool } from '@/features/settings/cliTool';
+import { applyTheme, THEMES, type Theme, useSettings } from '@/features/settings/store';
+import { SIDEBAR_SECTIONS } from '@/features/sidebar/Sidebar';
+import { killTerminalSession } from '@/features/terminal/sessions';
+import { sidebarVisible, useUi } from '@/features/ui/store';
+import { toastOutcome } from '@/shared/toastOutcome';
 import { currentPullRequestUrl, modKey } from '@/shared/utils';
 
 export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }) {
@@ -91,9 +91,18 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
 
   const path = repo?.path ?? '';
   const repoState = repo?.state ?? 'clean';
-  const otherRepos = useMemo(() => recents.filter((r) => r.path !== path).slice(0, 8), [recents, path]);
-  const nextUndo = useMemo(() => [...undoStack].reverse().find((e) => e.repoPath === path), [undoStack, path]);
-  const nextRedo = useMemo(() => [...redoStack].reverse().find((e) => e.repoPath === path), [redoStack, path]);
+  const otherRepos = useMemo(
+    () => recents.filter((r) => r.path !== path).slice(0, 8),
+    [recents, path],
+  );
+  const nextUndo = useMemo(
+    () => [...undoStack].reverse().find((e) => e.repoPath === path),
+    [undoStack, path],
+  );
+  const nextRedo = useMemo(
+    () => [...redoStack].reverse().find((e) => e.repoPath === path),
+    [redoStack, path],
+  );
 
   const makeContext = (): OperationContext => ({
     path,
@@ -254,8 +263,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     void (async () => {
       const ok = await confirmDialog({
         title: `Clear ${repoState} state?`,
-        description:
-          `Git still marks this repository as mid-${repoState}. Clearing removes that marker and keeps every file and commit exactly as it is now. Use this when the ${repoState} is already finished.`,
+        description: `Git still marks this repository as mid-${repoState}. Clearing removes that marker and keeps every file and commit exactly as it is now. Use this when the ${repoState} is already finished.`,
         confirmLabel: 'Clear state',
       });
       if (!ok) return;
@@ -277,16 +285,20 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         e.preventDefault();
         e.stopPropagation();
         const index = parseInt(e.key) - 1;
-        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const items = Array.from(
+          document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'),
+        );
         const item = items[index];
         if (item instanceof HTMLElement) item.click();
       }
-      
+
       // Tab navigation: input to first item, or between items
       if (e.key === 'Tab') {
-        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const items = Array.from(
+          document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'),
+        );
         if (items.length === 0) return;
-        
+
         if (e.target instanceof HTMLInputElement) {
           // From input to first item
           if (!e.shiftKey && items[0] instanceof HTMLElement) {
@@ -298,7 +310,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           e.preventDefault();
           const currentIndex = items.indexOf(e.target);
           if (currentIndex === -1) return;
-          
+
           if (e.shiftKey) {
             // Shift+Tab: move backward
             if (currentIndex > 0) {
@@ -344,7 +356,11 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
               : 'Type a command or branch name…'
         }
         onKeyDown={(e) => {
-          if ((mode === 'fileHistory' || mode === 'theme') && e.key === 'Backspace' && search === '') {
+          if (
+            (mode === 'fileHistory' || mode === 'theme') &&
+            e.key === 'Backspace' &&
+            search === ''
+          ) {
             e.preventDefault();
             if (mode === 'theme') abandonThemePreview();
             setMode('commands');
@@ -352,13 +368,13 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
           if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
             e.preventDefault();
             e.currentTarget.dispatchEvent(
-              new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+              new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
             );
           }
           if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
             e.preventDefault();
             e.currentTarget.dispatchEvent(
-              new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+              new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
             );
           }
         }}
@@ -415,356 +431,420 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
         )}
 
         {mode === 'commands' && (
-        <>
-        <Command.Group heading="Actions">
-          <QuickKeyItems>
-            <PaletteItem icon={<Palette />} label="Go to Panel…" hint={`${modKey()}⇧?`} onSelect={() => {
-              close();
-              useUi.getState().setPanelsOpen(true);
-            }} />
-            <PaletteItem icon={<GitBranchPlus />} label="Switch Branch…" hint={`${modKey()}B`} onSelect={() => {
-              close();
-              useUi.getState().setBranchSwitcherOpen(true);
-            }} />
-            <PaletteItem icon={<History />} label="File history…" hint={`${modKey()}F`} onSelect={enterFileHistory} />
-            <PaletteItem icon={<ArrowDownToLine />} label="Pull" hint={`${modKey()}⇧P`} onSelect={() => {
-              if (busy) {
-                toast.info('Pull already in progress');
-                return;
-              }
-              close();
-              void pullOperation(makeContext());
-            }} />
-            <PaletteItem icon={<ArrowUpFromLine />} label="Push" hint={`${modKey()}P`} onSelect={() => {
-              if (busy) {
-                toast.info('Push already in progress');
-                return;
-              }
-              close();
-              void pushOperation(makeContext());
-            }} />
-            <PaletteItem
-              icon={<Download />}
-              label="View on remote"
-              hint={`${modKey()}⇧G`}
-              onSelect={() => {
-                close();
-                void viewOnRemoteOperation(makeContext());
-              }}
-            />
-            {(() => {
-              const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
-              const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);
-              const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
-              const inApp = forgeCurrent && forgeKind !== null && forgeAccount;
-              return prUrl ? (
+          <>
+            <Command.Group heading="Actions">
+              <QuickKeyItems>
                 <PaletteItem
-                  icon={<GitPullRequest />}
-                  label={`Create ${forgeNoun(forgeCurrent ? forgeKind : null)}`}
+                  icon={<Palette />}
+                  label="Go to Panel…"
+                  hint={`${modKey()}⇧?`}
                   onSelect={() => {
                     close();
-                    if (inApp) openDialog('createPullRequest');
-                    else void openExternal(prUrl);
+                    useUi.getState().setPanelsOpen(true);
                   }}
                 />
-              ) : null;
-            })()}
-            <PaletteItem icon={<RefreshCw />} label="Fetch (with tags)" hint={`${modKey()}⇧T`} onSelect={() => {
-              close();
-              void fetchOperation(makeContext());
-            }} />
-            <PaletteItem
-              icon={<RefreshCw />}
-              label="Fetch and clear local branches…"
-              onSelect={() => {
-                close();
-                const ctx = makeContext();
-                void fetchAndClearLocalBranches(ctx.path, ctx.remotes[0]?.name ?? 'origin', onRefresh);
-              }}
-            />
-            <PaletteItem
-              icon={<GitBranchPlus />}
-              label="Create branch…"
-              hint={`${modKey()}⇧N`}
-              onSelect={() => {
-                close();
-                openDialog('createBranch');
-              }}
-            />
-          </QuickKeyItems>
-          <PaletteItem
-            icon={<Trash2 />}
-            label="Delete branches…"
-            onSelect={() => {
-              close();
-              void openDeleteBranches(onRefresh);
-            }}
-          />
-          <PaletteItem
-            icon={<FolderTree />}
-            label="New worktree…"
-            onSelect={() => {
-              close();
-              openDialog('createWorktree');
-            }}
-          />
-          <PaletteItem
-            icon={<TagIcon />}
-            label="Create tag…"
-            onSelect={() => {
-              close();
-              openDialog('createTag');
-            }}
-          />
-          <PaletteItem
-            icon={<Archive />}
-            label="Stash changes…"
-            hint={`${modKey()}⇧S`}
-            onSelect={() => {
-              close();
-              openDialog('createStash');
-            }}
-          />
-          {stashes.length > 0 && (
-            <PaletteItem
-              icon={<ArchiveRestore />}
-              label={`Pop latest stash: ${stashes[0].message}`}
-              onSelect={() => run('Pop stash', () => ipc.stashPop(path, 0))}
-            />
-          )}
-          <PaletteItem
-            icon={<Undo2 />}
-            label="Amend last commit"
-            onSelect={() => {
-              close();
-              const draft = useCommitDraft.getState();
-              if (draft.drafts[path] || draft.amendFor === path) return;
-              draft.setAmend(path, true);
-            }}
-          />
-          <PaletteItem
-            icon={<Archive />}
-            label="Go to commit summary"
-            hint={`${modKey()}G`}
-            onSelect={() => {
-              close();
-              useUi.getState().focusCommitSummary();
-            }}
-          />
-          {nextUndo && (
-            <PaletteItem icon={<Undo2 />} label={`Undo: ${nextUndo.label}`} hint={`${modKey()}Z`} onSelect={() => runHistory('undo')} />
-          )}
-          {nextRedo && (
-            <PaletteItem icon={<Redo2 />} label={`Redo: ${nextRedo.label}`} hint={`${modKey()}⇧Z`} onSelect={() => runHistory('redo')} />
-          )}
-          <PaletteItem
-            icon={<RefreshCw />}
-            label="Refresh"
-            hint={`${modKey()}R`}
-            onSelect={() => {
-              close();
-              void onRefresh();
-            }}
-          />
-        </Command.Group>
-
-        {repoState !== 'clean' && (
-          <Command.Group heading="Repository state">
-            {repoState === 'rebase' && (
-              <>
-                <PaletteItem icon={<Redo2 />} label="Continue rebase" onSelect={continueRebase} />
-                <PaletteItem icon={<Undo2 />} label="Abort rebase" onSelect={abortRebase} />
-              </>
-            )}
-            {repoState === 'merge' && (
-              <PaletteItem icon={<Undo2 />} label="Abort merge" onSelect={abortMerge} />
-            )}
-            <PaletteItem icon={<Check />} label="Clear repository state" onSelect={clearState} />
-          </Command.Group>
-        )}
-
-        <Command.Group heading="Repository">
-          <PaletteItem icon={<FolderOpen />} label="Open repository…" onSelect={openRepository} />
-          <PaletteItem
-            icon={<GitBranchPlus />}
-            label="Clone repository…"
-            onSelect={() => {
-              close();
-              openDialog('clone');
-            }}
-          />
-          <PaletteItem
-            icon={<X />}
-            label="Close all tabs"
-            hint={`${modKey()}⇧W`}
-            onSelect={() => {
-              close();
-              const tabs = useUi.getState().repoTabs;
-              tabs.forEach((path) => killTerminalSession(path));
-              useUi.getState().closeAllTabs();
-              useRepo.getState().close();
-              navigate('/welcome');
-            }}
-          />
-          <PaletteItem
-            icon={<Home />}
-            label="Back to repositories"
-            onSelect={() => {
-              close();
-              navigate('/welcome');
-            }}
-          />
-        </Command.Group>
-
-        {worktrees.some((w) => !w.isCurrent && !w.isMissing) && (
-          <Command.Group heading="Switch worktree">
-            {worktrees
-              .filter((w) => !w.isCurrent && !w.isMissing)
-              .map((w) => (
                 <PaletteItem
-                  key={w.path}
-                  icon={<FolderTree />}
-                  label={`${w.name}${w.branch ? ` · ${w.branch}` : ''}`}
+                  icon={<GitBranchPlus />}
+                  label="Switch Branch…"
+                  hint={`${modKey()}B`}
                   onSelect={() => {
                     close();
-                    void open(w.path).catch((error) =>
-                      toast.error(`Could not open worktree: ${(error as { message?: string }).message ?? error}`),
+                    useUi.getState().setBranchSwitcherOpen(true);
+                  }}
+                />
+                <PaletteItem
+                  icon={<History />}
+                  label="File history…"
+                  hint={`${modKey()}F`}
+                  onSelect={enterFileHistory}
+                />
+                <PaletteItem
+                  icon={<ArrowDownToLine />}
+                  label="Pull"
+                  hint={`${modKey()}⇧P`}
+                  onSelect={() => {
+                    if (busy) {
+                      toast.info('Pull already in progress');
+                      return;
+                    }
+                    close();
+                    void pullOperation(makeContext());
+                  }}
+                />
+                <PaletteItem
+                  icon={<ArrowUpFromLine />}
+                  label="Push"
+                  hint={`${modKey()}P`}
+                  onSelect={() => {
+                    if (busy) {
+                      toast.info('Push already in progress');
+                      return;
+                    }
+                    close();
+                    void pushOperation(makeContext());
+                  }}
+                />
+                <PaletteItem
+                  icon={<Download />}
+                  label="View on remote"
+                  hint={`${modKey()}⇧G`}
+                  onSelect={() => {
+                    close();
+                    void viewOnRemoteOperation(makeContext());
+                  }}
+                />
+                {(() => {
+                  const headUpstream =
+                    branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
+                  const prUrl = currentPullRequestUrl(
+                    repo,
+                    pickForgeRemote(remotes, headUpstream)?.url,
+                  );
+                  const forgeCurrent = forgeRepoPath !== null && forgeRepoPath === repo?.path;
+                  const inApp = forgeCurrent && forgeKind !== null && forgeAccount;
+                  return prUrl ? (
+                    <PaletteItem
+                      icon={<GitPullRequest />}
+                      label={`Create ${forgeNoun(forgeCurrent ? forgeKind : null)}`}
+                      onSelect={() => {
+                        close();
+                        if (inApp) openDialog('createPullRequest');
+                        else void openExternal(prUrl);
+                      }}
+                    />
+                  ) : null;
+                })()}
+                <PaletteItem
+                  icon={<RefreshCw />}
+                  label="Fetch (with tags)"
+                  hint={`${modKey()}⇧T`}
+                  onSelect={() => {
+                    close();
+                    void fetchOperation(makeContext());
+                  }}
+                />
+                <PaletteItem
+                  icon={<RefreshCw />}
+                  label="Fetch and clear local branches…"
+                  onSelect={() => {
+                    close();
+                    const ctx = makeContext();
+                    void fetchAndClearLocalBranches(
+                      ctx.path,
+                      ctx.remotes[0]?.name ?? 'origin',
+                      onRefresh,
                     );
                   }}
                 />
-              ))}
-          </Command.Group>
-        )}
-
-        {otherRepos.length > 0 && (
-          <Command.Group heading="Switch repository">
-            {otherRepos.map((recent) => (
+                <PaletteItem
+                  icon={<GitBranchPlus />}
+                  label="Create branch…"
+                  hint={`${modKey()}⇧N`}
+                  onSelect={() => {
+                    close();
+                    openDialog('createBranch');
+                  }}
+                />
+              </QuickKeyItems>
               <PaletteItem
-                key={recent.path}
-                icon={<FolderGit2 />}
-                label={recent.name}
+                icon={<Trash2 />}
+                label="Delete branches…"
                 onSelect={() => {
                   close();
-                  void open(recent.path).catch((error) =>
-                    toast.error(`Could not open: ${(error as { message?: string }).message ?? error}`),
+                  void openDeleteBranches(onRefresh);
+                }}
+              />
+              <PaletteItem
+                icon={<FolderTree />}
+                label="New worktree…"
+                onSelect={() => {
+                  close();
+                  openDialog('createWorktree');
+                }}
+              />
+              <PaletteItem
+                icon={<TagIcon />}
+                label="Create tag…"
+                onSelect={() => {
+                  close();
+                  openDialog('createTag');
+                }}
+              />
+              <PaletteItem
+                icon={<Archive />}
+                label="Stash changes…"
+                hint={`${modKey()}⇧S`}
+                onSelect={() => {
+                  close();
+                  openDialog('createStash');
+                }}
+              />
+              {stashes.length > 0 && (
+                <PaletteItem
+                  icon={<ArchiveRestore />}
+                  label={`Pop latest stash: ${stashes[0].message}`}
+                  onSelect={() => run('Pop stash', () => ipc.stashPop(path, 0))}
+                />
+              )}
+              <PaletteItem
+                icon={<Undo2 />}
+                label="Amend last commit"
+                onSelect={() => {
+                  close();
+                  const draft = useCommitDraft.getState();
+                  if (draft.drafts[path] || draft.amendFor === path) return;
+                  draft.setAmend(path, true);
+                }}
+              />
+              <PaletteItem
+                icon={<Archive />}
+                label="Go to commit summary"
+                hint={`${modKey()}G`}
+                onSelect={() => {
+                  close();
+                  useUi.getState().focusCommitSummary();
+                }}
+              />
+              {nextUndo && (
+                <PaletteItem
+                  icon={<Undo2 />}
+                  label={`Undo: ${nextUndo.label}`}
+                  hint={`${modKey()}Z`}
+                  onSelect={() => runHistory('undo')}
+                />
+              )}
+              {nextRedo && (
+                <PaletteItem
+                  icon={<Redo2 />}
+                  label={`Redo: ${nextRedo.label}`}
+                  hint={`${modKey()}⇧Z`}
+                  onSelect={() => runHistory('redo')}
+                />
+              )}
+              <PaletteItem
+                icon={<RefreshCw />}
+                label="Refresh"
+                hint={`${modKey()}R`}
+                onSelect={() => {
+                  close();
+                  void onRefresh();
+                }}
+              />
+            </Command.Group>
+
+            {repoState !== 'clean' && (
+              <Command.Group heading="Repository state">
+                {repoState === 'rebase' && (
+                  <>
+                    <PaletteItem
+                      icon={<Redo2 />}
+                      label="Continue rebase"
+                      onSelect={continueRebase}
+                    />
+                    <PaletteItem icon={<Undo2 />} label="Abort rebase" onSelect={abortRebase} />
+                  </>
+                )}
+                {repoState === 'merge' && (
+                  <PaletteItem icon={<Undo2 />} label="Abort merge" onSelect={abortMerge} />
+                )}
+                <PaletteItem
+                  icon={<Check />}
+                  label="Clear repository state"
+                  onSelect={clearState}
+                />
+              </Command.Group>
+            )}
+
+            <Command.Group heading="Repository">
+              <PaletteItem
+                icon={<FolderOpen />}
+                label="Open repository…"
+                onSelect={openRepository}
+              />
+              <PaletteItem
+                icon={<GitBranchPlus />}
+                label="Clone repository…"
+                onSelect={() => {
+                  close();
+                  openDialog('clone');
+                }}
+              />
+              <PaletteItem
+                icon={<X />}
+                label="Close all tabs"
+                hint={`${modKey()}⇧W`}
+                onSelect={() => {
+                  close();
+                  const tabs = useUi.getState().repoTabs;
+                  tabs.forEach((path) => killTerminalSession(path));
+                  useUi.getState().closeAllTabs();
+                  useRepo.getState().close();
+                  navigate('/welcome');
+                }}
+              />
+              <PaletteItem
+                icon={<Home />}
+                label="Back to repositories"
+                onSelect={() => {
+                  close();
+                  navigate('/welcome');
+                }}
+              />
+            </Command.Group>
+
+            {worktrees.some((w) => !w.isCurrent && !w.isMissing) && (
+              <Command.Group heading="Switch worktree">
+                {worktrees
+                  .filter((w) => !w.isCurrent && !w.isMissing)
+                  .map((w) => (
+                    <PaletteItem
+                      key={w.path}
+                      icon={<FolderTree />}
+                      label={`${w.name}${w.branch ? ` · ${w.branch}` : ''}`}
+                      onSelect={() => {
+                        close();
+                        void open(w.path).catch((error) =>
+                          toast.error(
+                            `Could not open worktree: ${(error as { message?: string }).message ?? error}`,
+                          ),
+                        );
+                      }}
+                    />
+                  ))}
+              </Command.Group>
+            )}
+
+            {otherRepos.length > 0 && (
+              <Command.Group heading="Switch repository">
+                {otherRepos.map((recent) => (
+                  <PaletteItem
+                    key={recent.path}
+                    icon={<FolderGit2 />}
+                    label={recent.name}
+                    onSelect={() => {
+                      close();
+                      void open(recent.path).catch((error) =>
+                        toast.error(
+                          `Could not open: ${(error as { message?: string }).message ?? error}`,
+                        ),
+                      );
+                    }}
+                  />
+                ))}
+              </Command.Group>
+            )}
+
+            <Command.Group heading="View">
+              <PaletteItem
+                icon={<SquareTerminal />}
+                label="Toggle terminal"
+                hint="Ctrl+`"
+                onSelect={() => {
+                  close();
+                  toggleTerminal();
+                }}
+              />
+              <PaletteItem
+                icon={<PanelLeft />}
+                label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+                hint={`${modKey()}L`}
+                onSelect={() => {
+                  close();
+                  toggleSidebar();
+                }}
+              />
+              <PaletteItem
+                icon={layout === 'preview' ? <PanelLeft /> : <Columns3 />}
+                label={layout === 'preview' ? 'Standard layout' : 'Preview layout'}
+                onSelect={() => {
+                  close();
+                  setLayout(layout === 'preview' ? 'standard' : 'preview');
+                }}
+              />
+              <PaletteItem
+                icon={<ChevronsDownUp />}
+                label="Collapse sidebar sections"
+                onSelect={() => {
+                  close();
+                  useUi.getState().collapseSidebarSections(SIDEBAR_SECTIONS);
+                }}
+              />
+              <PaletteItem
+                icon={<ZoomIn />}
+                label="Zoom in"
+                hint={`${modKey()}+`}
+                onSelect={() => {
+                  close();
+                  zoomIn();
+                }}
+              />
+              <PaletteItem
+                icon={<ZoomOut />}
+                label="Zoom out"
+                hint={`${modKey()}-`}
+                onSelect={() => {
+                  close();
+                  zoomOut();
+                }}
+              />
+              <PaletteItem
+                icon={<Palette />}
+                label="Color theme"
+                keywords={['theme', 'appearance', 'dark', 'light']}
+                onSelect={enterThemeMode}
+              />
+              <PaletteItem
+                icon={<Settings />}
+                label="Settings"
+                hint={`${modKey()},`}
+                onSelect={() => {
+                  close();
+                  openDialog('settings');
+                }}
+              />
+              <PaletteItem
+                icon={<SquareTerminal />}
+                label="Install command line tool"
+                onSelect={() => {
+                  close();
+                  void installCliTool().catch((error) =>
+                    toast.error(
+                      `Could not install: ${(error as { message?: string }).message ?? error}`,
+                    ),
                   );
                 }}
               />
-            ))}
-          </Command.Group>
-        )}
+              <PaletteItem
+                icon={<Download />}
+                label="Check for updates"
+                onSelect={() => {
+                  close();
+                  void import('@/features/updater/check').then(({ checkForUpdates }) =>
+                    checkForUpdates({ silent: false }),
+                  );
+                }}
+              />
+            </Command.Group>
 
-        <Command.Group heading="View">
-          <PaletteItem
-            icon={<SquareTerminal />}
-            label="Toggle terminal"
-            hint="Ctrl+`"
-            onSelect={() => {
-              close();
-              toggleTerminal();
-            }}
-          />
-          <PaletteItem
-            icon={<PanelLeft />}
-            label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            hint={`${modKey()}L`}
-            onSelect={() => {
-              close();
-              toggleSidebar();
-            }}
-          />
-          <PaletteItem
-            icon={layout === 'preview' ? <PanelLeft /> : <Columns3 />}
-            label={layout === 'preview' ? 'Standard layout' : 'Preview layout'}
-            onSelect={() => {
-              close();
-              setLayout(layout === 'preview' ? 'standard' : 'preview');
-            }}
-          />
-          <PaletteItem
-            icon={<ChevronsDownUp />}
-            label="Collapse sidebar sections"
-            onSelect={() => {
-              close();
-              useUi.getState().collapseSidebarSections(SIDEBAR_SECTIONS);
-            }}
-          />
-          <PaletteItem
-            icon={<ZoomIn />}
-            label="Zoom in"
-            hint={`${modKey()}+`}
-            onSelect={() => {
-              close();
-              zoomIn();
-            }}
-          />
-          <PaletteItem
-            icon={<ZoomOut />}
-            label="Zoom out"
-            hint={`${modKey()}-`}
-            onSelect={() => {
-              close();
-              zoomOut();
-            }}
-          />
-          <PaletteItem
-            icon={<Palette />}
-            label="Color theme"
-            keywords={['theme', 'appearance', 'dark', 'light']}
-            onSelect={enterThemeMode}
-          />
-          <PaletteItem
-            icon={<Settings />}
-            label="Settings"
-            hint={`${modKey()},`}
-            onSelect={() => {
-              close();
-              openDialog('settings');
-            }}
-          />
-          <PaletteItem
-            icon={<SquareTerminal />}
-            label="Install command line tool"
-            onSelect={() => {
-              close();
-              void installCliTool().catch((error) =>
-                toast.error(
-                  `Could not install: ${(error as { message?: string }).message ?? error}`,
-                ),
-              );
-            }}
-          />
-          <PaletteItem
-            icon={<Download />}
-            label="Check for updates"
-            onSelect={() => {
-              close();
-              void import('@/features/updater/check').then(({ checkForUpdates }) =>
-                checkForUpdates({ silent: false }),
-              );
-            }}
-          />
-        </Command.Group>
-
-        <Command.Group heading="Help">
-          <PaletteItem
-            icon={<Download />}
-            label="Documentation"
-            onSelect={async () => {
-              close();
-              await openExternal('https://github.com/noyobo/angkorgit');
-            }}
-          />
-          <PaletteItem
-            icon={<Download />}
-            label="Report Issue…"
-            onSelect={async () => {
-              close();
-              await openExternal('https://github.com/noyobo/angkorgit/issues/new');
-            }}
-          />
-        </Command.Group>
-        </>
+            <Command.Group heading="Help">
+              <PaletteItem
+                icon={<Download />}
+                label="Documentation"
+                onSelect={async () => {
+                  close();
+                  await openExternal('https://github.com/noyobo/angkorgit');
+                }}
+              />
+              <PaletteItem
+                icon={<Download />}
+                label="Report Issue…"
+                onSelect={async () => {
+                  close();
+                  await openExternal('https://github.com/noyobo/angkorgit/issues/new');
+                }}
+              />
+            </Command.Group>
+          </>
         )}
       </Command.List>
     </Command.Dialog>
@@ -784,7 +864,9 @@ function QuickKeyItems({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const updateQuickKeys = () => {
-      const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+      const items = Array.from(
+        document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'),
+      );
       const newQuickKeys = new Map<number, number>();
       items.forEach((item, index) => {
         if (index < 9 && item instanceof HTMLElement) {
@@ -808,10 +890,13 @@ function QuickKeyItems({ children }: { children: React.ReactNode }) {
         if (!React.isValidElement(child)) return child;
         const currentIndex = itemIndex++;
         const quickKey = quickKeys.get(currentIndex);
-        return React.cloneElement(child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>, {
-          quickKey,
-          'data-item-index': currentIndex,
-        });
+        return React.cloneElement(
+          child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>,
+          {
+            quickKey,
+            'data-item-index': currentIndex,
+          },
+        );
       })}
     </>
   );

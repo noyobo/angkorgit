@@ -11,13 +11,6 @@
       "@angkorgit/design-system/*": ["./packages/design-system/src/*"]
     }
   },
-  "include": [
-    "tests/**/*",
-    "scripts/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/dist"
-  ]
+  "include": ["tests/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist", "**/dist"]
 }

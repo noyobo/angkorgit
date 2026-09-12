@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
 import type { FileDiff } from '@angkorgit/core';
+import { useEffect, useMemo, useRef } from 'react';
 import { useSettings } from '@/features/settings/store';
 import type { DiffViewMode } from '@/features/ui/store';
 

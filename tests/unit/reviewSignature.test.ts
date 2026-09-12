@@ -15,8 +15,14 @@ describe('buildStagedReviewSignature', () => {
   });
 
   it('is order-insensitive', () => {
-    const one = buildStagedReviewSignature([file('a.ts', 'modified', null), file('b.ts', 'new', null)]);
-    const two = buildStagedReviewSignature([file('b.ts', 'new', null), file('a.ts', 'modified', null)]);
+    const one = buildStagedReviewSignature([
+      file('a.ts', 'modified', null),
+      file('b.ts', 'new', null),
+    ]);
+    const two = buildStagedReviewSignature([
+      file('b.ts', 'new', null),
+      file('a.ts', 'modified', null),
+    ]);
     expect(one).toBe(two);
   });
 

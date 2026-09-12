@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { ArrowRight, Eye, GitPullRequest, Sparkles, Square, Users } from 'lucide-react';
+import { aiCapabilities, type ForgeUser, forgeNoun } from '@angkorgit/core';
 import {
   Badge,
   Button,
@@ -26,11 +24,13 @@ import {
   Spinner,
   Textarea,
 } from '@angkorgit/design-system';
-import { aiCapabilities, forgeNoun, type ForgeUser } from '@angkorgit/core';
+import { ArrowRight, Eye, GitPullRequest, Sparkles, Square, Users } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { ipc, openExternal } from '@/core/ipc';
+import { aiConfigured, getAiProvider } from '@/features/ai/client';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { aiConfigured, getAiProvider } from '@/features/ai/client';
 import { forgeProviderFor, useForge } from './store';
 
 function titleFromBranch(branch: string): string {
@@ -117,7 +117,9 @@ export function CreatePrDialog() {
       .accountList()
       .then((accounts) => {
         const match = accounts.find(
-          (account) => remote && account.host.toLowerCase().split(':')[0] === remote.host.toLowerCase().split(':')[0],
+          (account) =>
+            remote &&
+            account.host.toLowerCase().split(':')[0] === remote.host.toLowerCase().split(':')[0],
         );
         if (!cancelled) setAccountUsername(match?.username ?? null);
       })
@@ -206,7 +208,9 @@ export function CreatePrDialog() {
     } catch (err) {
       if (run !== aiRun.current) return;
       setGenerating(false);
-      toast.error(`Could not generate a description: ${(err as { message?: string }).message ?? err}`);
+      toast.error(
+        `Could not generate a description: ${(err as { message?: string }).message ?? err}`,
+      );
     }
   };
 
@@ -347,26 +351,33 @@ export function CreatePrDialog() {
                     No members found — reviewers can still be added on {provider.label}.
                   </div>
                 )}
-                {!accountLookupFailed && visibleCandidates.map((user) => (
-                  <DropdownMenuCheckboxItem
-                    key={user.id}
-                    checked={reviewers.includes(user.id)}
-                    onSelect={(e) => e.preventDefault()}
-                    onCheckedChange={(checked) =>
-                      setReviewers((prev) =>
-                        checked === true ? [...prev, user.id] : prev.filter((id) => id !== user.id),
-                      )
-                    }
-                  >
-                    {user.avatarUrl && (
-                      <img src={user.avatarUrl} alt="" className="mr-1.5 size-4 shrink-0 rounded-full" />
-                    )}
-                    <span className="min-w-0 flex-1 truncate">{user.name}</span>
-                    {user.username && user.username !== user.name && (
-                      <span className="ml-2 shrink-0 text-xs text-faint">@{user.username}</span>
-                    )}
-                  </DropdownMenuCheckboxItem>
-                ))}
+                {!accountLookupFailed &&
+                  visibleCandidates.map((user) => (
+                    <DropdownMenuCheckboxItem
+                      key={user.id}
+                      checked={reviewers.includes(user.id)}
+                      onSelect={(e) => e.preventDefault()}
+                      onCheckedChange={(checked) =>
+                        setReviewers((prev) =>
+                          checked === true
+                            ? [...prev, user.id]
+                            : prev.filter((id) => id !== user.id),
+                        )
+                      }
+                    >
+                      {user.avatarUrl && (
+                        <img
+                          src={user.avatarUrl}
+                          alt=""
+                          className="mr-1.5 size-4 shrink-0 rounded-full"
+                        />
+                      )}
+                      <span className="min-w-0 flex-1 truncate">{user.name}</span>
+                      {user.username && user.username !== user.name && (
+                        <span className="ml-2 shrink-0 text-xs text-faint">@{user.username}</span>
+                      )}
+                    </DropdownMenuCheckboxItem>
+                  ))}
               </DropdownMenuContent>
             </DropdownMenu>
             <span className="min-w-0 flex-1 truncate text-xs text-muted">
@@ -394,8 +405,8 @@ export function CreatePrDialog() {
           )}
           {!notPushed && unpushed > 0 && (
             <p className="text-xs text-info">
-              {unpushed} commit{unpushed === 1 ? '' : 's'} on this branch {unpushed === 1 ? 'is' : 'are'} not
-              pushed yet and will not be part of the {noun}.
+              {unpushed} commit{unpushed === 1 ? '' : 's'} on this branch{' '}
+              {unpushed === 1 ? 'is' : 'are'} not pushed yet and will not be part of the {noun}.
             </p>
           )}
           {error && <p className="text-xs text-danger [overflow-wrap:anywhere]">{error}</p>}

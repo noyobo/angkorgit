@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { createAiProvider, type AiConfig, type HttpRequest } from '@angkorgit/core';
+import { type AiConfig, createAiProvider, type HttpRequest } from '@angkorgit/core';
 
 function fakeHttp(body: string, status = 200) {
   return async (_req: HttpRequest) => ({ status, body });

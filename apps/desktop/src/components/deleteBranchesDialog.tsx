@@ -1,7 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { create } from 'zustand';
-import { AlertTriangle, Search } from 'lucide-react';
-import { namesOlderThan, type EligibleBranch } from '@angkorgit/core';
+import { type EligibleBranch, namesOlderThan } from '@angkorgit/core';
 import {
   Button,
   Dialog,
@@ -17,9 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@angkorgit/design-system';
+import { AlertTriangle, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { create } from 'zustand';
 import { capCount, timeAgo } from '@/shared/utils';
-import { confirmDialog } from './confirm';
 import { BranchPickList } from './BranchPickList';
+import { confirmDialog } from './confirm';
 
 export type DeleteBranchesChoice = { names: string[]; remote: boolean };
 
