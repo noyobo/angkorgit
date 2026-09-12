@@ -2,6 +2,18 @@
 
 This document outlines coding standards and best practices for the AngKorGit project.
 
+## Setup
+
+### Install Git Hooks (Recommended)
+
+Install pre-commit hooks to automatically format code before each commit:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+This prevents format-related CI failures by auto-formatting code with Biome.
+
 ## React / TypeScript Standards
 
 ### Fragment Usage
