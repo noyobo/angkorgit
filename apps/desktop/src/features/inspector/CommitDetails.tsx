@@ -22,10 +22,12 @@ import {
   ChevronUp,
   Cloud,
   Copy,
+  History,
   Maximize2,
   Monitor,
   Sparkles,
   Tag as TagIcon,
+  UserRoundSearch,
 } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -750,7 +752,17 @@ export function CommitDetails({
               externalEditor={externalEditor}
               remotes={remotes}
               headBranch={repo?.headBranch ?? null}
-            />
+            >
+              <DropdownMenuItem onClick={() => useUi.getState().openFileHistory(fileMenu.path)}>
+                <History /> File history
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => useUi.getState().openBlame(fileMenu.path, commit.oid)}
+              >
+                <UserRoundSearch /> Blame at this commit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </FileActionsMenu>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

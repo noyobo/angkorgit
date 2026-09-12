@@ -38,6 +38,7 @@ import {
   Sparkles,
   Trash2,
   Undo2,
+  UserRoundSearch,
   X,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -1273,6 +1274,55 @@ export function WorkingCopyPanel() {
                   <Trash2 /> Delete file…
                 </DropdownMenuItem>
               </>
+            ) : (
+              <>
+                <DropdownMenuItem
+                  onClick={() => void run(() => ipc.stageFile(path, fileMenu.file.path), 'Stage failed')}
+                >
+                  <Plus /> Stage file
+                </DropdownMenuItem>
+                <DropdownMenuItem destructive onClick={() => requestDiscard(fileMenu.file)}>
+                  <Trash2 /> Discard changes…
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuItem
+              onClick={() => useUi.getState().openDialog('createStash', { paths: [fileMenu.file.path] })}
+            >
+              <Archive /> Stash this file…
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => openEditor(fileMenu.file.path)}>
+              <FileText /> Edit in app
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useUi.getState().openFileHistory(fileMenu.file.path)}>
+              <History /> File history
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useUi.getState().openBlame(fileMenu.file.path)}>
+              <UserRoundSearch /> Blame
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              destructive
+              onClick={() => {
+                const file = fileMenu.file;
+                void confirmDialog({
+                  title: 'Delete file?',
+                  description:
+                    file.unstaged === 'untracked'
+                      ? 'The file is untracked — deleting it cannot be undone.'
+                      : 'The file will be removed from your working tree. It can be restored with Discard (the deletion shows as a change).',
+                  path: file.path,
+                  confirmLabel: 'Delete',
+                  destructive: true,
+                }).then((ok) => {
+                  if (ok) void run(() => ipc.deleteFile(path, file.path), 'Delete failed');
+                });
+              }}
+            >
+              <Trash2 /> Delete file…
+            </DropdownMenuItem>
+            </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>

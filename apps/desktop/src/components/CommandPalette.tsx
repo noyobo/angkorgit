@@ -111,7 +111,7 @@ export function CommandPalette({ onRefresh }: { onRefresh: () => Promise<void> }
     source: 'command-palette',
   });
 
-  const [mode, setMode] = useState<'commands' | 'fileHistory' | 'theme'>('commands');
+  const [mode, setMode] = useState<'commands' | 'fileHistory' | 'blame' | 'theme'>('commands');
   const [search, setSearch] = useState('');
   const themeOrigin = useRef<Theme | null>(null);
   const themeCommitted = useRef(false);

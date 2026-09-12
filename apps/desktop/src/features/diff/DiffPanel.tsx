@@ -30,6 +30,7 @@ import {
   Rows3,
   TextSelect,
   Trash2,
+  UserRoundSearch,
   WholeWord,
   WrapText,
   X,
@@ -60,6 +61,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
   const openCenterDiff = useUi((s) => s.openCenterDiff);
   const openFileHistory = useUi((s) => s.openFileHistory);
+  const openBlame = useUi((s) => s.openBlame);
   const externalEditor = useSettings((s) => s.externalEditor);
   const diffView = useUi((s) => s.diffView);
   const setDiffView = useUi((s) => s.setDiffView);
@@ -443,6 +445,16 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             onClick={() => openFileHistory(target.path)}
           >
             <History className="size-3.5" />
+          </Button>
+        </Hint>
+        <Hint label={target.oid ? 'Blame at this commit' : 'Blame'}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Blame"
+            onClick={() => openBlame(target.path, target.oid ?? null)}
+          >
+            <UserRoundSearch className="size-3.5" />
           </Button>
         </Hint>
         {blocks.length > 0 && (
