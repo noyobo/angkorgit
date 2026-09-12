@@ -3015,3 +3015,89 @@ fn blame_file_binary_file() {
     // Should error on binary files
     assert!(result.is_err());
 }
+
+#[test]
+fn blame_file_large_file_rejected() {
+    let repo = TempRepo::new();
+    
+    // Create a file larger than 5MB
+    let large_content = "x".repeat(6 * 1024 * 1024); // 6MB
+    repo.write("large.txt", &large_content);
+    repo.commit("Add large file");
+
+    let result = core::blame_file(repo.path(), "large.txt", None);
+    
+    // Should error on files over MAX_BLAME_BYTES (5MB)
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(err_msg.contains("too large"), "Error should mention file is too large: {}", err_msg);
+}
+
+#[test]
+fn blame_file_invalid_revision() {
+    let repo = TempRepo::new();
+    repo.write("file.txt", "content\n");
+    repo.commit("Initial commit");
+
+    // Test with invalid OID
+    let result = core::blame_file(repo.path(), "file.txt", Some("invalid-oid"));
+    assert!(result.is_err());
+    
+    // Test with non-existent but valid-looking OID
+    let result = core::blame_file(repo.path(), "file.txt", Some("0123456789abcdef0123456789abcdef01234567"));
+    assert!(result.is_err());
+}
+
+#[test]
+fn blame_file_empty_file() {
+    let repo = TempRepo::new();
+    repo.write("empty.txt", "");
+    repo.commit("Add empty file");
+
+    let blame = core::blame_file(repo.path(), "empty.txt", None).unwrap();
+    
+    // Empty file should have 0 lines and 0 hunks
+    assert_eq!(blame.lines.len(), 0);
+    assert_eq!(blame.hunks.len(), 0);
+}
+
+#[test]
+fn blame_file_single_line() {
+    let repo = TempRepo::new();
+    repo.write("single.txt", "only one line\n");
+    repo.commit("Add single line file");
+
+    let blame = core::blame_file(repo.path(), "single.txt", None).unwrap();
+    
+    assert_eq!(blame.lines.len(), 1);
+    assert_eq!(blame.lines[0], "only one line");
+    assert_eq!(blame.hunks.len(), 1);
+    
+    let hunk = &blame.hunks[0];
+    assert_eq!(hunk.start_line, 1);
+    assert_eq!(hunk.line_count, 1);
+    assert_eq!(hunk.summary, "Add single line file");
+}
+
+#[test]
+fn blame_file_preserves_line_content() {
+    let repo = TempRepo::new();
+    
+    // Test various line content: whitespace, special chars, unicode
+    let content = "  leading spaces\n\
+                   trailing spaces  \n\
+                   \ttabs\there\n\
+                   special: !@#$%^&*()\n\
+                   unicode: 你好世界 🎉\n";
+    repo.write("content.txt", content);
+    repo.commit("Add content");
+
+    let blame = core::blame_file(repo.path(), "content.txt", None).unwrap();
+    
+    assert_eq!(blame.lines.len(), 5);
+    assert_eq!(blame.lines[0], "  leading spaces");
+    assert_eq!(blame.lines[1], "trailing spaces  ");
+    assert_eq!(blame.lines[2], "\ttabs\there");
+    assert_eq!(blame.lines[3], "special: !@#$%^&*()");
+    assert_eq!(blame.lines[4], "unicode: 你好世界 🎉");
+}
