@@ -17,7 +17,9 @@ describe('highlightLineState', () => {
     );
     expect(middle.endsInComment).toBe(true);
     expect(wholeLineIsComment(middle.html)).toBe(true);
-    expect(text(middle.html)).toBe(' * Free Bet funding dimension. Stored and transmitted PascalCase.');
+    expect(text(middle.html)).toBe(
+      ' * Free Bet funding dimension. Stored and transmitted PascalCase.',
+    );
 
     const close = highlightLineState(' */', 'typescript', true);
     expect(close.endsInComment).toBe(false);
@@ -34,16 +36,24 @@ describe('highlightLineState', () => {
       'typescript',
     );
     expect(jsx.endsInComment).toBe(false);
-    expect(highlightLineState('const glob = pattern + "/" + name/*', 'typescript').endsInComment).toBe(false);
-    expect(highlightLineState('const x = 1; /* trailing note', 'typescript').endsInComment).toBe(true);
+    expect(
+      highlightLineState('const glob = pattern + "/" + name/*', 'typescript').endsInComment,
+    ).toBe(false);
+    expect(highlightLineState('const x = 1; /* trailing note', 'typescript').endsInComment).toBe(
+      true,
+    );
     expect(highlightLineState('run(/* inline start', 'typescript').endsInComment).toBe(true);
     expect(highlightLineState('/* at line start', 'typescript').endsInComment).toBe(true);
   });
 
   it('does not treat line comments or glob strings as open block comments', () => {
     expect(highlightLineState('// just a note', 'typescript').endsInComment).toBe(false);
-    expect(highlightLineState("const files = glob('src/**/*.ts');", 'typescript').endsInComment).toBe(false);
-    expect(highlightLineState('const a = 1; /* trailing */', 'typescript').endsInComment).toBe(false);
+    expect(
+      highlightLineState("const files = glob('src/**/*.ts');", 'typescript').endsInComment,
+    ).toBe(false);
+    expect(highlightLineState('const a = 1; /* trailing */', 'typescript').endsInComment).toBe(
+      false,
+    );
   });
 
   it('resumes code after the comment closes mid-line', () => {

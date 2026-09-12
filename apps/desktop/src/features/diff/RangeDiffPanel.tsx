@@ -1,28 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { X } from 'lucide-react';
 import type { CommitFileInfo, FileDiff } from '@angkorgit/core';
 import { filterFiles } from '@angkorgit/core';
-import {
-  Badge,
-  Button,
-  Hint,
-  Kbd,
-  Spinner,
-  cn,
-} from '@angkorgit/design-system';
-import { ipc } from '@/core/ipc';
+import { Badge, Button, cn, Hint, Kbd, Spinner } from '@angkorgit/design-system';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FileFilterInput } from '@/components/FileFilterInput';
-import { useRepo } from '@/features/repository/store';
-import { useUi } from '@/features/ui/store';
-import { useGraph } from '@/features/graph/store';
 import {
   FileTree,
+  type FileTreeFold,
   INITIAL_FOLD,
   nextFold,
   treeIndent,
-  type FileTreeFold,
 } from '@/components/FileTree';
+import { ipc } from '@/core/ipc';
+import { useGraph } from '@/features/graph/store';
+import { useRepo } from '@/features/repository/store';
+import { useUi } from '@/features/ui/store';
 import { basename, dirname } from '@/shared/utils';
 
 const diffPath = (diff: CommitFileInfo) => diff.path;
@@ -32,7 +25,12 @@ const FILE_ROW_HEIGHT = 34;
 
 const statusMeta: Record<
   CommitFileInfo['status'],
-  { label: string; mark: string; className: string; tone: 'info' | 'success' | 'danger' | 'primary' }
+  {
+    label: string;
+    mark: string;
+    className: string;
+    tone: 'info' | 'success' | 'danger' | 'primary';
+  }
 > = {
   modified: { label: 'modified', mark: 'M', className: 'text-info', tone: 'info' },
   new: { label: 'added', mark: 'A', className: 'text-success', tone: 'success' },
@@ -115,7 +113,7 @@ export function RangeDiffPanel({ fromOid, toOid, fromLabel, toLabel }: RangeDiff
   const fileTree = useUi((s) => s.fileTree);
   const openCenterDiff = useUi((s) => s.openCenterDiff);
   const closeRangeDiff = useUi((s) => s.closeRangeDiff);
-  
+
   const [diffs, setDiffs] = useState<FileDiff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -258,7 +256,9 @@ export function RangeDiffPanel({ fromOid, toOid, fromLabel, toLabel }: RangeDiff
         </div>
       ) : error ? (
         <div className="flex h-full flex-col items-center justify-center gap-3 px-6">
-          <p className="max-w-md text-center text-sm text-danger [overflow-wrap:anywhere]">{error}</p>
+          <p className="max-w-md text-center text-sm text-danger [overflow-wrap:anywhere]">
+            {error}
+          </p>
         </div>
       ) : (
         <>

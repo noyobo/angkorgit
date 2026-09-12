@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
 import { Command } from 'cmdk';
 import {
-  Palette,
-  FolderOpen,
-  Settings,
-  GitBranchPlus,
-  Pencil,
   Archive,
-  Tag as TagIcon,
+  FolderOpen,
   FolderTree,
-  ListOrdered,
-  ListRestart,
-  Trash2,
+  GitBranchPlus,
   GitPullRequest,
   Layers,
+  ListOrdered,
+  ListRestart,
+  Palette,
+  Pencil,
+  Settings,
+  Tag as TagIcon,
+  Trash2,
 } from 'lucide-react';
-import { PaletteShell, PaletteItem } from './PaletteShell';
+import React, { useEffect, useState } from 'react';
 import { useUi } from '@/features/ui/store';
 import { modKey } from '@/shared/utils';
+import { PaletteItem, PaletteShell } from './PaletteShell';
 
 interface PanelEntry {
   id: string;
@@ -170,13 +170,13 @@ export function PanelsDialog() {
     if (e.key === 'n' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       e.currentTarget.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
       );
     }
     if (e.key === 'p' && e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       e.currentTarget.dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+        new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
       );
     }
   };
@@ -189,16 +189,20 @@ export function PanelsDialog() {
         e.preventDefault();
         e.stopPropagation();
         const index = parseInt(e.key) - 1;
-        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const items = Array.from(
+          document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'),
+        );
         const item = items[index];
         if (item instanceof HTMLElement) item.click();
       }
-      
+
       // Tab navigation: input to first item, or between items
       if (e.key === 'Tab') {
-        const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+        const items = Array.from(
+          document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'),
+        );
         if (items.length === 0) return;
-        
+
         if (e.target instanceof HTMLInputElement) {
           // From input to first item
           if (!e.shiftKey && items[0] instanceof HTMLElement) {
@@ -210,7 +214,7 @@ export function PanelsDialog() {
           e.preventDefault();
           const currentIndex = items.indexOf(e.target);
           if (currentIndex === -1) return;
-          
+
           if (e.shiftKey) {
             // Shift+Tab: move backward
             if (currentIndex > 0) {
@@ -248,7 +252,9 @@ export function PanelsDialog() {
       dataAttribute="data-panels-open"
       onSearchKeyDown={handleSearchKeyDown}
     >
-      <Command.Empty className="py-8 text-center text-sm text-faint">No panels match.</Command.Empty>
+      <Command.Empty className="py-8 text-center text-sm text-faint">
+        No panels match.
+      </Command.Empty>
       <Command.Group heading="Panels &amp; Dialogs">
         <QuickKeyItems>
           {panels.map((panel) => (
@@ -271,7 +277,9 @@ function QuickKeyItems({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const updateQuickKeys = () => {
-      const items = Array.from(document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'));
+      const items = Array.from(
+        document.querySelectorAll('[cmdk-item]:not([data-disabled="true"])'),
+      );
       const newQuickKeys = new Map<number, number>();
       items.forEach((item, index) => {
         if (index < 9 && item instanceof HTMLElement) {
@@ -295,10 +303,13 @@ function QuickKeyItems({ children }: { children: React.ReactNode }) {
         if (!React.isValidElement(child)) return child;
         const currentIndex = itemIndex++;
         const quickKey = quickKeys.get(currentIndex);
-        return React.cloneElement(child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>, {
-          quickKey,
-          'data-item-index': currentIndex,
-        });
+        return React.cloneElement(
+          child as React.ReactElement<{ quickKey?: number; 'data-item-index'?: number }>,
+          {
+            quickKey,
+            'data-item-index': currentIndex,
+          },
+        );
       })}
     </>
   );

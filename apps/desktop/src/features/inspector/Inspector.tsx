@@ -1,13 +1,13 @@
+import type { CommitFileInfo, CommitInfo } from '@angkorgit/core';
+import { Button, cn, Hint } from '@angkorgit/design-system';
+import { FolderTree, List, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import type { CommitFileInfo, CommitInfo } from '@angkorgit/core';
-import { FolderTree, List, Search, X } from 'lucide-react';
-import { Hint, Button, cn } from '@angkorgit/design-system';
+import { ipc } from '@/core/ipc';
+import { WorkingCopyPanel } from '@/features/commit/WorkingCopyPanel';
 import { useGraph } from '@/features/graph/store';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { ipc } from '@/core/ipc';
-import { WorkingCopyPanel } from '@/features/commit/WorkingCopyPanel';
 import { CommitDetails } from './CommitDetails';
 
 export function Inspector() {
@@ -74,7 +74,9 @@ export function Inspector() {
   const retry = () => setRetrySeq((n) => n + 1);
   const fileFilterOpen = useUi((s) => s.fileFilterOpen);
   const setFileFilterOpen = useUi((s) => s.setFileFilterOpen);
-  const isStash = useRepo((s) => !!selectedOid && s.stashes.some((entry) => entry.oid === selectedOid));
+  const isStash = useRepo(
+    (s) => !!selectedOid && s.stashes.some((entry) => entry.oid === selectedOid),
+  );
 
   return (
     <aside className="flex h-full flex-col bg-surface" aria-label="Inspector">

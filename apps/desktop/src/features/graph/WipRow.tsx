@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
-import { Pencil } from 'lucide-react';
 import { Badge, cn } from '@angkorgit/design-system';
+import { Pencil } from 'lucide-react';
+import { useMemo } from 'react';
 import { useRepo } from '@/features/repository/store';
+import { useUi } from '@/features/ui/store';
 import { GUTTER_GAP, laneX, REF_COL_WIDTH } from './GraphRow';
 import { useGraph } from './store';
-import { useUi } from '@/features/ui/store';
 
 export function WipRow({
   gutterWidth,
@@ -56,8 +56,22 @@ export function WipRow({
     >
       {showRefs && <span className="h-full shrink-0" style={{ width: REF_COL_WIDTH }} />}
       {showGutter && (
-        <svg width={gutterWidth} height={36} className="shrink-0" style={{ marginRight: GUTTER_GAP }} aria-hidden>
-          <line x1={laneX(0)} y1={18} x2={laneX(0)} y2={36} stroke="hsl(var(--primary))" strokeWidth={2} strokeDasharray="3 3" />
+        <svg
+          width={gutterWidth}
+          height={36}
+          className="shrink-0"
+          style={{ marginRight: GUTTER_GAP }}
+          aria-hidden
+        >
+          <line
+            x1={laneX(0)}
+            y1={18}
+            x2={laneX(0)}
+            y2={36}
+            stroke="hsl(var(--primary))"
+            strokeWidth={2}
+            strokeDasharray="3 3"
+          />
           <circle
             cx={laneX(0)}
             cy={18}

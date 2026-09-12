@@ -1,10 +1,10 @@
 import type { HttpClient } from '../../ai/types';
-import type { ForgeRemote } from '../remote';
 import type { ForgeProvider } from '../provider';
+import type { ForgeRemote } from '../remote';
 import { createForgeJsonRequest, pullRequestCheckoutSpec, toUnix } from '../shared';
 import {
-  ForgeError,
   type CreatePullRequestInput,
+  ForgeError,
   type ForgeUser,
   type PullRequestCheckoutSpec,
   type PullRequestInfo,
@@ -23,7 +23,11 @@ interface BitbucketPull {
   draft?: boolean;
   created_on?: string;
   updated_on?: string;
-  author?: { display_name?: string; nickname?: string; links?: { avatar?: { href?: string } } } | null;
+  author?: {
+    display_name?: string;
+    nickname?: string;
+    links?: { avatar?: { href?: string } };
+  } | null;
   source?: BitbucketEndpoint;
   destination?: BitbucketEndpoint;
   links?: { html?: { href?: string } };
@@ -88,12 +92,14 @@ export function bitbucketForgeProvider(remote: ForgeRemote, http: HttpClient): F
     },
     async listReviewerCandidates(): Promise<ForgeUser[]> {
       const workspace = remote.owner;
-      const data = (await request(
-        'GET',
-        `/workspaces/${workspace}/members?pagelen=100`,
-      )) as {
+      const data = (await request('GET', `/workspaces/${workspace}/members?pagelen=100`)) as {
         values?: Array<{
-          user?: { uuid?: string; nickname?: string; display_name?: string; links?: { avatar?: { href?: string } } };
+          user?: {
+            uuid?: string;
+            nickname?: string;
+            display_name?: string;
+            links?: { avatar?: { href?: string } };
+          };
         }>;
       };
       if (!Array.isArray(data.values)) return [];

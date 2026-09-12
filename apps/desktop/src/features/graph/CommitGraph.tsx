@@ -1,11 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { toast } from 'sonner';
-import { toastOutcome } from '@/shared/toastOutcome';
-import { Archive, ArchiveRestore, ArrowDownToLine, ArrowUpFromLine, Check, ChevronDown, ChevronUp, Combine, Copy, Filter, FolderTree, GitBranchPlus, Settings2, GitMerge, ListOrdered, ListRestart, RotateCcw, Search, Tag as TagIcon, Trash2, Undo2, User, X } from 'lucide-react';
-import { flatGraphRows, type CommitInfo, type RefInfo } from '@angkorgit/core';
+import { type CommitInfo, flatGraphRows, type RefInfo } from '@angkorgit/core';
 import {
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -16,18 +12,56 @@ import {
   Hint,
   Input,
   Spinner,
-  cn,
 } from '@angkorgit/design-system';
-import { ipc } from '@/core/ipc';
-import { pushOperation, type OperationContext } from '@/features/repository/operations';
-import { useRepo } from '@/features/repository/store';
-import { useGraph } from './store';
-import { useUi } from '@/features/ui/store';
-import { useUndo, type UndoKind } from '@/features/history/undoStore';
-import { AUTHOR_COL_WIDTH, CommitRow, GUTTER_GAP, GraphTailDefs, LANE_WIDTH, REF_COL_WIDTH, ROW_HEIGHT, gutterWidthFor, laneWidthFor } from './GraphRow';
-import { WipRow } from './WipRow';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Combine,
+  Copy,
+  Filter,
+  FolderTree,
+  GitBranchPlus,
+  GitMerge,
+  ListOrdered,
+  ListRestart,
+  RotateCcw,
+  Search,
+  Settings2,
+  Tag as TagIcon,
+  Trash2,
+  Undo2,
+  User,
+  X,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { confirmDialog } from '@/components/confirm';
+import { ipc } from '@/core/ipc';
+import { type UndoKind, useUndo } from '@/features/history/undoStore';
+import { type OperationContext, pushOperation } from '@/features/repository/operations';
+import { useRepo } from '@/features/repository/store';
+import { useUi } from '@/features/ui/store';
+import { toastOutcome } from '@/shared/toastOutcome';
 import { useShortcuts } from '@/shared/useShortcuts';
+import {
+  AUTHOR_COL_WIDTH,
+  CommitRow,
+  GraphTailDefs,
+  GUTTER_GAP,
+  gutterWidthFor,
+  LANE_WIDTH,
+  laneWidthFor,
+  REF_COL_WIDTH,
+  ROW_HEIGHT,
+} from './GraphRow';
+import { useGraph } from './store';
+import { WipRow } from './WipRow';
 
 interface MenuState {
   x: number;
@@ -58,8 +92,29 @@ export function CommitGraph() {
   const worktrees = useRepo((s) => s.worktrees);
   const branches = useRepo((s) => s.branches);
   const remotes = useRepo((s) => s.remotes);
-  const { rows, commits, maxLane, hasMore, loading, error, filters, find, locatedOid, selectedOid, selectedOids, pendingScrollIndex, loadMore, reload, setFilters, setFind, stepFind, select, toggleSelect, rangeSelect, clearPendingScroll } =
-    useGraph();
+  const {
+    rows,
+    commits,
+    maxLane,
+    hasMore,
+    loading,
+    error,
+    filters,
+    find,
+    locatedOid,
+    selectedOid,
+    selectedOids,
+    pendingScrollIndex,
+    loadMore,
+    reload,
+    setFilters,
+    setFind,
+    stepFind,
+    select,
+    toggleSelect,
+    rangeSelect,
+    clearPendingScroll,
+  } = useGraph();
   const openDialog = useUi((s) => s.openDialog);
   const compact = useUi((s) => s.layout === 'preview');
   const storedColumns = useUi((s) => s.graphColumns);
@@ -114,18 +169,19 @@ export function CommitGraph() {
     return () => clearTimeout(timer);
   }, [searchDraft, authorDraft, path, setFind]);
 
-  const onFindKeyDown = (draft: string, clear: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') {
-      if (!draft) return;
+  const onFindKeyDown =
+    (draft: string, clear: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Escape') {
+        if (!draft) return;
+        e.preventDefault();
+        clear();
+        return;
+      }
+      if (e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
       e.preventDefault();
-      clear();
-      return;
-    }
-    if (e.key !== 'Enter' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    e.preventDefault();
-    const backwards = e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey);
-    void stepFind(path, backwards ? -1 : 1);
-  };
+      const backwards = e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey);
+      void stepFind(path, backwards ? -1 : 1);
+    };
 
   const matchOids = useMemo(() => new Set(find?.matches.map((m) => m.oid) ?? []), [find]);
 
@@ -142,7 +198,15 @@ export function CommitGraph() {
   const moveSelection = useCallback(
     (step: 1 | -1 | 'home' | 'end') => {
       const ui = useUi.getState();
-      if (ui.centerDiff || ui.centerEditor || ui.centerFileHistory || ui.paletteOpen || ui.dialog || ui.conflictFile) return;
+      if (
+        ui.centerDiff ||
+        ui.centerEditor ||
+        ui.centerFileHistory ||
+        ui.paletteOpen ||
+        ui.dialog ||
+        ui.conflictFile
+      )
+        return;
       if (commits.length === 0) return;
       const current = commits.findIndex((c) => c.oid === selectedOid);
       const next =
@@ -171,7 +235,15 @@ export function CommitGraph() {
         combo: 'arrowright',
         handler: () => {
           const ui = useUi.getState();
-          if (ui.centerDiff || ui.centerEditor || ui.centerFileHistory || ui.paletteOpen || ui.dialog || ui.conflictFile) return;
+          if (
+            ui.centerDiff ||
+            ui.centerEditor ||
+            ui.centerFileHistory ||
+            ui.paletteOpen ||
+            ui.dialog ||
+            ui.conflictFile
+          )
+            return;
           ui.focusInspector();
         },
       },
@@ -179,7 +251,15 @@ export function CommitGraph() {
         combo: 'mod+f',
         handler: () => {
           const ui = useUi.getState();
-          if (ui.centerDiff || ui.centerEditor || ui.centerFileHistory || ui.paletteOpen || ui.dialog || ui.conflictFile) return;
+          if (
+            ui.centerDiff ||
+            ui.centerEditor ||
+            ui.centerFileHistory ||
+            ui.paletteOpen ||
+            ui.dialog ||
+            ui.conflictFile
+          )
+            return;
           searchInputRef.current?.select();
         },
       },
@@ -234,7 +314,8 @@ export function CommitGraph() {
     await pushOperation(makeContext(), { branch, label: `Push ${branch}` });
   };
 
-  const aheadOf = (branch: string): number => branches.find((b) => !b.isRemote && b.name === branch)?.ahead ?? 0;
+  const aheadOf = (branch: string): number =>
+    branches.find((b) => !b.isRemote && b.name === branch)?.ahead ?? 0;
 
   const onContextMenu = useCallback((event: React.MouseEvent, commit: CommitInfo) => {
     event.preventDefault();
@@ -281,13 +362,18 @@ export function CommitGraph() {
 
   const checkoutRef = useCallback(
     (ref: RefInfo) => {
-      const held = ref.kind === 'localBranch' ? worktrees.find((w) => w.branch === ref.shorthand && !w.isCurrent) : undefined;
+      const held =
+        ref.kind === 'localBranch'
+          ? worktrees.find((w) => w.branch === ref.shorthand && !w.isCurrent)
+          : undefined;
       if (held && !held.isMissing) {
         void useRepo
           .getState()
           .open(held.path)
           .catch((error) =>
-            toast.error(`Could not open ${held.name}: ${(error as { message?: string }).message ?? error}`),
+            toast.error(
+              `Could not open ${held.name}: ${(error as { message?: string }).message ?? error}`,
+            ),
           );
         return;
       }
@@ -335,7 +421,9 @@ export function CommitGraph() {
               action: () => ipc.checkout(path, name),
             });
           } catch (error) {
-            toast.error(`Checkout ${name} failed: ${(error as { message?: string }).message ?? error}`);
+            toast.error(
+              `Checkout ${name} failed: ${(error as { message?: string }).message ?? error}`,
+            );
             return;
           }
         }
@@ -419,7 +507,10 @@ export function CommitGraph() {
           <span className="flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs text-primary">
             <Filter className="size-3" />
             {filters.branch}
-            <button aria-label="Clear branch filter" onClick={() => setFilters(path, { branch: '' })}>
+            <button
+              aria-label="Clear branch filter"
+              onClick={() => setFilters(path, { branch: '' })}
+            >
               <X className="size-3" />
             </button>
           </span>
@@ -511,25 +602,33 @@ export function CommitGraph() {
         <span className="shrink-0 truncate" style={{ width: gutterWidth, marginRight: GUTTER_GAP }}>
           {compact ? null : 'Graph'}
         </span>
-        {graphColumns.message && (
-          <span className="min-w-0 flex-1 truncate">
-            Message
-          </span>
-        )}
+        {graphColumns.message && <span className="min-w-0 flex-1 truncate">Message</span>}
         {graphColumns.author && (
           <span className="shrink-0 truncate" style={{ width: AUTHOR_COL_WIDTH }}>
             Author
           </span>
         )}
         {graphColumns.hash && (
-          <span className={cn('w-14 shrink-0', graphColumns.message ? 'text-right' : 'text-left')}>Hash</span>
+          <span className={cn('w-14 shrink-0', graphColumns.message ? 'text-right' : 'text-left')}>
+            Hash
+          </span>
         )}
         {graphColumns.date && (
-          <span className={cn('w-[4.5rem] shrink-0', graphColumns.message ? 'text-right' : 'text-left')}>Date</span>
+          <span
+            className={cn('w-[4.5rem] shrink-0', graphColumns.message ? 'text-right' : 'text-left')}
+          >
+            Date
+          </span>
         )}
         {!graphColumns.message && <span className="min-w-0 flex-1" />}
       </div>
-      <div ref={scrollRef} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto outline-none" role="table" aria-label="Commits">
+      <div
+        ref={scrollRef}
+        tabIndex={-1}
+        className="min-h-0 flex-1 overflow-y-auto outline-none"
+        role="table"
+        aria-label="Commits"
+      >
         <WipRow gutterWidth={gutterWidth} showRefs={graphColumns.refs} />
         {rows.length === 0 && !loading ? (
           error ? (
@@ -543,11 +642,7 @@ export function CommitGraph() {
             <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-faint">
               <span>{filtersActive ? 'No commits match these filters' : 'No commits yet'}</span>
               {filtersActive && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setFilters(path, { branch: '' })}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setFilters(path, { branch: '' })}>
                   Clear filters
                 </Button>
               )}
@@ -565,9 +660,16 @@ export function CommitGraph() {
                   className={cn(
                     locatedOid === commit.oid
                       ? 'animate-locate rounded-md bg-primary/10 shadow-[inset_3px_0_0_hsl(var(--primary))]'
-                      : matchOids.has(commit.oid) && 'shadow-[inset_2px_0_0_hsl(var(--primary)/0.45)]',
+                      : matchOids.has(commit.oid) &&
+                          'shadow-[inset_2px_0_0_hsl(var(--primary)/0.45)]',
                   )}
-                  data-search-match={matchOids.has(commit.oid) ? (locatedOid === commit.oid ? 'active' : 'true') : undefined}
+                  data-search-match={
+                    matchOids.has(commit.oid)
+                      ? locatedOid === commit.oid
+                        ? 'active'
+                        : 'true'
+                      : undefined
+                  }
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -601,7 +703,10 @@ export function CommitGraph() {
         {error && rows.length > 0 && !loading && (
           <div className="flex items-center justify-center gap-2 px-3 py-2 text-xs text-danger">
             <span className="[overflow-wrap:anywhere]">Could not load more commits: {error}</span>
-            <button className="shrink-0 underline underline-offset-2" onClick={() => void reload(path)}>
+            <button
+              className="shrink-0 underline underline-offset-2"
+              onClick={() => void reload(path)}
+            >
               Retry
             </button>
           </div>
@@ -614,18 +719,27 @@ export function CommitGraph() {
             <span style={{ position: 'fixed', left: refMenu.x, top: refMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className={cn('max-w-64 truncate', refMenu.ref.kind === 'stash' ? 'font-normal' : 'font-mono')}>
+            <DropdownMenuLabel
+              className={cn(
+                'max-w-64 truncate',
+                refMenu.ref.kind === 'stash' ? 'font-normal' : 'font-mono',
+              )}
+            >
               {refMenu.ref.shorthand}
             </DropdownMenuLabel>
             {refMenu.ref.kind === 'stash' && (
               <>
                 <DropdownMenuItem
-                  onClick={() => void act('Apply stash', () => ipc.stashApply(path, stashIndexOf(refMenu.ref)))}
+                  onClick={() =>
+                    void act('Apply stash', () => ipc.stashApply(path, stashIndexOf(refMenu.ref)))
+                  }
                 >
                   <Archive /> Apply stash (keep it)
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => void act('Pop stash', () => ipc.stashPop(path, stashIndexOf(refMenu.ref)))}
+                  onClick={() =>
+                    void act('Pop stash', () => ipc.stashPop(path, stashIndexOf(refMenu.ref)))
+                  }
                 >
                   <ArchiveRestore /> Pop stash
                 </DropdownMenuItem>
@@ -656,19 +770,27 @@ export function CommitGraph() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
-                    void act(`Merge ${refMenu.ref.shorthand}`, () => ipc.merge(path, refMenu.ref.shorthand, true), {
-                      kind: 'merge',
-                      extra: { branch: refMenu.ref.shorthand },
-                    })
+                    void act(
+                      `Merge ${refMenu.ref.shorthand}`,
+                      () => ipc.merge(path, refMenu.ref.shorthand, true),
+                      {
+                        kind: 'merge',
+                        extra: { branch: refMenu.ref.shorthand },
+                      },
+                    )
                   }
                 >
                   <GitMerge /> Merge into current branch
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
-                    void act(`Rebase onto ${refMenu.ref.shorthand}`, () => ipc.rebase(path, refMenu.ref.shorthand), {
-                      kind: 'rebase',
-                    })
+                    void act(
+                      `Rebase onto ${refMenu.ref.shorthand}`,
+                      () => ipc.rebase(path, refMenu.ref.shorthand),
+                      {
+                        kind: 'rebase',
+                      },
+                    )
                   }
                 >
                   <ListRestart /> Rebase current branch onto this
@@ -712,7 +834,13 @@ export function CommitGraph() {
           <DropdownMenuContent align="start" side="bottom">
             <DropdownMenuLabel className="font-mono">{menu.commit.shortOid}</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => void act(`Checkout ${menu.commit.shortOid}`, () => ipc.checkoutDetached(path, menu.commit.oid), { kind: 'checkout' })}
+              onClick={() =>
+                void act(
+                  `Checkout ${menu.commit.shortOid}`,
+                  () => ipc.checkoutDetached(path, menu.commit.oid),
+                  { kind: 'checkout' },
+                )
+              }
             >
               Checkout commit (detached)
             </DropdownMenuItem>
@@ -722,7 +850,9 @@ export function CommitGraph() {
             <DropdownMenuItem onClick={() => openDialog('createTag', menu.commit.oid)}>
               <TagIcon /> Create tag here…
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openDialog('createWorktree', { oid: menu.commit.oid })}>
+            <DropdownMenuItem
+              onClick={() => openDialog('createWorktree', { oid: menu.commit.oid })}
+            >
               <FolderTree /> New worktree from here…
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -735,7 +865,9 @@ export function CommitGraph() {
                       <ArrowUpFromLine />
                       <span className="max-w-64 truncate">Push {ref.shorthand}</span>
                       {aheadOf(ref.shorthand) > 0 && (
-                        <span className="ml-auto pl-3 text-[11px] tabular-nums text-muted">↑{aheadOf(ref.shorthand)}</span>
+                        <span className="ml-auto pl-3 text-[11px] tabular-nums text-muted">
+                          ↑{aheadOf(ref.shorthand)}
+                        </span>
                       )}
                     </DropdownMenuItem>
                   ))}
@@ -753,9 +885,13 @@ export function CommitGraph() {
             )}
             <DropdownMenuItem
               onClick={() =>
-                void act(`Revert ${menu.commit.shortOid}`, () => ipc.revert(path, menu.commit.oid), {
-                  kind: 'revert',
-                })
+                void act(
+                  `Revert ${menu.commit.shortOid}`,
+                  () => ipc.revert(path, menu.commit.oid),
+                  {
+                    kind: 'revert',
+                  },
+                )
               }
             >
               <Undo2 /> Revert commit
@@ -791,10 +927,26 @@ export function CommitGraph() {
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => void act(`Soft reset to ${menu.commit.shortOid}`, () => ipc.reset(path, menu.commit.oid, 'soft'), { kind: 'reset' })}>
+            <DropdownMenuItem
+              onClick={() =>
+                void act(
+                  `Soft reset to ${menu.commit.shortOid}`,
+                  () => ipc.reset(path, menu.commit.oid, 'soft'),
+                  { kind: 'reset' },
+                )
+              }
+            >
               <RotateCcw /> Reset here (soft)
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void act(`Mixed reset to ${menu.commit.shortOid}`, () => ipc.reset(path, menu.commit.oid, 'mixed'), { kind: 'reset' })}>
+            <DropdownMenuItem
+              onClick={() =>
+                void act(
+                  `Mixed reset to ${menu.commit.shortOid}`,
+                  () => ipc.reset(path, menu.commit.oid, 'mixed'),
+                  { kind: 'reset' },
+                )
+              }
+            >
               <RotateCcw /> Reset here (mixed)
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -808,9 +960,13 @@ export function CommitGraph() {
                   destructive: true,
                 }).then((ok) => {
                   if (ok)
-                    void act(`Hard reset to ${menu.commit.shortOid}`, () => ipc.reset(path, menu.commit.oid, 'hard'), {
-                      kind: 'reset',
-                    });
+                    void act(
+                      `Hard reset to ${menu.commit.shortOid}`,
+                      () => ipc.reset(path, menu.commit.oid, 'hard'),
+                      {
+                        kind: 'reset',
+                      },
+                    );
                 });
               }}
             >

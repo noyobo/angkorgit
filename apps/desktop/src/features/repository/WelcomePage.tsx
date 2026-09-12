@@ -1,5 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type { RecentRepository } from '@angkorgit/core';
+import {
+  Button,
+  cn,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Hint,
+  Input,
+  Logo,
+  Spinner,
+  TemplePattern,
+} from '@angkorgit/design-system';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -14,32 +28,18 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  Hint,
-  Input,
-  Logo,
-  Spinner,
-  TemplePattern,
-  cn,
-} from '@angkorgit/design-system';
-import type { RecentRepository } from '@angkorgit/core';
-import { appVersion, ipc, pickDirectory, startWindowDrag } from '@/core/ipc';
-import { useRepo } from './store';
-import { useUi } from '@/features/ui/store';
-import { CloneDialog } from './CloneDialog';
-import { SettingsDialog } from '@/features/settings/SettingsDialog';
-import { SettingEmpty } from '@/features/settings/SettingCard';
 import { RepoMark } from '@/components/RepoMark';
-import { isMac, timeAgo } from '@/shared/utils';
+import { appVersion, ipc, pickDirectory, startWindowDrag } from '@/core/ipc';
+import { SettingEmpty } from '@/features/settings/SettingCard';
+import { SettingsDialog } from '@/features/settings/SettingsDialog';
+import { useUi } from '@/features/ui/store';
 import { useListFocus } from '@/shared/useListFocus';
+import { isMac, timeAgo } from '@/shared/utils';
+import { CloneDialog } from './CloneDialog';
+import { useRepo } from './store';
 
 function shortenHome(path: string): string {
   return path.replace(/^(\/Users\/[^/]+|\/home\/[^/]+|[A-Z]:\\Users\\[^\\]+)(?=[/\\]|$)/, '~');
@@ -89,7 +89,9 @@ export function WelcomePage() {
   const openRepository = async (path: string) => {
     if (useRepo.getState().opening !== null) return;
     if (missing.has(path)) {
-      toast.error('This folder no longer exists. Remove it from recents or open it from its new location.');
+      toast.error(
+        'This folder no longer exists. Remove it from recents or open it from its new location.',
+      );
       return;
     }
     try {
@@ -147,7 +149,12 @@ export function WelcomePage() {
           </div>
           <div className="ml-auto">
             <Hint label="Settings">
-              <Button variant="ghost" size="icon" onClick={() => openDialog('settings')} aria-label="Settings">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => openDialog('settings')}
+                aria-label="Settings"
+              >
                 <Settings />
               </Button>
             </Hint>
@@ -220,7 +227,9 @@ export function WelcomePage() {
                 }
               />
             ) : filtered.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-faint">No repositories match “{query.trim()}”.</p>
+              <p className="px-3 py-8 text-center text-sm text-faint">
+                No repositories match “{query.trim()}”.
+              </p>
             ) : (
               filtered.map((repo, index) => {
                 const gone = missing.has(repo.path);
@@ -247,7 +256,12 @@ export function WelcomePage() {
                     <RepoMark name={repo.name} size={32} faded={gone} />
                     <span className="flex min-w-0 flex-1 select-none flex-col leading-tight">
                       <span className="flex items-center gap-2">
-                        <span className={cn('truncate text-sm font-medium', gone ? 'text-muted' : 'text-foreground')}>
+                        <span
+                          className={cn(
+                            'truncate text-sm font-medium',
+                            gone ? 'text-muted' : 'text-foreground',
+                          )}
+                        >
                           {repo.name}
                         </span>
                         {gone && (
@@ -263,7 +277,9 @@ export function WelcomePage() {
                     {opening === repo.path ? (
                       <Spinner className="size-3.5 shrink-0 text-primary" />
                     ) : (
-                      <span className="shrink-0 text-xs text-faint">{timeAgo(repo.lastOpenedAt)}</span>
+                      <span className="shrink-0 text-xs text-faint">
+                        {timeAgo(repo.lastOpenedAt)}
+                      </span>
                     )}
                     <button
                       type="button"
@@ -308,11 +324,19 @@ export function WelcomePage() {
             <span style={{ position: 'fixed', left: menu.x, top: menu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-72 truncate font-mono">{shortenHome(menu.repo.path)}</DropdownMenuLabel>
-            <DropdownMenuItem disabled={missing.has(menu.repo.path)} onClick={() => void openRepository(menu.repo.path)}>
+            <DropdownMenuLabel className="max-w-72 truncate font-mono">
+              {shortenHome(menu.repo.path)}
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={missing.has(menu.repo.path)}
+              onClick={() => void openRepository(menu.repo.path)}
+            >
               <FolderGit2 /> Open
             </DropdownMenuItem>
-            <DropdownMenuItem disabled={missing.has(menu.repo.path)} onClick={() => void ipc.revealPath(menu.repo.path)}>
+            <DropdownMenuItem
+              disabled={missing.has(menu.repo.path)}
+              onClick={() => void ipc.revealPath(menu.repo.path)}
+            >
               <FolderOpen /> {isMac ? 'Reveal in Finder' : 'Show in file manager'}
             </DropdownMenuItem>
             <DropdownMenuItem

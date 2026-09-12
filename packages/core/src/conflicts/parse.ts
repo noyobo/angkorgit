@@ -1,4 +1,3 @@
-
 export interface TextBlock {
   kind: 'text';
   lines: string[];

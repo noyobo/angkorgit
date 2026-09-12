@@ -1,14 +1,14 @@
+import { cliAgentProvider } from './cliAgents';
 import {
-  AiError,
   type AiCompletionRequest,
   type AiCompletionResult,
   type AiConfig,
+  AiError,
   type AiProvider,
   type AiProviderKind,
   type CliRunner,
   type HttpClient,
 } from './types';
-import { cliAgentProvider } from './cliAgents';
 
 async function postJson(
   http: HttpClient,
@@ -24,7 +24,11 @@ async function postJson(
     body: JSON.stringify(payload),
   });
   if (res.status < 200 || res.status >= 300) {
-    throw new AiError(`${provider} request failed (${res.status}): ${res.body.slice(0, 300)}`, provider, res.status);
+    throw new AiError(
+      `${provider} request failed (${res.status}): ${res.body.slice(0, 300)}`,
+      provider,
+      res.status,
+    );
   }
   try {
     return JSON.parse(res.body);
@@ -58,7 +62,8 @@ function openAiCompatible(
         label,
       )) as { choices?: Array<{ message?: { content?: string } }> };
       const text = data.choices?.[0]?.message?.content;
-      if (typeof text !== 'string' || !text.trim()) throw new AiError(`${label} returned no content`, label);
+      if (typeof text !== 'string' || !text.trim())
+        throw new AiError(`${label} returned no content`, label);
       return { text, model: config.model, provider: id };
     },
     async ping() {
@@ -123,7 +128,10 @@ function anthropicProvider(http: HttpClient, config: AiConfig): AiProvider {
 }
 
 function geminiProvider(http: HttpClient, config: AiConfig): AiProvider {
-  const baseUrl = (config.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/$/, '');
+  const baseUrl = (config.baseUrl || 'https://generativelanguage.googleapis.com').replace(
+    /\/$/,
+    '',
+  );
   return {
     id: 'gemini',
     label: 'Google Gemini',
@@ -189,7 +197,8 @@ function ollamaProvider(http: HttpClient, config: AiConfig): AiProvider {
         'Ollama',
       )) as { message?: { content?: string } };
       const text = data.message?.content;
-      if (typeof text !== 'string' || !text.trim()) throw new AiError('Ollama returned no content', 'ollama');
+      if (typeof text !== 'string' || !text.trim())
+        throw new AiError('Ollama returned no content', 'ollama');
       return { text, model: config.model, provider: 'ollama' };
     },
     async ping() {
@@ -225,10 +234,40 @@ export const AI_PROVIDER_PRESETS: Record<
   AiProviderKind,
   { label: string; defaultModel: string; needsApiKey: boolean; defaultBaseUrl: string }
 > = {
-  cli: { label: 'Installed AI CLI (Claude Code, Codex…)', defaultModel: '', needsApiKey: false, defaultBaseUrl: '' },
-  openai: { label: 'OpenAI', defaultModel: 'gpt-4o-mini', needsApiKey: true, defaultBaseUrl: 'https://api.openai.com/v1' },
-  anthropic: { label: 'Anthropic', defaultModel: 'claude-sonnet-5', needsApiKey: true, defaultBaseUrl: 'https://api.anthropic.com' },
-  gemini: { label: 'Google Gemini', defaultModel: 'gemini-2.0-flash', needsApiKey: true, defaultBaseUrl: 'https://generativelanguage.googleapis.com' },
-  ollama: { label: 'Ollama', defaultModel: 'llama3.1', needsApiKey: false, defaultBaseUrl: 'http://localhost:11434' },
-  lmstudio: { label: 'LM Studio', defaultModel: 'local-model', needsApiKey: false, defaultBaseUrl: 'http://localhost:1234/v1' },
+  cli: {
+    label: 'Installed AI CLI (Claude Code, Codex…)',
+    defaultModel: '',
+    needsApiKey: false,
+    defaultBaseUrl: '',
+  },
+  openai: {
+    label: 'OpenAI',
+    defaultModel: 'gpt-4o-mini',
+    needsApiKey: true,
+    defaultBaseUrl: 'https://api.openai.com/v1',
+  },
+  anthropic: {
+    label: 'Anthropic',
+    defaultModel: 'claude-sonnet-5',
+    needsApiKey: true,
+    defaultBaseUrl: 'https://api.anthropic.com',
+  },
+  gemini: {
+    label: 'Google Gemini',
+    defaultModel: 'gemini-2.0-flash',
+    needsApiKey: true,
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+  },
+  ollama: {
+    label: 'Ollama',
+    defaultModel: 'llama3.1',
+    needsApiKey: false,
+    defaultBaseUrl: 'http://localhost:11434',
+  },
+  lmstudio: {
+    label: 'LM Studio',
+    defaultModel: 'local-model',
+    needsApiKey: false,
+    defaultBaseUrl: 'http://localhost:1234/v1',
+  },
 };

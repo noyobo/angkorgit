@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import * as React from 'react';
 import { cn } from '../lib/cn';
 
 const buttonVariants = cva(
@@ -8,7 +8,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-        secondary: 'bg-surface-raised text-foreground border border-border hover:bg-surface-overlay',
+        secondary:
+          'bg-surface-raised text-foreground border border-border hover:bg-surface-overlay',
         ghost: 'text-muted hover:bg-surface-raised hover:text-foreground',
         danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
         outline: 'border border-border bg-transparent hover:bg-surface-raised',

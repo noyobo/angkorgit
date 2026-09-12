@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  type AiConfig,
   AiError,
   CLI_AGENTS,
   CLI_OUTPUT_FILE,
+  type CliRunRequest,
+  type CliRunResult,
   cleanCliOutput,
   cliAgentProvider,
   composeCliPrompt,
-  type AiConfig,
-  type CliRunRequest,
-  type CliRunResult,
 } from '@angkorgit/core';
 
 function config(overrides: Partial<AiConfig> = {}): AiConfig {
@@ -26,7 +26,12 @@ describe('cliAgentProvider', () => {
   it('sends the prompt via stdin for Claude Code with text output format', async () => {
     const calls: CliRunRequest[] = [];
     const provider = cliAgentProvider(config(), runner({ stdout: 'feat: hello' }, calls));
-    await provider.complete({ messages: [{ role: 'system', content: 'sys' }, { role: 'user', content: 'diff' }] });
+    await provider.complete({
+      messages: [
+        { role: 'system', content: 'sys' },
+        { role: 'user', content: 'diff' },
+      ],
+    });
     expect(calls).toHaveLength(1);
     expect(calls[0].args).toEqual(['-p', '--output-format', 'text']);
     expect(calls[0].stdin).toBe('sys\n\ndiff');
@@ -56,26 +61,38 @@ describe('cliAgentProvider', () => {
 
   it('uses the resolved binary path when configured', async () => {
     const calls: CliRunRequest[] = [];
-    const provider = cliAgentProvider(config({ cliPath: '/opt/homebrew/bin/claude' }), runner({ stdout: 'ok' }, calls));
+    const provider = cliAgentProvider(
+      config({ cliPath: '/opt/homebrew/bin/claude' }),
+      runner({ stdout: 'ok' }, calls),
+    );
     await provider.complete({ messages: [{ role: 'user', content: 'x' }] });
     expect(calls[0].program).toBe('/opt/homebrew/bin/claude');
   });
 
   it('strips ANSI escapes and whitespace from output', async () => {
-    const provider = cliAgentProvider(config(), runner({ stdout: '  \u001b[32mfeat: colored\u001b[0m \n' }));
+    const provider = cliAgentProvider(
+      config(),
+      runner({ stdout: '  \u001b[32mfeat: colored\u001b[0m \n' }),
+    );
     const result = await provider.complete({ messages: [{ role: 'user', content: 'x' }] });
     expect(result.text).toBe('feat: colored');
   });
 
   it('throws AiError with stderr detail on non-zero exit', async () => {
     const provider = cliAgentProvider(config(), runner({ status: 1, stderr: 'not logged in' }));
-    await expect(provider.complete({ messages: [{ role: 'user', content: 'x' }] })).rejects.toThrowError(AiError);
-    await expect(provider.complete({ messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow(/not logged in/);
+    await expect(
+      provider.complete({ messages: [{ role: 'user', content: 'x' }] }),
+    ).rejects.toThrowError(AiError);
+    await expect(provider.complete({ messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow(
+      /not logged in/,
+    );
   });
 
   it('throws AiError when the CLI produces no output', async () => {
     const provider = cliAgentProvider(config(), runner({ stdout: '\n \n' }));
-    await expect(provider.complete({ messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow(/no output/);
+    await expect(provider.complete({ messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow(
+      /no output/,
+    );
   });
 
   it('ping reports true on success and false on failure', async () => {

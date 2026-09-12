@@ -1,12 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { Columns2, Copy, FileText, GitCommitHorizontal, History, Rows3, TextSelect, WholeWord, WrapText, X } from 'lucide-react';
 import type { CommitInfo, FileDiff } from '@angkorgit/core';
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -14,20 +10,35 @@ import {
   Hint,
   Kbd,
   Spinner,
-  cn,
 } from '@angkorgit/design-system';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { motion } from 'framer-motion';
+import {
+  Columns2,
+  Copy,
+  FileText,
+  GitCommitHorizontal,
+  History,
+  Rows3,
+  TextSelect,
+  WholeWord,
+  WrapText,
+  X,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { Avatar } from '@/components/Avatar';
 import { ipc } from '@/core/ipc';
-import { useRepo } from '@/features/repository/store';
-import { useGraph } from '@/features/graph/store';
-import { useUi } from '@/features/ui/store';
-import { timeAgo } from '@/shared/utils';
-import { captureSelectionRanges, useKeepSelection } from '@/shared/useKeepSelection';
-import { DiffViewer } from '@/features/diff/DiffViewer';
 import { DiffMinimap } from '@/features/diff/DiffMinimap';
-import { useDiffFind } from '@/features/diff/diffSearch';
+import { DiffViewer } from '@/features/diff/DiffViewer';
 import { useDiffSelectAll } from '@/features/diff/diffCopy';
+import { useDiffFind } from '@/features/diff/diffSearch';
 import type { LineMenuInfo } from '@/features/diff/VirtualDiff';
+import { useGraph } from '@/features/graph/store';
+import { useRepo } from '@/features/repository/store';
+import { useUi } from '@/features/ui/store';
+import { captureSelectionRanges, useKeepSelection } from '@/shared/useKeepSelection';
+import { timeAgo } from '@/shared/utils';
 
 const HISTORY_PAGE = 500;
 const COMMIT_ROW_ESTIMATE = 54;
@@ -90,7 +101,9 @@ export function FileHistoryPanel({ file }: { file: string }) {
   const textDiff = diff && !diff.isBinary && !diff.isImage ? diff : null;
   const { findBar, search } = useDiffFind(textDiff, scrollRef);
   const { selectAllOverlay, selectSide } = useDiffSelectAll(textDiff, scrollRef);
-  const [commitMenu, setCommitMenu] = useState<{ x: number; y: number; commit: CommitInfo } | null>(null);
+  const [commitMenu, setCommitMenu] = useState<{ x: number; y: number; commit: CommitInfo } | null>(
+    null,
+  );
   const openCommit = (commit: CommitInfo) => {
     const path = repo?.path;
     if (!path) return;
@@ -202,7 +215,12 @@ export function FileHistoryPanel({ file }: { file: string }) {
             </span>
           }
         >
-          <Button variant="ghost" size="icon-sm" aria-label="Close file history" onClick={closeFileHistory}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close file history"
+            onClick={closeFileHistory}
+          >
             <X className="size-4" />
           </Button>
         </Hint>
@@ -258,7 +276,9 @@ export function FileHistoryPanel({ file }: { file: string }) {
             <WrapText className="size-3.5" />
           </Button>
         </Hint>
-        <Hint label={fullFileDiff ? 'Whole file shown — click for changes only' : 'Show whole file'}>
+        <Hint
+          label={fullFileDiff ? 'Whole file shown — click for changes only' : 'Show whole file'}
+        >
           <Button
             variant="ghost"
             size="icon-sm"
@@ -272,7 +292,10 @@ export function FileHistoryPanel({ file }: { file: string }) {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <div ref={listScrollRef} className="w-72 shrink-0 overflow-y-auto border-r border-border-subtle bg-surface">
+        <div
+          ref={listScrollRef}
+          className="w-72 shrink-0 overflow-y-auto border-r border-border-subtle bg-surface"
+        >
           {historyError ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
               <p className="text-sm text-danger">Could not load file history: {historyError}</p>
@@ -318,7 +341,9 @@ export function FileHistoryPanel({ file }: { file: string }) {
                   >
                     <Avatar name={commit.author.name} email={commit.author.email} size={24} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs text-foreground">{commit.summary}</span>
+                      <span className="block truncate text-xs text-foreground">
+                        {commit.summary}
+                      </span>
                       <span className="block truncate text-[11px] text-muted">
                         {commit.author.name} · {timeAgo(commit.author.time)}
                       </span>
@@ -420,7 +445,11 @@ export function FileHistoryPanel({ file }: { file: string }) {
           <DropdownMenuTrigger asChild>
             <span style={{ position: 'fixed', left: lineMenu.x, top: lineMenu.y }} />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="bottom" onCloseAutoFocus={(e) => e.preventDefault()}>
+          <DropdownMenuContent
+            align="start"
+            side="bottom"
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
             {lineMenu.selection && (
               <DropdownMenuItem
                 onClick={() => {
@@ -439,9 +468,7 @@ export function FileHistoryPanel({ file }: { file: string }) {
             >
               <Copy /> Copy line
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => selectSide(lineMenu.info.side ?? 'new')}
-            >
+            <DropdownMenuItem onClick={() => selectSide(lineMenu.info.side ?? 'new')}>
               <TextSelect /> Select all
             </DropdownMenuItem>
           </DropdownMenuContent>

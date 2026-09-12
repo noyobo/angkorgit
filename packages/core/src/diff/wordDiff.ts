@@ -1,4 +1,3 @@
-
 export interface WordSegment {
   text: string;
   kind: 'equal' | 'added' | 'removed';
@@ -10,7 +9,10 @@ function tokenize(line: string): string[] {
 
 export const WORD_DIFF_MAX_CELLS = 500_000;
 
-export function wordDiff(oldLine: string, newLine: string): {
+export function wordDiff(
+  oldLine: string,
+  newLine: string,
+): {
   old: WordSegment[];
   new: WordSegment[];
 } {
@@ -31,9 +33,7 @@ export function wordDiff(oldLine: string, newLine: string): {
   for (let i = m - 1; i >= 0; i--) {
     for (let j = n - 1; j >= 0; j--) {
       dp[i * (n + 1) + j] =
-        a[i] === b[j]
-          ? at(i + 1, j + 1) + 1
-          : Math.max(at(i + 1, j), at(i, j + 1));
+        a[i] === b[j] ? at(i + 1, j + 1) + 1 : Math.max(at(i + 1, j), at(i, j + 1));
     }
   }
 

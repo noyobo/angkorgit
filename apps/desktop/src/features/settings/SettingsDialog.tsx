@@ -1,5 +1,38 @@
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import {
+  AI_PROVIDER_PRESETS,
+  type AiProviderKind,
+  type CliAgentInfo,
+  COMMIT_STYLE_PRESETS,
+  type CommitStylePreset,
+  listAiModels,
+  PROJECT_REVIEW_FILE,
+  resolveCommitPrefix,
+} from '@angkorgit/core';
+import {
+  Badge,
+  Button,
+  cn,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Hint,
+  Input,
+  Kbd,
+  Logo,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
+  Spinner,
+  Switch,
+  Textarea,
+} from '@angkorgit/design-system';
 import {
   Check,
   ChevronDown,
@@ -22,54 +55,31 @@ import {
   UsersRound,
   Wifi,
 } from 'lucide-react';
-import { GithubIcon } from '@/components/BrandIcons';
-import {
-  AI_PROVIDER_PRESETS,
-  COMMIT_STYLE_PRESETS,
-  PROJECT_REVIEW_FILE,
-  listAiModels,
-  resolveCommitPrefix,
-  type AiProviderKind,
-  type CliAgentInfo,
-  type CommitStylePreset,
-} from '@angkorgit/core';
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  Hint,
-  Input,
-  Kbd,
-  Logo,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Separator,
-  Spinner,
-  Switch,
-  Textarea,
-  cn,
-} from '@angkorgit/design-system';
-import { ipc, pickFile, type CliToolStatus, type HostingAccount } from '@/core/ipc';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Avatar } from '@/components/Avatar';
+import { GithubIcon } from '@/components/BrandIcons';
 import { confirmDialog } from '@/components/confirm';
+import { type CliToolStatus, type HostingAccount, ipc, pickFile } from '@/core/ipc';
+import { getAiProvider } from '@/features/ai/client';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { ACCENTS, THEMES, THEME_PAIRS, useSettings, ZOOM_MAX, ZOOM_MIN, EXTERNAL_EDITORS, type IdentityProfile, type ExternalEditor } from './store';
-import { applyProfileToRepo } from './profiles';
-import { installCliTool } from './cliTool';
-import { AccountsTab, providerIcon } from './AccountsTab';
-import { Field, SettingCard, SettingEmpty, SettingRow } from './SettingCard';
-import { getAiProvider } from '@/features/ai/client';
 import { modKey } from '@/shared/utils';
+import { AccountsTab, providerIcon } from './AccountsTab';
+import { installCliTool } from './cliTool';
+import { applyProfileToRepo } from './profiles';
+import { Field, SettingCard, SettingEmpty, SettingRow } from './SettingCard';
+import {
+  ACCENTS,
+  EXTERNAL_EDITORS,
+  type ExternalEditor,
+  type IdentityProfile,
+  THEME_PAIRS,
+  THEMES,
+  useSettings,
+  ZOOM_MAX,
+  ZOOM_MIN,
+} from './store';
 
 type SectionId = 'appearance' | 'git' | 'integrations' | 'accounts' | 'ai' | 'shortcuts';
 
@@ -79,11 +89,36 @@ const SECTIONS: Array<{
   description: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { id: 'appearance', label: 'Appearance', description: 'Theme, accent color, zoom and motion', icon: Palette },
-  { id: 'git', label: 'Git', description: 'Auto fetch, pull requests, command line, identity and profiles', icon: User },
-  { id: 'integrations', label: 'Integrations', description: 'External editor and shell', icon: UserRound },
-  { id: 'accounts', label: 'Authentication', description: 'https:// remotes use accounts · git@ remotes use SSH keys', icon: GithubIcon },
-  { id: 'ai', label: 'AI Assistant', description: 'Provider, connection and message style', icon: Sparkles },
+  {
+    id: 'appearance',
+    label: 'Appearance',
+    description: 'Theme, accent color, zoom and motion',
+    icon: Palette,
+  },
+  {
+    id: 'git',
+    label: 'Git',
+    description: 'Auto fetch, pull requests, command line, identity and profiles',
+    icon: User,
+  },
+  {
+    id: 'integrations',
+    label: 'Integrations',
+    description: 'External editor and shell',
+    icon: UserRound,
+  },
+  {
+    id: 'accounts',
+    label: 'Authentication',
+    description: 'https:// remotes use accounts · git@ remotes use SSH keys',
+    icon: GithubIcon,
+  },
+  {
+    id: 'ai',
+    label: 'AI Assistant',
+    description: 'Provider, connection and message style',
+    icon: Sparkles,
+  },
   { id: 'shortcuts', label: 'Shortcuts', description: 'Keyboard reference', icon: Keyboard },
 ];
 
@@ -132,7 +167,9 @@ function SshCard() {
         <SettingRow
           title="Use the SSH agent"
           description="Tried before any key file, and the only way a passphrase-protected key can work."
-          control={<Switch checked={settings.sshUseAgent} onCheckedChange={settings.setSshUseAgent} />}
+          control={
+            <Switch checked={settings.sshUseAgent} onCheckedChange={settings.setSshUseAgent} />
+          }
         />
 
         <Field label="Private key">
@@ -163,7 +200,12 @@ function SshCard() {
         </Field>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={busy} onClick={() => void showPublicKey()}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => void showPublicKey()}
+          >
             Show public key
           </Button>
           <Button variant="secondary" size="sm" disabled={busy} onClick={() => void generate()}>
@@ -234,8 +276,9 @@ function ModelField() {
     }
     setLoading(true);
     try {
-      const found = await listAiModels({ ...current, baseUrl: current.baseUrl || undefined }, (request) =>
-        ipc.httpRequest(request),
+      const found = await listAiModels(
+        { ...current, baseUrl: current.baseUrl || undefined },
+        (request) => ipc.httpRequest(request),
       );
       setModels(found);
       setOpen(found.length > 0);
@@ -257,18 +300,31 @@ function ModelField() {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted">
-          Model <span className="font-normal text-faint">· type any name or load the list your key can access</span>
+          Model{' '}
+          <span className="font-normal text-faint">
+            · type any name or load the list your key can access
+          </span>
         </span>
         <div className="flex items-center gap-1">
           {models.length > 0 && !open && (
             <Hint label="Fetch the list again">
-              <Button variant="ghost" size="icon-sm" aria-label="Refresh model list" onClick={() => void refresh()} disabled={loading}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Refresh model list"
+                onClick={() => void refresh()}
+                disabled={loading}
+              >
                 <RefreshCw className="size-3.5" />
               </Button>
             </Hint>
           )}
           <Button variant="ghost" size="sm" onClick={() => void load()} disabled={loading}>
-            {loading ? <Spinner /> : <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />}
+            {loading ? (
+              <Spinner />
+            ) : (
+              <ChevronDown className={cn('size-3.5 transition-transform', open && 'rotate-180')} />
+            )}
             {open ? 'Hide models' : models.length > 0 ? 'Show models' : 'Load models'}
           </Button>
         </div>
@@ -347,10 +403,14 @@ function CliAgentPicker() {
         return (
           <button
             key={agent.id}
-            onClick={() => useSettings.getState().setAi({ cliAgent: agent.id, cliPath: agent.path })}
+            onClick={() =>
+              useSettings.getState().setAi({ cliAgent: agent.id, cliPath: agent.path })
+            }
             className={cn(
               'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-              isActive ? 'border-primary/40 bg-primary/5' : 'border-border-subtle bg-surface-raised/40 hover:border-border',
+              isActive
+                ? 'border-primary/40 bg-primary/5'
+                : 'border-border-subtle bg-surface-raised/40 hover:border-border',
             )}
           >
             <span
@@ -369,7 +429,11 @@ function CliAgentPicker() {
                     <Check className="size-3" /> In use
                   </Badge>
                 )}
-                {agent.version && <span className="font-mono text-[11px] font-normal text-faint">{agent.version}</span>}
+                {agent.version && (
+                  <span className="font-mono text-[11px] font-normal text-faint">
+                    {agent.version}
+                  </span>
+                )}
               </p>
               <p className="truncate font-mono text-[11px] text-faint">{agent.path}</p>
             </div>
@@ -398,8 +462,8 @@ function CliAgentPicker() {
         />
       )}
       <p className="mt-1 text-[11px] leading-relaxed text-faint">
-        Requests run through the CLI on this machine with its own login and quota. AngKorGit stores no key and
-        sends nothing anywhere itself.
+        Requests run through the CLI on this machine with its own login and quota. AngKorGit stores
+        no key and sends nothing anywhere itself.
       </p>
     </div>
   );
@@ -412,7 +476,9 @@ function CommitStyleCard() {
 
   const updateRule = (index: number, patch: Partial<{ pattern: string; prefix: string }>) => {
     setCommitStyle({
-      prefixRules: commit.prefixRules.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)),
+      prefixRules: commit.prefixRules.map((rule, i) =>
+        i === index ? { ...rule, ...patch } : rule,
+      ),
     });
   };
   const removeRule = (index: number) => {
@@ -459,13 +525,18 @@ function CommitStyleCard() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted">
-              Branch prefix rules <span className="font-normal text-faint">· first match wins, applied by AngKorGit itself</span>
+              Branch prefix rules{' '}
+              <span className="font-normal text-faint">
+                · first match wins, applied by AngKorGit itself
+              </span>
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={() =>
-                setCommitStyle({ prefixRules: [...commit.prefixRules, { pattern: '', prefix: '' }] })
+                setCommitStyle({
+                  prefixRules: [...commit.prefixRules, { pattern: '', prefix: '' }],
+                })
               }
             >
               <Plus className="size-3.5" />
@@ -481,7 +552,10 @@ function CommitStyleCard() {
                 <span />
               </div>
               {commit.prefixRules.map((rule, index) => (
-                <div key={index} className="grid grid-cols-[1fr_auto_1fr_28px] items-center gap-2 px-2.5 py-2">
+                <div
+                  key={index}
+                  className="grid grid-cols-[1fr_auto_1fr_28px] items-center gap-2 px-2.5 py-2"
+                >
                   <Input
                     value={rule.pattern}
                     onChange={(e) => updateRule(index, { pattern: e.target.value })}
@@ -509,12 +583,14 @@ function CommitStyleCard() {
           ) : (
             <p className="rounded-lg border border-dashed border-border-subtle px-3 py-2.5 text-xs text-faint">
               No rules. Add one to prefix messages by branch, for example{' '}
-              <span className="font-mono">feature/*</span> → <span className="font-mono">[{'{suffix}'}]</span>.
+              <span className="font-mono">feature/*</span> →{' '}
+              <span className="font-mono">[{'{suffix}'}]</span>.
             </p>
           )}
           <p className="text-[11px] leading-relaxed text-faint">
             <span className="font-mono">*</span> matches any part of the branch name. Prefix tokens:{' '}
-            <span className="font-mono">{'{branch}'}</span>, <span className="font-mono">{'{suffix}'}</span>,{' '}
+            <span className="font-mono">{'{branch}'}</span>,{' '}
+            <span className="font-mono">{'{suffix}'}</span>,{' '}
             <span className="font-mono">{'{ticket}'}</span>.
           </p>
           {branch && commit.prefixRules.length > 0 && (
@@ -540,7 +616,10 @@ function CliToolCard() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void ipc.cliStatus().then(setStatus).catch(() => setStatus(null));
+    void ipc
+      .cliStatus()
+      .then(setStatus)
+      .catch(() => setStatus(null));
   }, []);
 
   const install = async () => {
@@ -588,9 +667,7 @@ function CliToolCard() {
 angkorgit open [path]
 angkorgit clone [-b branch] <url>`}
       </pre>
-      {status && (
-        <p className="mt-1 text-[11px] leading-relaxed text-faint">{status.path}</p>
-      )}
+      {status && <p className="mt-1 text-[11px] leading-relaxed text-faint">{status.path}</p>}
     </SettingCard>
   );
 }
@@ -614,9 +691,12 @@ function ReviewStyleCard() {
           rows={4}
         />
         <p className="text-[11px] leading-relaxed text-faint">
-          Per-project rules: commit <span className="rounded bg-surface-raised px-1 py-0.5 font-mono">{PROJECT_REVIEW_FILE}</span>{' '}
-          to a repository and its content joins these conventions for that repository, so the whole team
-          reviews by the same rules. Project rules win on conflict.
+          Per-project rules: commit{' '}
+          <span className="rounded bg-surface-raised px-1 py-0.5 font-mono">
+            {PROJECT_REVIEW_FILE}
+          </span>{' '}
+          to a repository and its content joins these conventions for that repository, so the whole
+          team reviews by the same rules. Project rules win on conflict.
         </p>
       </div>
     </SettingCard>
@@ -823,17 +903,22 @@ export function SettingsDialog() {
                   >
                     <div className="flex flex-col gap-3">
                       {THEME_PAIRS.map((pair) => {
-                        const lightTheme = pair.light ? THEMES.find((t) => t.id === pair.light) : null;
+                        const lightTheme = pair.light
+                          ? THEMES.find((t) => t.id === pair.light)
+                          : null;
                         const darkTheme = pair.dark ? THEMES.find((t) => t.id === pair.dark) : null;
-                        const isPairActive = settings.followSystem && settings.themePairId === pair.id;
-                        
+                        const isPairActive =
+                          settings.followSystem && settings.themePairId === pair.id;
+
                         return (
                           <div key={pair.id} className="flex flex-col gap-1.5">
                             <span className="text-xs font-medium text-muted">{pair.label}</span>
-                            <div className={cn(
-                              "grid grid-cols-2 gap-2 rounded-lg p-1.5 transition-colors",
-                              isPairActive && "bg-primary/5 ring-1 ring-primary/30"
-                            )}>
+                            <div
+                              className={cn(
+                                'grid grid-cols-2 gap-2 rounded-lg p-1.5 transition-colors',
+                                isPairActive && 'bg-primary/5 ring-1 ring-primary/30',
+                              )}
+                            >
                               {lightTheme ? (
                                 <button
                                   onClick={() => settings.setTheme(lightTheme.id)}
@@ -870,7 +955,9 @@ export function SettingsDialog() {
                                   <span
                                     className={cn(
                                       'flex items-center justify-between px-3 py-1.5 text-xs',
-                                      settings.theme === lightTheme.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
+                                      settings.theme === lightTheme.id
+                                        ? 'text-primary'
+                                        : 'text-muted group-hover:text-foreground',
                                     )}
                                   >
                                     Light
@@ -882,7 +969,7 @@ export function SettingsDialog() {
                                   No light variant
                                 </div>
                               )}
-                              
+
                               {darkTheme ? (
                                 <button
                                   onClick={() => settings.setTheme(darkTheme.id)}
@@ -919,7 +1006,9 @@ export function SettingsDialog() {
                                   <span
                                     className={cn(
                                       'flex items-center justify-between px-3 py-1.5 text-xs',
-                                      settings.theme === darkTheme.id ? 'text-primary' : 'text-muted group-hover:text-foreground',
+                                      settings.theme === darkTheme.id
+                                        ? 'text-primary'
+                                        : 'text-muted group-hover:text-foreground',
                                     )}
                                   >
                                     Dark
@@ -955,7 +1044,9 @@ export function SettingsDialog() {
                             )}
                             style={{ background: accent.color }}
                           >
-                            {settings.accent === accent.id && <Check className="size-4 text-white drop-shadow" />}
+                            {settings.accent === accent.id && (
+                              <Check className="size-4 text-white drop-shadow" />
+                            )}
                           </button>
                         </Hint>
                       ))}
@@ -966,7 +1057,8 @@ export function SettingsDialog() {
                     title="Zoom"
                     description={
                       <>
-                        Also <Kbd>{modKey()}</Kbd> <Kbd>+</Kbd> / <Kbd>{modKey()}</Kbd> <Kbd>−</Kbd> anywhere
+                        Also <Kbd>{modKey()}</Kbd> <Kbd>+</Kbd> / <Kbd>{modKey()}</Kbd> <Kbd>−</Kbd>{' '}
+                        anywhere
                       </>
                     }
                     action={
@@ -1003,7 +1095,12 @@ export function SettingsDialog() {
                   <SettingCard
                     title="Reduce motion"
                     description="Minimize animations across the app"
-                    action={<Switch checked={settings.reduceMotion} onCheckedChange={settings.setReduceMotion} />}
+                    action={
+                      <Switch
+                        checked={settings.reduceMotion}
+                        onCheckedChange={settings.setReduceMotion}
+                      />
+                    }
                   />
                 </div>
               )}
@@ -1061,7 +1158,11 @@ export function SettingsDialog() {
                   >
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="Name">
-                        <Input value={gitName} onChange={(e) => setGitName(e.target.value)} placeholder="Your Name" />
+                        <Input
+                          value={gitName}
+                          onChange={(e) => setGitName(e.target.value)}
+                          placeholder="Your Name"
+                        />
                       </Field>
                       <Field label="Email">
                         <Input
@@ -1073,7 +1174,9 @@ export function SettingsDialog() {
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <span className="text-[11px] text-faint">
-                        {repo ? `Writes user.name and user.email to ${repo.name}/.git/config` : 'Writes user.name and user.email to ~/.gitconfig'}
+                        {repo
+                          ? `Writes user.name and user.email to ${repo.name}/.git/config`
+                          : 'Writes user.name and user.email to ~/.gitconfig'}
                       </span>
                       <Button size="sm" onClick={() => void saveIdentity()}>
                         Save identity
@@ -1086,7 +1189,11 @@ export function SettingsDialog() {
                     description="Work and personal identities, each with the hosting accounts linked to it. A repository is assigned to one profile the first time you commit or push, and that choice stays with the repository."
                     action={
                       !addingProfile && settings.profiles.length > 0 ? (
-                        <Button variant="secondary" size="sm" onClick={() => setAddingProfile(true)}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setAddingProfile(true)}
+                        >
                           <Plus className="size-3.5" /> New profile
                         </Button>
                       ) : undefined
@@ -1100,7 +1207,9 @@ export function SettingsDialog() {
                             key={profile.id}
                             className={cn(
                               'rounded-lg border p-3 transition-colors',
-                              isActive ? 'border-primary/40 bg-primary/5' : 'border-border-subtle bg-surface-raised/40',
+                              isActive
+                                ? 'border-primary/40 bg-primary/5'
+                                : 'border-border-subtle bg-surface-raised/40',
                             )}
                           >
                             <div className="flex items-center gap-3">
@@ -1119,21 +1228,36 @@ export function SettingsDialog() {
                                 </p>
                               </div>
                               {!isActive && (
-                                <Button variant="secondary" size="sm" onClick={() => void applyProfile(profile)}>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => void applyProfile(profile)}
+                                >
                                   {repo ? 'Use for this repo' : 'Use'}
                                 </Button>
                               )}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon-sm" aria-label={`${profile.label} profile actions`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label={`${profile.label} profile actions`}
+                                  >
                                     <MoreHorizontal className="size-3.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem disabled={isActive} onClick={() => void applyProfile(profile)}>
-                                    <Check /> {repo ? 'Use for this repo' : 'Use as global identity'}
+                                  <DropdownMenuItem
+                                    disabled={isActive}
+                                    onClick={() => void applyProfile(profile)}
+                                  >
+                                    <Check />{' '}
+                                    {repo ? 'Use for this repo' : 'Use as global identity'}
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem destructive onClick={() => void removeProfile(profile)}>
+                                  <DropdownMenuItem
+                                    destructive
+                                    onClick={() => void removeProfile(profile)}
+                                  >
                                     <Trash2 /> Remove profile…
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -1145,15 +1269,24 @@ export function SettingsDialog() {
                                   <span className="text-[11px] font-medium text-faint">
                                     Linked accounts
                                     <span className="font-normal">
-                                      {' '}· {sortedAccounts.filter((a) => profile.accounts?.[a.host] === a.username).length} of{' '}
-                                      {sortedAccounts.length}
+                                      {' '}
+                                      ·{' '}
+                                      {
+                                        sortedAccounts.filter(
+                                          (a) => profile.accounts?.[a.host] === a.username,
+                                        ).length
+                                      }{' '}
+                                      of {sortedAccounts.length}
                                     </span>
                                   </span>
-                                  <span className="text-[11px] text-faint">Tried first for their host</span>
+                                  <span className="text-[11px] text-faint">
+                                    Tried first for their host
+                                  </span>
                                 </div>
                                 <div className="flex flex-col divide-y divide-border-subtle rounded-md border border-border-subtle bg-surface">
                                   {sortedAccounts.map((account) => {
-                                    const linked = profile.accounts?.[account.host] === account.username;
+                                    const linked =
+                                      profile.accounts?.[account.host] === account.username;
                                     return (
                                       <label
                                         key={`${account.host}:${account.username}`}
@@ -1162,21 +1295,32 @@ export function SettingsDialog() {
                                         <span
                                           className={cn(
                                             'flex size-6 shrink-0 items-center justify-center rounded [&_svg]:size-3.5',
-                                            linked ? 'bg-primary/15 text-primary' : 'bg-surface-raised text-muted',
+                                            linked
+                                              ? 'bg-primary/15 text-primary'
+                                              : 'bg-surface-raised text-muted',
                                           )}
                                         >
                                           {providerIcon(account.provider)}
                                         </span>
                                         <span className="flex min-w-0 flex-1 items-baseline gap-1.5 text-xs">
-                                          <span className={cn('truncate font-medium', linked ? 'text-foreground' : 'text-muted')}>
+                                          <span
+                                            className={cn(
+                                              'truncate font-medium',
+                                              linked ? 'text-foreground' : 'text-muted',
+                                            )}
+                                          >
                                             {account.username}
                                           </span>
-                                          <span className="min-w-0 truncate text-faint">@ {account.host}</span>
+                                          <span className="min-w-0 truncate text-faint">
+                                            @ {account.host}
+                                          </span>
                                         </span>
                                         <Switch
                                           checked={linked}
                                           aria-label={`Link ${account.username} on ${account.host} to ${profile.label}`}
-                                          onCheckedChange={(on) => setAccountLinked(profile, account, on === true)}
+                                          onCheckedChange={(on) =>
+                                            setAccountLinked(profile, account, on === true)
+                                          }
                                         />
                                       </label>
                                     );
@@ -1194,7 +1338,11 @@ export function SettingsDialog() {
                           title="No profiles yet"
                           description="Add Work and Personal once, then every repository picks the right name, email and account."
                           action={
-                            <Button variant="secondary" size="sm" onClick={() => setAddingProfile(true)}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setAddingProfile(true)}
+                            >
                               <Plus className="size-3.5" /> New profile
                             </Button>
                           }
@@ -1245,12 +1393,20 @@ export function SettingsDialog() {
                               Link hosting accounts to the profile after adding it.
                             </span>
                             <span className="flex gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => setAddingProfile(false)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setAddingProfile(false)}
+                              >
                                 Cancel
                               </Button>
                               <Button
                                 size="sm"
-                                disabled={!profileLabel.trim() || !profileName.trim() || !profileEmail.trim()}
+                                disabled={
+                                  !profileLabel.trim() ||
+                                  !profileName.trim() ||
+                                  !profileEmail.trim()
+                                }
                                 onClick={addProfile}
                               >
                                 Add profile
@@ -1273,7 +1429,9 @@ export function SettingsDialog() {
                     <Field label="Editor">
                       <Select
                         value={settings.externalEditor}
-                        onValueChange={(value) => settings.setExternalEditor(value as ExternalEditor)}
+                        onValueChange={(value) =>
+                          settings.setExternalEditor(value as ExternalEditor)
+                        }
                       >
                         <SelectTrigger className="h-9 w-full">
                           <SelectValue />
@@ -1330,7 +1488,10 @@ export function SettingsDialog() {
                       {settings.ai.provider === 'cli' ? (
                         <>
                           <CliAgentPicker />
-                          <Field label="Model override" hint="optional, the CLI's default when empty">
+                          <Field
+                            label="Model override"
+                            hint="optional, the CLI's default when empty"
+                          >
                             <Input
                               value={settings.ai.model}
                               onChange={(e) => settings.setAi({ model: e.target.value })}
@@ -1350,7 +1511,10 @@ export function SettingsDialog() {
                               />
                             </Field>
                           )}
-                          <Field label="Base URL" hint={`optional, defaults to ${preset.defaultBaseUrl}`}>
+                          <Field
+                            label="Base URL"
+                            hint={`optional, defaults to ${preset.defaultBaseUrl}`}
+                          >
                             <Input
                               value={settings.ai.baseUrl ?? ''}
                               onChange={(e) => settings.setAi({ baseUrl: e.target.value })}
@@ -1371,12 +1535,22 @@ export function SettingsDialog() {
                           {aiStatus === 'fail' && (
                             <>
                               <span className="size-1.5 rounded-full bg-danger" />
-                              <span className="text-danger">Not reachable. Check the key, URL or that the local server is running.</span>
+                              <span className="text-danger">
+                                Not reachable. Check the key, URL or that the local server is
+                                running.
+                              </span>
                             </>
                           )}
-                          {aiStatus === 'unknown' && <span className="text-faint">Connection not tested yet</span>}
+                          {aiStatus === 'unknown' && (
+                            <span className="text-faint">Connection not tested yet</span>
+                          )}
                         </span>
-                        <Button variant="secondary" size="sm" onClick={() => void testAi()} disabled={testing}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void testAi()}
+                          disabled={testing}
+                        >
                           {testing ? <Spinner /> : <Wifi className="size-3.5" />}
                           Test connection
                         </Button>

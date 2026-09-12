@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { ipc, type CliToolStatus } from '@/core/ipc';
+import { type CliToolStatus, ipc } from '@/core/ipc';
 
 export async function installCliTool(): Promise<CliToolStatus> {
   const status = await ipc.cliInstall();

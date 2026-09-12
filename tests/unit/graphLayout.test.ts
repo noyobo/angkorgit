@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { GraphLayout, flatGraphRows, layoutGraph, type CommitInfo } from '@angkorgit/core';
+import { type CommitInfo, flatGraphRows, GraphLayout, layoutGraph } from '@angkorgit/core';
 
 const sig = { name: 'Test', email: 't@example.com', time: 0 };
 
@@ -70,10 +70,18 @@ describe('GraphLayout', () => {
     const whole = layoutGraph(commits);
     const incremental = new GraphLayout();
     incremental.add(commits.slice(0, 2));
-    const firstTwo = incremental.getRows().slice(0, 2).map((r) => JSON.stringify(r));
+    const firstTwo = incremental
+      .getRows()
+      .slice(0, 2)
+      .map((r) => JSON.stringify(r));
     incremental.add(commits.slice(2));
 
-    expect(incremental.getRows().slice(0, 2).map((r) => JSON.stringify(r))).toEqual(firstTwo);
+    expect(
+      incremental
+        .getRows()
+        .slice(0, 2)
+        .map((r) => JSON.stringify(r)),
+    ).toEqual(firstTwo);
     expect(JSON.stringify(incremental.getRows())).toEqual(JSON.stringify(whole.rows));
   });
 
@@ -90,9 +98,7 @@ describe('GraphLayout', () => {
   });
 
   it('explodes lanes when parents are filtered out (why filtered views need flatGraphRows)', () => {
-    const disconnected = Array.from({ length: 20 }, (_, i) =>
-      commit(`c${i}`, [`missing${i}`]),
-    );
+    const disconnected = Array.from({ length: 20 }, (_, i) => commit(`c${i}`, [`missing${i}`]));
     const { maxLane } = layoutGraph(disconnected);
     expect(maxLane).toBe(19);
   });
@@ -100,9 +106,7 @@ describe('GraphLayout', () => {
 
 describe('flatGraphRows', () => {
   it('keeps every commit on lane 0 with a single connecting line', () => {
-    const disconnected = Array.from({ length: 20 }, (_, i) =>
-      commit(`c${i}`, [`missing${i}`]),
-    );
+    const disconnected = Array.from({ length: 20 }, (_, i) => commit(`c${i}`, [`missing${i}`]));
     const rows = flatGraphRows(disconnected);
     expect(rows).toHaveLength(20);
     expect(rows.every((r) => r.node.lane === 0 && r.node.color === 0)).toBe(true);

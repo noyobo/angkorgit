@@ -1,4 +1,3 @@
-
 export interface AiMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -37,13 +36,7 @@ export interface HttpResponse {
 
 export type HttpClient = (request: HttpRequest) => Promise<HttpResponse>;
 
-export type AiProviderKind =
-  | 'cli'
-  | 'openai'
-  | 'anthropic'
-  | 'gemini'
-  | 'ollama'
-  | 'lmstudio';
+export type AiProviderKind = 'cli' | 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'lmstudio';
 
 export type CliAgentId = 'claude' | 'codex' | 'gemini' | 'opencode' | 'antigravity';
 

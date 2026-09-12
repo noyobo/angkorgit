@@ -1,13 +1,7 @@
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@angkorgit/design-system';
+import { Copy } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Copy } from 'lucide-react';
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@angkorgit/design-system';
 import { AiText } from './AiText';
 
 export function AiResultDialog({

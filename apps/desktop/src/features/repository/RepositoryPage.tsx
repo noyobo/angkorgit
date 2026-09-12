@@ -1,33 +1,35 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useRepo } from './store';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { CommandPalette } from '@/components/CommandPalette';
+import { StatusBar } from '@/components/StatusBar';
+import { TitleBarOverlay } from '@/components/TitleBarOverlay';
+import { Toolbar } from '@/components/Toolbar';
+import { commitShortcut } from '@/features/commit/WorkingCopyPanel';
+import { editorCloseShortcut } from '@/features/editor/EditorPanel';
+import { InteractiveRebaseDialog } from '@/features/graph/InteractiveRebaseDialog';
 import { useGraph } from '@/features/graph/store';
 import { useUi } from '@/features/ui/store';
 import { WorkspaceLayout } from '@/features/ui/WorkspaceLayout';
-import { TitleBarOverlay } from '@/components/TitleBarOverlay';
-import { StatusBar } from '@/components/StatusBar';
-import { Toolbar } from '@/components/Toolbar';
-import { InteractiveRebaseDialog } from '@/features/graph/InteractiveRebaseDialog';
-import { editorCloseShortcut } from '@/features/editor/EditorPanel';
-import { commitShortcut } from '@/features/commit/WorkingCopyPanel';
-import { CommandPalette } from '@/components/CommandPalette';
+import { useRepo } from './store';
+
 const ConflictResolver = lazy(() =>
   import('@/features/conflicts/ConflictResolver').then((m) => ({ default: m.ConflictResolver })),
 );
-import { SettingsDialog } from '@/features/settings/SettingsDialog';
-import { RepoDialogs } from './RepoDialogs';
-import { CloneDialog } from './CloneDialog';
+
+import { Logo } from '@angkorgit/design-system';
+import { ipc, listen } from '@/core/ipc';
 import { CreatePrDialog } from '@/features/forge/CreatePrDialog';
-import { CreateWorktreeDialog } from '@/features/worktrees/CreateWorktreeDialog';
 import { useForge } from '@/features/forge/store';
-import { useShortcuts } from '@/shared/useShortcuts';
 import { useUndo } from '@/features/history/undoStore';
+import { SettingsDialog } from '@/features/settings/SettingsDialog';
 import { useSettings } from '@/features/settings/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
-import { ipc, listen } from '@/core/ipc';
-import { Logo } from '@angkorgit/design-system';
+import { CreateWorktreeDialog } from '@/features/worktrees/CreateWorktreeDialog';
+import { useShortcuts } from '@/shared/useShortcuts';
 import { basename } from '@/shared/utils';
+import { CloneDialog } from './CloneDialog';
+import { RepoDialogs } from './RepoDialogs';
 
 const OVERLAY_SHOW_DELAY = 250;
 const OVERLAY_MIN_VISIBLE = 450;
@@ -62,9 +64,7 @@ function RepoLoadingOverlay() {
   return (
     <div className="animate-fade-in absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm">
       <Logo size={64} animated="loop" className="logo-draw-loop text-foreground" />
-      {name && (
-        <span className="max-w-md truncate text-sm text-muted">Opening {name}…</span>
-      )}
+      {name && <span className="max-w-md truncate text-sm text-muted">Opening {name}…</span>}
     </div>
   );
 }
@@ -219,18 +219,18 @@ export function RepositoryPage() {
     () => [
       // Command palette - Desktop uses Cmd+K style
       { combo: 'mod+k', handler: () => setPaletteOpen(true) },
-      
+
       // Panels palette - Go to Panel
       { combo: 'mod+shift+/', handler: () => useUi.getState().setPanelsOpen(true) },
-      
+
       // View toggles - Desktop-aligned shortcuts
       { combo: 'mod+b', handler: () => useUi.getState().setBranchSwitcherOpen(true) }, // Desktop: Cmd+B opens branch switcher
       { combo: 'ctrl+`', handler: () => toggleTerminal() },
       { combo: 'mod+l', handler: () => toggleSidebar() }, // REMAPPED: Sidebar toggle from Cmd+B to Cmd+L
-      
+
       // Commit flow - Desktop-aligned
       { combo: 'mod+g', handler: () => useUi.getState().focusCommitSummary() }, // Focus commit summary (Desktop: Cmd+G)
-      
+
       // View on forge - git-open equivalent (Desktop: Cmd+Shift+G)
       {
         combo: 'mod+shift+g',
@@ -245,7 +245,7 @@ export function RepositoryPage() {
           });
         },
       },
-      
+
       // Tab management - AngKorGit multi-repo feature
       // EXCEPTION: Keep Cmd+1-9 for tab switching (core AngKorGit feature)
       // EXCEPTION: Close All Tabs stays on Cmd+Shift+W (explicit product decision)
@@ -259,16 +259,20 @@ export function RepositoryPage() {
           navigate('/welcome');
         },
       },
-      
+
       // Undo/Redo - Desktop-aligned
       {
         combo: 'mod+z',
         skipInInput: true,
         handler: () => {
           const path = useRepo.getState().repo?.path;
-          if (path) void useUndo.getState().undo(path).then((ok) => {
-              if (ok) void refreshAll();
-            });
+          if (path)
+            void useUndo
+              .getState()
+              .undo(path)
+              .then((ok) => {
+                if (ok) void refreshAll();
+              });
         },
       },
       {
@@ -276,16 +280,20 @@ export function RepositoryPage() {
         skipInInput: true,
         handler: () => {
           const path = useRepo.getState().repo?.path;
-          if (path) void useUndo.getState().redo(path).then((ok) => {
-              if (ok) void refreshAll();
-            });
+          if (path)
+            void useUndo
+              .getState()
+              .redo(path)
+              .then((ok) => {
+                if (ok) void refreshAll();
+              });
         },
       },
-      
+
       // Repository actions
       { combo: 'mod+r', handler: () => void refreshAll() }, // Refresh (AngKorGit-specific)
       { combo: 'mod+enter', handler: () => commitShortcut.current?.() }, // Commit when focused
-      
+
       // Repository sync operations - Desktop-aligned
       {
         combo: 'mod+p',
@@ -326,7 +334,7 @@ export function RepositoryPage() {
           });
         },
       },
-      
+
       // Branch operations - Desktop-aligned
       {
         combo: 'mod+shift+n',
@@ -336,13 +344,13 @@ export function RepositoryPage() {
         combo: 'mod+shift+s',
         handler: () => useUi.getState().openDialog('createStash'),
       },
-      
+
       // Settings - Desktop-aligned
       {
         combo: 'mod+,',
         handler: () => useUi.getState().openDialog('settings'),
       },
-      
+
       // Escape - close overlays
       {
         combo: 'escape',
@@ -377,7 +385,6 @@ export function RepositoryPage() {
         <WorkspaceLayout repoPath={repo.path} />
       </div>
       <StatusBar />
-
 
       <CommandPalette onRefresh={refreshAll} />
       <SettingsDialog />

@@ -45,9 +45,18 @@ const preset: Partial<Config> = {
       },
       keyframes: {
         locate: {
-          '0%': { backgroundColor: 'hsl(var(--primary) / 0.42)', boxShadow: 'inset 3px 0 0 hsl(var(--primary)), 0 0 0 6px hsl(var(--primary) / 0.25)' },
-          '60%': { backgroundColor: 'hsl(var(--primary) / 0.16)', boxShadow: 'inset 3px 0 0 hsl(var(--primary)), 0 0 0 2px hsl(var(--primary) / 0)' },
-          '100%': { backgroundColor: 'hsl(var(--primary) / 0.1)', boxShadow: 'inset 3px 0 0 hsl(var(--primary)), 0 0 0 0 hsl(var(--primary) / 0)' },
+          '0%': {
+            backgroundColor: 'hsl(var(--primary) / 0.42)',
+            boxShadow: 'inset 3px 0 0 hsl(var(--primary)), 0 0 0 6px hsl(var(--primary) / 0.25)',
+          },
+          '60%': {
+            backgroundColor: 'hsl(var(--primary) / 0.16)',
+            boxShadow: 'inset 3px 0 0 hsl(var(--primary)), 0 0 0 2px hsl(var(--primary) / 0)',
+          },
+          '100%': {
+            backgroundColor: 'hsl(var(--primary) / 0.1)',
+            boxShadow: 'inset 3px 0 0 hsl(var(--primary)), 0 0 0 0 hsl(var(--primary) / 0)',
+          },
         },
         'fade-in': {
           from: { opacity: '0' },

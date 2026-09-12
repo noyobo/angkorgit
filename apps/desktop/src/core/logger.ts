@@ -1,8 +1,15 @@
-const isTauri = (): boolean =>
-  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+const isTauri = (): boolean => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 export type LogLayer = 'ui' | 'menu' | 'ipc' | 'git' | 'rust' | 'system';
-export type LogType = 'key' | 'click' | 'cmd' | 'stdout' | 'stderr' | 'push' | 'lifecycle' | 'console';
+export type LogType =
+  | 'key'
+  | 'click'
+  | 'cmd'
+  | 'stdout'
+  | 'stderr'
+  | 'push'
+  | 'lifecycle'
+  | 'console';
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
@@ -17,14 +24,23 @@ let loggerReady: Promise<void> | null = null;
 let logCommand: ((entry: LogEntry) => Promise<void>) | null = null;
 
 // Sensitive keys to redact from logs
-const SENSITIVE_KEYS = ['token', 'password', 'key', 'secret', 'apiKey', 'apikey', 'authorization', 'auth'];
+const SENSITIVE_KEYS = [
+  'token',
+  'password',
+  'key',
+  'secret',
+  'apiKey',
+  'apikey',
+  'authorization',
+  'auth',
+];
 
 function sanitizeMeta(meta?: Record<string, unknown>): Record<string, unknown> | undefined {
   if (!meta) return meta;
   const sanitized: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(meta)) {
     const lowerKey = key.toLowerCase();
-    if (SENSITIVE_KEYS.some(s => lowerKey.includes(s))) {
+    if (SENSITIVE_KEYS.some((s) => lowerKey.includes(s))) {
       sanitized[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       sanitized[key] = sanitizeMeta(value as Record<string, unknown>);
@@ -37,9 +53,12 @@ function sanitizeMeta(meta?: Record<string, unknown>): Record<string, unknown> |
 
 function formatMetaAsKV(meta?: Record<string, unknown>): string {
   if (!meta) return '';
-  return ' ' + Object.entries(meta)
-    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
-    .join(' ');
+  return (
+    ' ' +
+    Object.entries(meta)
+      .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+      .join(' ')
+  );
 }
 
 async function initLogger() {
@@ -51,7 +70,8 @@ async function initLogger() {
 function formatConsoleArgs(args: unknown[]): string {
   return args
     .map((arg) => {
-      if (arg instanceof Error) return `${arg.name}: ${arg.message}${arg.stack ? `\n${arg.stack}` : ''}`;
+      if (arg instanceof Error)
+        return `${arg.name}: ${arg.message}${arg.stack ? `\n${arg.stack}` : ''}`;
       if (typeof arg === 'string') return arg;
       try {
         return JSON.stringify(arg);
@@ -92,7 +112,13 @@ if (isTauri()) {
   captureConsole();
 }
 
-async function writeLog(layer: LogLayer, type: LogType, level: LogLevel, message: string, meta?: Record<string, unknown>) {
+async function writeLog(
+  layer: LogLayer,
+  type: LogType,
+  level: LogLevel,
+  message: string,
+  meta?: Record<string, unknown>,
+) {
   const entry: LogEntry = {
     layer,
     type,
@@ -100,10 +126,10 @@ async function writeLog(layer: LogLayer, type: LogType, level: LogLevel, message
     message,
     meta: sanitizeMeta(meta),
   };
-  
+
   if (loggerReady) await loggerReady;
   await logCommand?.(entry);
-  
+
   if (!isTauri()) {
     // Browser console format: [layer] [type] [level] message key=value
     const formatted = `[${layer}] [${type}] [${level}] ${message}${formatMetaAsKV(entry.meta)}`;
@@ -125,7 +151,11 @@ export const logger = {
   },
 
   // Command execution (IPC, git, tauri)
-  async cmd(command: string, args?: Record<string, unknown>, result?: { duration?: number; status?: string }) {
+  async cmd(
+    command: string,
+    args?: Record<string, unknown>,
+    result?: { duration?: number; status?: string },
+  ) {
     await writeLog('ipc', 'cmd', 'info', `command=${command}`, { args, ...result });
   },
 

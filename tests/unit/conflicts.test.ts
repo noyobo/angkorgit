@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import {
   allResolved,
+  type ConflictBlock,
   conflictCount,
   parseConflicts,
   serializeResolution,
-  type ConflictBlock,
 } from '@angkorgit/core';
 
 const SAMPLE = `line 1

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { deflateSync } from 'node:zlib';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { deflateSync } from 'node:zlib';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'apps/desktop/src-tauri/icons');
@@ -137,7 +137,12 @@ function pixel(x, y, size) {
   const n = SS * SS;
   return a === 0
     ? [0, 0, 0, 0]
-    : [Math.round(r / (a / 255)), Math.round(g / (a / 255)), Math.round(b / (a / 255)), Math.round(a / n)];
+    : [
+        Math.round(r / (a / 255)),
+        Math.round(g / (a / 255)),
+        Math.round(b / (a / 255)),
+        Math.round(a / n),
+      ];
 }
 
 for (const [name, size] of [
@@ -159,4 +164,6 @@ for (const [name, size] of [
   writeFileSync(join(outDir, name), png(size, pixel));
   console.log(`generated icons/${name}`);
 }
-console.log('\nDone. For .icns/.ico run: pnpm --filter @angkorgit/desktop exec tauri icon src-tauri/icons/icon.png');
+console.log(
+  '\nDone. For .icns/.ico run: pnpm --filter @angkorgit/desktop exec tauri icon src-tauri/icons/icon.png',
+);

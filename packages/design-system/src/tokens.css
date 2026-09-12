@@ -6,10 +6,10 @@
 
 :root {
   /* Brand */
-  --brand-gold: 32 93% 44%;        /* #D97706 Temple Gold */
-  --brand-slate: 217 19% 27%;      /* #374151 */
-  --brand-accent: 0 84% 60%;       /* #EF4444 */
-  --brand-success: 142 71% 45%;    /* #22C55E */
+  --brand-gold: 32 93% 44%; /* #D97706 Temple Gold */
+  --brand-slate: 217 19% 27%; /* #374151 */
+  --brand-accent: 0 84% 60%; /* #EF4444 */
+  --brand-success: 142 71% 45%; /* #22C55E */
 
   --radius: 0.5rem;
 
@@ -25,13 +25,13 @@
   --graph-8: 217 91% 60%;
   --graph-9: 24 94% 50%;
 
-  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 .dark {
-  --background: 221 39% 8%;        /* deeper than #111827 for panel contrast */
-  --surface: 221 39% 11%;          /* #111827 */
+  --background: 221 39% 8%; /* deeper than #111827 for panel contrast */
+  --surface: 221 39% 11%; /* #111827 */
   --surface-raised: 220 28% 14%;
   --surface-overlay: 220 26% 16%;
   --border: 218 20% 22%;
@@ -67,10 +67,22 @@
  * default) lives in the .dark/.light blocks below. Accents recolor ONLY the
  * interactive/brand primary; graph lanes and diff colors keep their meaning.
  */
-.accent-jade { --primary: 160 84% 42%; --primary-foreground: 160 90% 8%; }
-.accent-sapphire { --primary: 217 91% 63%; --primary-foreground: 220 90% 10%; }
-.accent-lotus { --primary: 330 81% 62%; --primary-foreground: 330 90% 10%; }
-.accent-crimson { --primary: 0 84% 62%; --primary-foreground: 0 90% 10%; }
+.accent-jade {
+  --primary: 160 84% 42%;
+  --primary-foreground: 160 90% 8%;
+}
+.accent-sapphire {
+  --primary: 217 91% 63%;
+  --primary-foreground: 220 90% 10%;
+}
+.accent-lotus {
+  --primary: 330 81% 62%;
+  --primary-foreground: 330 90% 10%;
+}
+.accent-crimson {
+  --primary: 0 84% 62%;
+  --primary-foreground: 0 90% 10%;
+}
 
 .light {
   --background: 220 25% 97%;
@@ -106,7 +118,19 @@
 }
 
 /* Accent values tuned for the light theme (higher contrast, white text). */
-.light.accent-jade { --primary: 161 94% 30%; --primary-foreground: 0 0% 100%; }
-.light.accent-sapphire { --primary: 221 83% 45%; --primary-foreground: 0 0% 100%; }
-.light.accent-lotus { --primary: 330 81% 43%; --primary-foreground: 0 0% 100%; }
-.light.accent-crimson { --primary: 0 72% 45%; --primary-foreground: 0 0% 100%; }
+.light.accent-jade {
+  --primary: 161 94% 30%;
+  --primary-foreground: 0 0% 100%;
+}
+.light.accent-sapphire {
+  --primary: 221 83% 45%;
+  --primary-foreground: 0 0% 100%;
+}
+.light.accent-lotus {
+  --primary: 330 81% 43%;
+  --primary-foreground: 0 0% 100%;
+}
+.light.accent-crimson {
+  --primary: 0 72% 45%;
+  --primary-foreground: 0 0% 100%;
+}

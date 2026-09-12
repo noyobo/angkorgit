@@ -1,46 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { toastOutcome } from '@/shared/toastOutcome';
-import { pushOperation } from '@/features/repository/operations';
-import {
-  AlertTriangle,
-  Archive,
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Boxes,
-  Check,
-  ChevronRight,
-  ChevronsDownUp,
-  Cloud,
-  Copy,
-  Eraser,
-  Folder,
-  FolderGit2,
-  FolderOpen,
-  FolderTree,
-  GitBranch,
-  FastForward,
-  GitMerge,
-  GitPullRequest,
-  Home,
-  MoveRight,
-  ListRestart,
-  Lock,
-  MoreHorizontal,
-  GitBranchMinus,
-  GitBranchPlus,
-  Pencil,
-  Play,
-  Plus,
-  RefreshCw,
-  Search,
-  Tag as TagIcon,
-  Trash2,
-  Undo2,
-} from 'lucide-react';
+import type {
+  BranchInfo,
+  PullRequestInfo,
+  RemoteInfo,
+  StashInfo,
+  SubmoduleInfo,
+  TagInfo,
+  WorktreeInfo,
+} from '@angkorgit/core';
+import { forgeNoun, pullRequestCheckoutSpec, remoteDeleteTarget } from '@angkorgit/core';
 import {
   Badge,
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -56,22 +27,59 @@ import {
   Hint,
   Input,
   Logo,
-  cn,
 } from '@angkorgit/design-system';
-import { ipc, openExternal } from '@/core/ipc';
+import {
+  AlertTriangle,
+  Archive,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Boxes,
+  Check,
+  ChevronRight,
+  ChevronsDownUp,
+  Cloud,
+  Copy,
+  Eraser,
+  FastForward,
+  Folder,
+  FolderGit2,
+  FolderOpen,
+  FolderTree,
+  GitBranch,
+  GitBranchMinus,
+  GitBranchPlus,
+  GitMerge,
+  GitPullRequest,
+  Home,
+  ListRestart,
+  Lock,
+  MoreHorizontal,
+  MoveRight,
+  Pencil,
+  Play,
+  Plus,
+  RefreshCw,
+  Search,
+  Tag as TagIcon,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { confirmDialog } from '@/components/confirm';
-import { useRepo } from '@/features/repository/store';
-import { useGraph } from '@/features/graph/store';
-import { useUi } from '@/features/ui/store';
-import { useUndo, type UndoKind } from '@/features/history/undoStore';
+import { ipc, openExternal } from '@/core/ipc';
 import { useForge } from '@/features/forge/store';
-import { useSettings } from '@/features/settings/store';
-import { ensureRepoProfile } from '@/features/settings/profiles';
-import { forgeNoun, pullRequestCheckoutSpec, remoteDeleteTarget } from '@angkorgit/core';
+import { useGraph } from '@/features/graph/store';
+import { type UndoKind, useUndo } from '@/features/history/undoStore';
 import { openDeleteBranches } from '@/features/repository/deleteBranches';
-import type { BranchInfo, PullRequestInfo, RemoteInfo, StashInfo, SubmoduleInfo, TagInfo, WorktreeInfo } from '@angkorgit/core';
-import { capCount, isMac } from '@/shared/utils';
+import { pushOperation } from '@/features/repository/operations';
+import { useRepo } from '@/features/repository/store';
+import { ensureRepoProfile } from '@/features/settings/profiles';
+import { useSettings } from '@/features/settings/store';
 import { killTerminalSession } from '@/features/terminal/sessions';
+import { useUi } from '@/features/ui/store';
+import { toastOutcome } from '@/shared/toastOutcome';
+import { capCount, isMac } from '@/shared/utils';
 
 interface BranchTreeNode {
   key: string;
@@ -208,12 +216,19 @@ function Section({
           aria-expanded={open}
           onClick={onToggle}
         >
-          <ChevronRight className={cn('size-3.5 shrink-0 transition-transform duration-150', open && 'rotate-90')} />
+          <ChevronRight
+            className={cn(
+              'size-3.5 shrink-0 transition-transform duration-150',
+              open && 'rotate-90',
+            )}
+          />
           {icon}
           <span className="truncate">{title}</span>
           <span className="text-faint">{count}</span>
         </button>
-        {action && <span className="opacity-0 transition-opacity group-hover:opacity-100">{action}</span>}
+        {action && (
+          <span className="opacity-0 transition-opacity group-hover:opacity-100">{action}</span>
+        )}
       </div>
       {open && <div className="mt-0.5 min-h-0 flex-1 overflow-y-auto pb-1">{children}</div>}
     </div>
@@ -248,7 +263,8 @@ export function Sidebar() {
     stashes: stashes.length > 0,
     submodules: false,
   };
-  const sectionOpen = (id: (typeof SIDEBAR_SECTIONS)[number]) => sidebarSections[id] ?? sectionDefaults[id];
+  const sectionOpen = (id: (typeof SIDEBAR_SECTIONS)[number]) =>
+    sidebarSections[id] ?? sectionDefaults[id];
   const section = (id: (typeof SIDEBAR_SECTIONS)[number]) => ({
     open: sectionOpen(id),
     onToggle: () => setSidebarSection(id, !sectionOpen(id)),
@@ -261,16 +277,34 @@ export function Sidebar() {
   }, [query]);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const [dropAction, setDropAction] = useState<{ source: string; target: string; canFf?: boolean } | null>(null);
-  const [branchMenu, setBranchMenu] = useState<{ x: number; y: number; branch: BranchInfo } | null>(null);
+  const [dropAction, setDropAction] = useState<{
+    source: string;
+    target: string;
+    canFf?: boolean;
+  } | null>(null);
+  const [branchMenu, setBranchMenu] = useState<{ x: number; y: number; branch: BranchInfo } | null>(
+    null,
+  );
   const [branchSectionMenu, setBranchSectionMenu] = useState<{ x: number; y: number } | null>(null);
   const [subMenu, setSubMenu] = useState<{ x: number; y: number; sub: SubmoduleInfo } | null>(null);
-  const [remoteMenu, setRemoteMenu] = useState<{ x: number; y: number; remote: RemoteInfo } | null>(null);
-  const [worktreeMenu, setWorktreeMenu] = useState<{ x: number; y: number; worktree: WorktreeInfo } | null>(null);
-  const [stashMenu, setStashMenu] = useState<{ x: number; y: number; stash: StashInfo } | null>(null);
+  const [remoteMenu, setRemoteMenu] = useState<{ x: number; y: number; remote: RemoteInfo } | null>(
+    null,
+  );
+  const [worktreeMenu, setWorktreeMenu] = useState<{
+    x: number;
+    y: number;
+    worktree: WorktreeInfo;
+  } | null>(null);
+  const [stashMenu, setStashMenu] = useState<{ x: number; y: number; stash: StashInfo } | null>(
+    null,
+  );
   const [tagMenu, setTagMenu] = useState<{ x: number; y: number; tag: TagInfo } | null>(null);
   const [prMenu, setPrMenu] = useState<{ x: number; y: number; pr: PullRequestInfo } | null>(null);
-  const [editRemote, setEditRemote] = useState<{ original: string; name: string; url: string } | null>(null);
+  const [editRemote, setEditRemote] = useState<{
+    original: string;
+    name: string;
+    url: string;
+  } | null>(null);
   const [savingRemote, setSavingRemote] = useState(false);
 
   const openSubmodule = (sub: SubmoduleInfo) => {
@@ -299,7 +333,9 @@ export function Sidebar() {
       .getState()
       .open(wt.path)
       .catch((error) =>
-        toast.error(`Could not open ${wt.name}: ${(error as { message?: string }).message ?? error}`),
+        toast.error(
+          `Could not open ${wt.name}: ${(error as { message?: string }).message ?? error}`,
+        ),
       );
   };
 
@@ -412,7 +448,9 @@ export function Sidebar() {
       return;
     }
     const dirty = worktreeDirty(wt);
-    const branchNote = wt.branch ? ` The branch ${wt.branch} and its commits stay in the repository.` : ' Commits stay in the repository.';
+    const branchNote = wt.branch
+      ? ` The branch ${wt.branch} and its commits stay in the repository.`
+      : ' Commits stay in the repository.';
     const ok = await confirmDialog({
       title: `Remove worktree "${wt.name}"?`,
       description: dirty
@@ -432,7 +470,9 @@ export function Sidebar() {
     try {
       await useRepo.getState().open(main.path);
     } catch (error) {
-      toast.error(`Could not switch to ${main.name}: ${(error as { message?: string }).message ?? error}`);
+      toast.error(
+        `Could not switch to ${main.name}: ${(error as { message?: string }).message ?? error}`,
+      );
       return;
     }
     useUi.getState().closeRepoTab(wt.path);
@@ -459,7 +499,9 @@ export function Sidebar() {
           action: () => ipc.checkout(path, target),
         });
       }
-      await act(`Merge ${source} into ${target}`, () => ipc.merge(path, source, noFf), { kind: 'merge' });
+      await act(`Merge ${source} into ${target}`, () => ipc.merge(path, source, noFf), {
+        kind: 'merge',
+      });
     } catch (error) {
       toast.error(`Merge failed: ${(error as { message?: string }).message ?? error}`);
     }
@@ -477,7 +519,9 @@ export function Sidebar() {
           action: () => ipc.checkout(path, source),
         });
       }
-      await act(`Rebase ${source} onto ${target}`, () => ipc.rebase(path, target), { kind: 'rebase' });
+      await act(`Rebase ${source} onto ${target}`, () => ipc.rebase(path, target), {
+        kind: 'rebase',
+      });
     } catch (error) {
       toast.error(`Rebase failed: ${(error as { message?: string }).message ?? error}`);
     }
@@ -505,7 +549,13 @@ export function Sidebar() {
     void act(
       `Checkout #${pr.number}`,
       () =>
-        ipc.prCheckout(path, forgeRemoteName ?? 'origin', spec.sourceRef, spec.localBranch, spec.track),
+        ipc.prCheckout(
+          path,
+          forgeRemoteName ?? 'origin',
+          spec.sourceRef,
+          spec.localBranch,
+          spec.track,
+        ),
       { kind: 'checkout' },
     );
   };
@@ -519,7 +569,10 @@ export function Sidebar() {
     () => branches.filter((b) => b.isRemote && (!q || b.name.toLowerCase().includes(q))),
     [branches, q],
   );
-  const filteredTags = useMemo(() => tags.filter((t) => !q || t.name.toLowerCase().includes(q)), [tags, q]);
+  const filteredTags = useMemo(
+    () => tags.filter((t) => !q || t.name.toLowerCase().includes(q)),
+    [tags, q],
+  );
   const filteredWorktrees = useMemo(
     () =>
       worktrees.filter(
@@ -554,7 +607,9 @@ export function Sidebar() {
     const edit = editRemote;
     if (!edit || !edit.name.trim() || !edit.url.trim() || savingRemote) return;
     setSavingRemote(true);
-    await act(`Update remote ${edit.original}`, () => ipc.remoteEdit(path, edit.original, edit.name, edit.url));
+    await act(`Update remote ${edit.original}`, () =>
+      ipc.remoteEdit(path, edit.original, edit.name, edit.url),
+    );
     setSavingRemote(false);
     setEditRemote(null);
   };
@@ -574,7 +629,9 @@ export function Sidebar() {
     if (collapseEpoch > 0) setExpandedFolders(new Set());
   }, [collapseEpoch]);
   const anySectionOpen = SIDEBAR_SECTIONS.some(sectionOpen);
-  const showPullRequestSection = Boolean(forgeRemote && showPullRequests && forgeRepoPath === repo?.path);
+  const showPullRequestSection = Boolean(
+    forgeRemote && showPullRequests && forgeRepoPath === repo?.path,
+  );
   const visibleSections: (typeof SIDEBAR_SECTIONS)[number][] = [
     'branches',
     'worktrees',
@@ -614,7 +671,7 @@ export function Sidebar() {
       ? 'folder missing'
       : wt.isDetached
         ? `detached @ ${wt.headOid?.slice(0, 8) ?? '?'}`
-        : wt.branch ?? 'no branch';
+        : (wt.branch ?? 'no branch');
     return (
       <div
         key={wt.path}
@@ -630,7 +687,11 @@ export function Sidebar() {
         }}
         className={cn(
           'group flex items-center gap-2 rounded-md px-2 py-1 pl-7 text-sm hover:bg-surface-raised',
-          wt.isCurrent ? 'cursor-default text-primary' : wt.isMissing ? 'cursor-default text-muted' : 'cursor-pointer',
+          wt.isCurrent
+            ? 'cursor-default text-primary'
+            : wt.isMissing
+              ? 'cursor-default text-muted'
+              : 'cursor-pointer',
         )}
         title={
           wt.isMissing
@@ -644,12 +705,17 @@ export function Sidebar() {
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="min-w-0 truncate">{wt.name}</span>
-            {wt.isMain && <Home className="size-3 shrink-0 text-faint" aria-label="Main worktree" />}
+            {wt.isMain && (
+              <Home className="size-3 shrink-0 text-faint" aria-label="Main worktree" />
+            )}
             {wt.isLocked && <Lock className="size-3 shrink-0 text-faint" aria-label="Locked" />}
             {wt.isMissing ? (
               <AlertTriangle className="size-3 shrink-0 text-danger" aria-label="Folder missing" />
             ) : dirty ? (
-              <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Uncommitted changes" />
+              <span
+                className="size-1.5 shrink-0 rounded-full bg-primary"
+                aria-label="Uncommitted changes"
+              />
             ) : null}
           </span>
           <span className="truncate font-mono text-[10px] text-faint">{subtitle}</span>
@@ -735,9 +801,14 @@ export function Sidebar() {
         onDoubleClick={() => {
           const held = heldBy.get(branch.name);
           if (held) openWorktree(held);
-          else void act(`Checkout ${branch.name}`, () => ipc.checkout(path, branch.name), { kind: 'checkout' });
+          else
+            void act(`Checkout ${branch.name}`, () => ipc.checkout(path, branch.name), {
+              kind: 'checkout',
+            });
         }}
-        onClick={() => setFilters(path, { branch: filters.branch === branch.name ? '' : branch.name })}
+        onClick={() =>
+          setFilters(path, { branch: filters.branch === branch.name ? '' : branch.name })
+        }
         title={
           heldBy.has(branch.name)
             ? `${branch.name} — checked out in worktree ${heldBy.get(branch.name)?.name}; double-click to switch there`
@@ -797,7 +868,11 @@ export function Sidebar() {
     >
       <button
         className="flex min-w-0 flex-1 items-center gap-2 text-left"
-        onDoubleClick={() => void act(`Checkout ${branch.name}`, () => ipc.checkout(path, branch.name), { kind: 'checkout' })}
+        onDoubleClick={() =>
+          void act(`Checkout ${branch.name}`, () => ipc.checkout(path, branch.name), {
+            kind: 'checkout',
+          })
+        }
         title={`${branch.name} — double-click to checkout`}
       >
         <HeadMark active={false} />
@@ -819,7 +894,11 @@ export function Sidebar() {
     </div>
   );
 
-  const renderTree = (nodes: BranchTreeNode[], depth: number, kind: 'local' | 'remote'): React.ReactNode =>
+  const renderTree = (
+    nodes: BranchTreeNode[],
+    depth: number,
+    kind: 'local' | 'remote',
+  ): React.ReactNode =>
     nodes.map((node) => {
       if (node.branch) {
         return kind === 'local'
@@ -827,7 +906,8 @@ export function Sidebar() {
           : renderRemoteBranch(node.branch, node.key, depth);
       }
       const expanded = expandedFolders.has(node.path);
-      const remote = kind === 'remote' && depth === 0 ? remotes.find((r) => r.name === node.key) : undefined;
+      const remote =
+        kind === 'remote' && depth === 0 ? remotes.find((r) => r.name === node.key) : undefined;
       return (
         <div key={`folder:${node.path}`}>
           <div
@@ -848,10 +928,15 @@ export function Sidebar() {
               title={remote ? `${remote.name} — ${remote.url}` : node.path}
             >
               <ChevronRight
-                className={cn('size-3.5 shrink-0 text-faint transition-transform duration-150', expanded && 'rotate-90')}
+                className={cn(
+                  'size-3.5 shrink-0 text-faint transition-transform duration-150',
+                  expanded && 'rotate-90',
+                )}
               />
               {remote ? (
-                <Cloud className={cn('size-3.5 shrink-0', expanded ? 'text-primary/70' : 'text-faint')} />
+                <Cloud
+                  className={cn('size-3.5 shrink-0', expanded ? 'text-primary/70' : 'text-faint')}
+                />
               ) : expanded ? (
                 <FolderOpen className="size-3.5 shrink-0 text-primary/70" />
               ) : (
@@ -968,7 +1053,12 @@ export function Sidebar() {
                 </Button>
               </Hint>
               <Hint label="New branch">
-                <Button variant="ghost" size="icon-sm" aria-label="New branch" onClick={() => openDialog('createBranch')}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="New branch"
+                  onClick={() => openDialog('createBranch')}
+                >
                   <Plus className="size-3.5" />
                 </Button>
               </Hint>
@@ -983,12 +1073,18 @@ export function Sidebar() {
             </div>
           )}
           {q
-            ? locals.slice(0, FLAT_FILTER_CAP).map((branch) => renderLocalBranch(branch, branch.name, 0))
+            ? locals
+                .slice(0, FLAT_FILTER_CAP)
+                .map((branch) => renderLocalBranch(branch, branch.name, 0))
             : renderTree(localTree, 0, 'local')}
           {q && locals.length > FLAT_FILTER_CAP && (
-            <div className="px-2 py-1 pl-7 text-xs text-faint">+{locals.length - FLAT_FILTER_CAP} more…</div>
+            <div className="px-2 py-1 pl-7 text-xs text-faint">
+              +{locals.length - FLAT_FILTER_CAP} more…
+            </div>
           )}
-          {noFilterMatches && <div className="px-2 py-1 pl-7 text-xs text-faint">No refs match the filter.</div>}
+          {noFilterMatches && (
+            <div className="px-2 py-1 pl-7 text-xs text-faint">No refs match the filter.</div>
+          )}
         </Section>
         {spacerAfter('branches')}
 
@@ -1012,7 +1108,12 @@ export function Sidebar() {
                 </Hint>
               )}
               <Hint label="New worktree">
-                <Button variant="ghost" size="icon-sm" aria-label="New worktree" onClick={() => openDialog('createWorktree')}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="New worktree"
+                  onClick={() => openDialog('createWorktree')}
+                >
                   <Plus className="size-3.5" />
                 </Button>
               </Hint>
@@ -1052,102 +1153,107 @@ export function Sidebar() {
 
         {showPullRequestSection && forgeRemote && (
           <>
-          <Section
-            {...section('pullRequests')}
-            icon={<GitPullRequest className="size-3.5" />}
-            title={forgeNoun(forgeRemote.kind, { plural: true, capitalize: true })}
-            count={filteredPrs.length}
-            action={
-              <span className="flex items-center">
-                <Hint label="Refresh pull requests">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Refresh pull requests"
-                    onClick={() => void useForge.getState().load(true)}
-                  >
-                    <RefreshCw className={cn('size-3.5', forgeLoading && 'animate-spin')} />
-                  </Button>
-                </Hint>
-                <Hint label="Create pull request">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Create pull request"
-                    onClick={() => openDialog('createPullRequest')}
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </Hint>
-              </span>
-            }
-          >
-            {!forgeAccount && forgeLoadedAt !== null && (
-              <button
-                className="w-full rounded-md px-2 py-1 pl-7 text-left text-xs text-muted [overflow-wrap:anywhere] hover:bg-surface-raised"
-                onClick={() => openDialog('settings')}
-              >
-                Connect a {forgeRemote.host} account in Settings → Authentication to see{' '}
-                {forgeNoun(forgeRemote.kind, { plural: true })}.
-              </button>
-            )}
-            {forgeAccount && forgeError && (
-              <button
-                className="w-full rounded-md px-2 py-1 pl-7 text-left text-xs text-muted [overflow-wrap:anywhere] hover:bg-surface-raised"
-                title={forgeErrorDetail ?? forgeError}
-                onClick={() => void useForge.getState().load(true)}
-              >
-                {forgeError}
-                <span className="mt-0.5 block text-primary">Click to retry</span>
-              </button>
-            )}
-            {forgeAccount && !forgeError && filteredPrs.length === 0 && !forgeLoading && (
-              <div className="px-2 py-1 pl-7 text-xs text-faint">
-                No open {forgeNoun(forgeRemote.kind, { plural: true })}
-              </div>
-            )}
-            {forgeLoading && filteredPrs.length === 0 && (
-              <div className="flex items-center gap-2 px-2 py-1 pl-7 text-xs text-faint">
-                <Logo size={14} animated="loop" className="logo-draw-loop shrink-0" />
-                Loading…
-              </div>
-            )}
-            {filteredPrs.map((pr) => (
-              <div
-                key={pr.number}
-                className="group flex items-center gap-2 rounded-md px-2 py-1 pl-7 text-sm hover:bg-surface-raised"
-                title={`#${pr.number} ${pr.title} — ${pr.author} wants to merge ${pr.sourceBranch} into ${pr.targetBranch}. Double-click to check out, right-click for actions.`}
-                onDoubleClick={() => checkoutPullRequest(pr)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setPrMenu({ x: e.clientX, y: e.clientY, pr });
-                }}
-              >
-                <span className="min-w-0 flex-1 truncate">
-                  <span className="text-faint">#{pr.number}</span> {pr.title}
+            <Section
+              {...section('pullRequests')}
+              icon={<GitPullRequest className="size-3.5" />}
+              title={forgeNoun(forgeRemote.kind, { plural: true, capitalize: true })}
+              count={filteredPrs.length}
+              action={
+                <span className="flex items-center">
+                  <Hint label="Refresh pull requests">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Refresh pull requests"
+                      onClick={() => void useForge.getState().load(true)}
+                    >
+                      <RefreshCw className={cn('size-3.5', forgeLoading && 'animate-spin')} />
+                    </Button>
+                  </Hint>
+                  <Hint label="Create pull request">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Create pull request"
+                      onClick={() => openDialog('createPullRequest')}
+                    >
+                      <Plus className="size-3.5" />
+                    </Button>
+                  </Hint>
                 </span>
-                {pr.isDraft && <Badge>Draft</Badge>}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-                  aria-label={`Pull request #${pr.number} actions`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setPrMenu({ x: rect.left, y: rect.bottom + 4, pr });
+              }
+            >
+              {!forgeAccount && forgeLoadedAt !== null && (
+                <button
+                  className="w-full rounded-md px-2 py-1 pl-7 text-left text-xs text-muted [overflow-wrap:anywhere] hover:bg-surface-raised"
+                  onClick={() => openDialog('settings')}
+                >
+                  Connect a {forgeRemote.host} account in Settings → Authentication to see{' '}
+                  {forgeNoun(forgeRemote.kind, { plural: true })}.
+                </button>
+              )}
+              {forgeAccount && forgeError && (
+                <button
+                  className="w-full rounded-md px-2 py-1 pl-7 text-left text-xs text-muted [overflow-wrap:anywhere] hover:bg-surface-raised"
+                  title={forgeErrorDetail ?? forgeError}
+                  onClick={() => void useForge.getState().load(true)}
+                >
+                  {forgeError}
+                  <span className="mt-0.5 block text-primary">Click to retry</span>
+                </button>
+              )}
+              {forgeAccount && !forgeError && filteredPrs.length === 0 && !forgeLoading && (
+                <div className="px-2 py-1 pl-7 text-xs text-faint">
+                  No open {forgeNoun(forgeRemote.kind, { plural: true })}
+                </div>
+              )}
+              {forgeLoading && filteredPrs.length === 0 && (
+                <div className="flex items-center gap-2 px-2 py-1 pl-7 text-xs text-faint">
+                  <Logo size={14} animated="loop" className="logo-draw-loop shrink-0" />
+                  Loading…
+                </div>
+              )}
+              {filteredPrs.map((pr) => (
+                <div
+                  key={pr.number}
+                  className="group flex items-center gap-2 rounded-md px-2 py-1 pl-7 text-sm hover:bg-surface-raised"
+                  title={`#${pr.number} ${pr.title} — ${pr.author} wants to merge ${pr.sourceBranch} into ${pr.targetBranch}. Double-click to check out, right-click for actions.`}
+                  onDoubleClick={() => checkoutPullRequest(pr)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setPrMenu({ x: e.clientX, y: e.clientY, pr });
                   }}
                 >
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </div>
-            ))}
-          </Section>
-          {spacerAfter('pullRequests')}
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="text-faint">#{pr.number}</span> {pr.title}
+                  </span>
+                  {pr.isDraft && <Badge>Draft</Badge>}
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                    aria-label={`Pull request #${pr.number} actions`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setPrMenu({ x: rect.left, y: rect.bottom + 4, pr });
+                    }}
+                  >
+                    <MoreHorizontal className="size-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </Section>
+            {spacerAfter('pullRequests')}
           </>
         )}
 
-        <Section {...section('remotes')} icon={<Cloud className="size-3.5" />} title="Remotes" count={remoteBranches.length}>
+        <Section
+          {...section('remotes')}
+          icon={<Cloud className="size-3.5" />}
+          title="Remotes"
+          count={remoteBranches.length}
+        >
           {remotes.length === 0 && !hasRemoteBranches && !repoRefreshing && (
             <SidebarEmpty
               icon={<Cloud />}
@@ -1156,10 +1262,14 @@ export function Sidebar() {
             />
           )}
           {q
-            ? remoteBranches.slice(0, FLAT_FILTER_CAP).map((branch) => renderRemoteBranch(branch, branch.name, 0))
+            ? remoteBranches
+                .slice(0, FLAT_FILTER_CAP)
+                .map((branch) => renderRemoteBranch(branch, branch.name, 0))
             : renderTree(remoteTree, 0, 'remote')}
           {q && remoteBranches.length > FLAT_FILTER_CAP && (
-            <div className="px-2 py-1 pl-7 text-xs text-faint">+{remoteBranches.length - FLAT_FILTER_CAP} more…</div>
+            <div className="px-2 py-1 pl-7 text-xs text-faint">
+              +{remoteBranches.length - FLAT_FILTER_CAP} more…
+            </div>
           )}
           {!q &&
             remotes
@@ -1175,7 +1285,12 @@ export function Sidebar() {
           {...section('tags')}
           action={
             <Hint label="New tag">
-              <Button variant="ghost" size="icon-sm" aria-label="New tag" onClick={() => openDialog('createTag')}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="New tag"
+                onClick={() => openDialog('createTag')}
+              >
                 <Plus className="size-3.5" />
               </Button>
             </Hint>
@@ -1187,7 +1302,12 @@ export function Sidebar() {
               title="No tags yet"
               description="Mark releases and milestones so they stand out in the graph."
               action={
-                <Button variant="secondary" size="sm" className="w-full justify-center" onClick={() => openDialog('createTag')}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-center"
+                  onClick={() => openDialog('createTag')}
+                >
                   <Plus className="size-3.5" /> New tag
                 </Button>
               }
@@ -1234,7 +1354,12 @@ export function Sidebar() {
           {...section('stashes')}
           action={
             <Hint label="New stash">
-              <Button variant="ghost" size="icon-sm" aria-label="New stash" onClick={() => openDialog('createStash')}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="New stash"
+                onClick={() => openDialog('createStash')}
+              >
                 <Plus className="size-3.5" />
               </Button>
             </Hint>
@@ -1246,7 +1371,12 @@ export function Sidebar() {
               title="Nothing stashed"
               description="Set changes aside without committing, then pop them back later."
               action={
-                <Button variant="secondary" size="sm" className="w-full justify-center" onClick={() => openDialog('createStash')}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full justify-center"
+                  onClick={() => openDialog('createStash')}
+                >
                   <Plus className="size-3.5" /> Stash changes
                 </Button>
               }
@@ -1262,7 +1392,10 @@ export function Sidebar() {
                 setStashMenu({ x: e.clientX, y: e.clientY, stash });
               }}
             >
-              <span className="min-w-0 flex-1 truncate" title={`${stash.message} — click to preview, right-click for actions`}>
+              <span
+                className="min-w-0 flex-1 truncate"
+                title={`${stash.message} — click to preview, right-click for actions`}
+              >
                 {stash.message}
               </span>
               <Button
@@ -1285,36 +1418,41 @@ export function Sidebar() {
 
         {submodules.length > 0 && (
           <>
-          <Section {...section('submodules')} icon={<Boxes className="size-3.5" />} title="Submodules" count={submodules.length}>
-            {submodules.map((sub) => (
-              <div
-                key={sub.name}
-                className="group flex cursor-default items-center gap-2 rounded-md px-2 py-1 pl-7 text-sm text-muted hover:bg-surface-raised"
-                title={sub.url ?? sub.path}
-                onDoubleClick={() => openSubmodule(sub)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setSubMenu({ x: e.clientX, y: e.clientY, sub });
-                }}
-              >
-                <span className="min-w-0 flex-1 truncate">{sub.path}</span>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-                  aria-label={`${sub.name} actions`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setSubMenu({ x: rect.left, y: rect.bottom + 4, sub });
+            <Section
+              {...section('submodules')}
+              icon={<Boxes className="size-3.5" />}
+              title="Submodules"
+              count={submodules.length}
+            >
+              {submodules.map((sub) => (
+                <div
+                  key={sub.name}
+                  className="group flex cursor-default items-center gap-2 rounded-md px-2 py-1 pl-7 text-sm text-muted hover:bg-surface-raised"
+                  title={sub.url ?? sub.path}
+                  onDoubleClick={() => openSubmodule(sub)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setSubMenu({ x: e.clientX, y: e.clientY, sub });
                   }}
                 >
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </div>
-            ))}
-          </Section>
-          {spacerAfter('submodules')}
+                  <span className="min-w-0 flex-1 truncate">{sub.path}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                    aria-label={`${sub.name} actions`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setSubMenu({ x: rect.left, y: rect.bottom + 4, sub });
+                    }}
+                  >
+                    <MoreHorizontal className="size-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </Section>
+            {spacerAfter('submodules')}
           </>
         )}
       </div>
@@ -1325,7 +1463,9 @@ export function Sidebar() {
             <span style={{ position: 'fixed', left: subMenu.x, top: subMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{subMenu.sub.path}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {subMenu.sub.path}
+            </DropdownMenuLabel>
             <DropdownMenuItem onClick={() => openSubmodule(subMenu.sub)}>
               <FolderGit2 /> Open as repository
             </DropdownMenuItem>
@@ -1383,11 +1523,15 @@ export function Sidebar() {
             <span style={{ position: 'fixed', left: tagMenu.x, top: tagMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{tagMenu.tag.name}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {tagMenu.tag.name}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => {
                 const tag = tagMenu.tag;
-                void act(`Checkout ${tag.name}`, () => ipc.checkoutDetached(path, tag.name), { kind: 'checkout' });
+                void act(`Checkout ${tag.name}`, () => ipc.checkoutDetached(path, tag.name), {
+                  kind: 'checkout',
+                });
               }}
             >
               <Check /> Checkout (detached)
@@ -1395,7 +1539,9 @@ export function Sidebar() {
             <DropdownMenuItem
               onClick={() => {
                 const tag = tagMenu.tag;
-                void act(`Push tag ${tag.name}`, () => ipc.pushTag(path, remotes[0]?.name ?? 'origin', tag.name));
+                void act(`Push tag ${tag.name}`, () =>
+                  ipc.pushTag(path, remotes[0]?.name ?? 'origin', tag.name),
+                );
               }}
             >
               <Cloud /> Push to remote
@@ -1439,7 +1585,9 @@ export function Sidebar() {
             <span style={{ position: 'fixed', left: stashMenu.x, top: stashMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-72 truncate">{stashMenu.stash.message}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-72 truncate">
+              {stashMenu.stash.message}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => {
                 const stash = stashMenu.stash;
@@ -1476,12 +1624,15 @@ export function Sidebar() {
             <span style={{ position: 'fixed', left: worktreeMenu.x, top: worktreeMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-72 truncate font-mono">{worktreeMenu.worktree.path}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-72 truncate font-mono">
+              {worktreeMenu.worktree.path}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               disabled={worktreeMenu.worktree.isCurrent || worktreeMenu.worktree.isMissing}
               onClick={() => openWorktree(worktreeMenu.worktree)}
             >
-              <FolderTree /> {worktreeMenu.worktree.isCurrent ? 'Open in this tab' : 'Switch to this worktree'}
+              <FolderTree />{' '}
+              {worktreeMenu.worktree.isCurrent ? 'Open in this tab' : 'Switch to this worktree'}
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={worktreeMenu.worktree.isMissing}
@@ -1500,7 +1651,10 @@ export function Sidebar() {
             {!worktreeMenu.worktree.isMain && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem destructive onClick={() => void removeWorktree(worktreeMenu.worktree)}>
+                <DropdownMenuItem
+                  destructive
+                  onClick={() => void removeWorktree(worktreeMenu.worktree)}
+                >
                   {worktreeMenu.worktree.isMissing ? (
                     <>
                       <Eraser /> Forget missing worktree
@@ -1523,7 +1677,9 @@ export function Sidebar() {
             <span style={{ position: 'fixed', left: remoteMenu.x, top: remoteMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{remoteMenu.remote.name}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {remoteMenu.remote.name}
+            </DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => {
                 const r = remoteMenu.remote;
@@ -1611,13 +1767,12 @@ export function Sidebar() {
       {branchSectionMenu && (
         <DropdownMenu open onOpenChange={(o) => !o && setBranchSectionMenu(null)}>
           <DropdownMenuTrigger asChild>
-            <span style={{ position: 'fixed', left: branchSectionMenu.x, top: branchSectionMenu.y }} />
+            <span
+              style={{ position: 'fixed', left: branchSectionMenu.x, top: branchSectionMenu.y }}
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuItem
-              destructive
-              onClick={() => void openDeleteBranches(refreshAll)}
-            >
+            <DropdownMenuItem destructive onClick={() => void openDeleteBranches(refreshAll)}>
               <Trash2 /> Delete branches…
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -1630,7 +1785,9 @@ export function Sidebar() {
             <span style={{ position: 'fixed', left: branchMenu.x, top: branchMenu.y }} />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{branchMenu.branch.name}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {branchMenu.branch.name}
+            </DropdownMenuLabel>
             {branchMenuHeld ? (
               <DropdownMenuItem onClick={() => openWorktree(branchMenuHeld)}>
                 <FolderTree /> Switch to worktree {branchMenuHeld.name}
@@ -1639,25 +1796,35 @@ export function Sidebar() {
               <DropdownMenuItem
                 disabled={branchMenu.branch.isHead}
                 onClick={() =>
-                  void act(`Checkout ${branchMenu.branch.name}`, () => ipc.checkout(path, branchMenu.branch.name), {
-                    kind: 'checkout',
-                  })
+                  void act(
+                    `Checkout ${branchMenu.branch.name}`,
+                    () => ipc.checkout(path, branchMenu.branch.name),
+                    {
+                      kind: 'checkout',
+                    },
+                  )
                 }
               >
                 <Check /> Checkout
               </DropdownMenuItem>
             )}
             {!branchMenu.branch.isHead && !branchMenuHeld && (
-              <DropdownMenuItem onClick={() => openDialog('createWorktree', { branch: branchMenu.branch.name })}>
+              <DropdownMenuItem
+                onClick={() => openDialog('createWorktree', { branch: branchMenu.branch.name })}
+              >
                 <FolderTree /> Open in new worktree…
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
               disabled={branchMenu.branch.isHead}
               onClick={() =>
-                void act(`Merge ${branchMenu.branch.name}`, () => ipc.merge(path, branchMenu.branch.name, true), {
-                  kind: 'merge',
-                })
+                void act(
+                  `Merge ${branchMenu.branch.name}`,
+                  () => ipc.merge(path, branchMenu.branch.name, true),
+                  {
+                    kind: 'merge',
+                  },
+                )
               }
             >
               <GitMerge /> Merge into current
@@ -1666,9 +1833,13 @@ export function Sidebar() {
               <DropdownMenuItem
                 disabled={branchMenu.branch.isHead}
                 onClick={() =>
-                  void act(`Rebase onto ${branchMenu.branch.name}`, () => ipc.rebase(path, branchMenu.branch.name), {
-                    kind: 'rebase',
-                  })
+                  void act(
+                    `Rebase onto ${branchMenu.branch.name}`,
+                    () => ipc.rebase(path, branchMenu.branch.name),
+                    {
+                      kind: 'rebase',
+                    },
+                  )
                 }
               >
                 <ListRestart /> Rebase current onto this
@@ -1680,15 +1851,19 @@ export function Sidebar() {
                 <DropdownMenuItem
                   disabled={!branchMenu.branch.upstream}
                   onClick={() =>
-                    void act(`Pull ${branchMenu.branch.name}`, () => ipc.pullBranch(path, branchMenu.branch.name))
+                    void act(`Pull ${branchMenu.branch.name}`, () =>
+                      ipc.pullBranch(path, branchMenu.branch.name),
+                    )
                   }
                 >
                   <ArrowDownToLine /> Pull
-                  {branchMenu.branch.behind > 0 && <Badge tone="info">↓{capCount(branchMenu.branch.behind)}</Badge>}
+                  {branchMenu.branch.behind > 0 && (
+                    <Badge tone="info">↓{capCount(branchMenu.branch.behind)}</Badge>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
-                    void act(`Push ${branchMenu.branch.name}`, () => 
+                    void act(`Push ${branchMenu.branch.name}`, () =>
                       pushOperation(
                         {
                           path,
@@ -1696,18 +1871,22 @@ export function Sidebar() {
                           remotes,
                           source: 'sidebar-branch-menu',
                         },
-                        { branch: branchMenu.branch.name, label: `Push ${branchMenu.branch.name}` }
-                      )
+                        { branch: branchMenu.branch.name, label: `Push ${branchMenu.branch.name}` },
+                      ),
                     )
                   }
                 >
                   <ArrowUpFromLine /> Push
-                  {branchMenu.branch.ahead > 0 && <Badge tone="primary">↑{capCount(branchMenu.branch.ahead)}</Badge>}
+                  {branchMenu.branch.ahead > 0 && (
+                    <Badge tone="primary">↑{capCount(branchMenu.branch.ahead)}</Badge>
+                  )}
                 </DropdownMenuItem>
               </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => openDialog('createBranch', branchMenu.branch.targetOid)}>
+            <DropdownMenuItem
+              onClick={() => openDialog('createBranch', branchMenu.branch.targetOid)}
+            >
               <GitBranchPlus /> Create branch here…
             </DropdownMenuItem>
             {!branchMenu.branch.isRemote && (
@@ -1722,7 +1901,10 @@ export function Sidebar() {
                     void act(
                       `Delete branch ${branchMenu.branch.name}`,
                       () => ipc.deleteBranch(path, branchMenu.branch.name, false),
-                      { kind: 'branchDelete', extra: { branch: branchMenu.branch.name, oid: branchMenu.branch.targetOid } },
+                      {
+                        kind: 'branchDelete',
+                        extra: { branch: branchMenu.branch.name, oid: branchMenu.branch.targetOid },
+                      },
                     )
                   }
                 >
@@ -1776,7 +1958,9 @@ export function Sidebar() {
           <div className="flex flex-col gap-2">
             <Button
               className="h-auto justify-start whitespace-normal py-2"
-              onClick={() => dropAction && void dropMerge(dropAction.source, dropAction.target, true)}
+              onClick={() =>
+                dropAction && void dropMerge(dropAction.source, dropAction.target, true)
+              }
             >
               <GitMerge className="shrink-0" />
               <span className="flex min-w-0 flex-col items-start gap-0.5 text-left">
@@ -1817,7 +2001,8 @@ export function Sidebar() {
                     Rebase {dropAction.source} onto {dropAction.target}
                   </span>
                   <span className="text-[11px] font-normal text-muted">
-                    Replays {dropAction.source}'s commits on top of {dropAction.target} — rewrites history
+                    Replays {dropAction.source}'s commits on top of {dropAction.target} — rewrites
+                    history
                   </span>
                 </span>
               </Button>

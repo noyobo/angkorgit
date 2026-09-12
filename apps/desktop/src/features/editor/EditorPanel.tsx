@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { Pencil, Save, X } from 'lucide-react';
 import { Badge, Button, Hint, Kbd, Spinner } from '@angkorgit/design-system';
+import { motion } from 'framer-motion';
+import { Pencil, Save, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { confirmDialog } from '@/components/confirm';
 import { ipc } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
 import { useUi } from '@/features/ui/store';
-import { confirmDialog } from '@/components/confirm';
 import { modKey } from '@/shared/utils';
 
 export const editorCloseShortcut = { current: null as (() => void) | null };

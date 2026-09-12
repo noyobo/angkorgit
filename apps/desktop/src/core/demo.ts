@@ -6,7 +6,10 @@ import type {
   CommitInfo,
   FileDiff,
   HistoryPage,
+  HistoryPosition,
   HistoryQuery,
+  HistorySearch,
+  HistorySearchQuery,
   HttpRequest,
   HttpResponse,
   RecentRepository,
@@ -15,9 +18,6 @@ import type {
   StatusSummary,
   TagInfo,
   WorktreeInfo,
-  HistoryPosition,
-  HistorySearch,
-  HistorySearchQuery,
 } from '@angkorgit/core';
 
 const AUTHORS = [
@@ -46,18 +46,14 @@ function makeCommits(count: number): CommitInfo[] {
     const oid = `${(count - i).toString(16).padStart(6, '0')}${'a'.repeat(34)}`;
     const author = AUTHORS[i % AUTHORS.length];
     const isMerge = i % 9 === 4 && i + 8 < count;
-    const parents = [
-      `${(count - i - 1).toString(16).padStart(6, '0')}${'a'.repeat(34)}`,
-    ];
+    const parents = [`${(count - i - 1).toString(16).padStart(6, '0')}${'a'.repeat(34)}`];
     if (isMerge) {
       parents.push(`${(count - i - 3).toString(16).padStart(6, '0')}${'a'.repeat(34)}`);
     }
     commits.push({
       oid,
       shortOid: oid.slice(0, 8),
-      summary: isMerge
-        ? `Merge branch 'feature/lane-${i % 5}'`
-        : SUBJECTS[i % SUBJECTS.length],
+      summary: isMerge ? `Merge branch 'feature/lane-${i % 5}'` : SUBJECTS[i % SUBJECTS.length],
       body: i % 6 === 0 ? 'Detailed explanation of the change,\nwrapped at 72 columns.' : '',
       author: { ...author, time: now - i * 5400 },
       committer: { ...author, time: now - i * 5400 },
@@ -67,13 +63,29 @@ function makeCommits(count: number): CommitInfo[] {
           ? [{ kind: 'localBranch', name: 'refs/heads/main', shorthand: 'main' }]
           : i === 2
             ? [
-                { kind: 'remoteBranch', name: 'refs/remotes/origin/main', shorthand: 'origin/main' },
+                {
+                  kind: 'remoteBranch',
+                  name: 'refs/remotes/origin/main',
+                  shorthand: 'origin/main',
+                },
                 { kind: 'tag', name: 'refs/tags/v0.4.0', shorthand: 'v0.4.0' },
               ]
             : i === 5
-              ? [{ kind: 'stash', name: 'stash@{0}', shorthand: 'WIP on main: experiment with lane colors' }]
+              ? [
+                  {
+                    kind: 'stash',
+                    name: 'stash@{0}',
+                    shorthand: 'WIP on main: experiment with lane colors',
+                  },
+                ]
               : i === 7
-                ? [{ kind: 'localBranch', name: 'refs/heads/feature/diff-viewer', shorthand: 'feature/diff-viewer' }]
+                ? [
+                    {
+                      kind: 'localBranch',
+                      name: 'refs/heads/feature/diff-viewer',
+                      shorthand: 'feature/diff-viewer',
+                    },
+                  ]
                 : [],
       isHead: i === 0,
     });
@@ -111,16 +123,18 @@ export function demoHistory(query: HistoryQuery): HistoryPage {
   let commits = ALL_COMMITS;
   if (query.search) {
     const q = query.search.toLowerCase();
-    commits = commits.filter(
-      (c) => c.summary.toLowerCase().includes(q) || c.oid.startsWith(q),
-    );
+    commits = commits.filter((c) => c.summary.toLowerCase().includes(q) || c.oid.startsWith(q));
   }
   if (query.author) {
     const q = query.author.toLowerCase();
     commits = commits.filter((c) => c.author.name.toLowerCase().includes(q));
   }
   const page = commits.slice(query.skip, query.skip + query.limit);
-  return { commits: page, hasMore: query.skip + query.limit < commits.length, total: commits.length };
+  return {
+    commits: page,
+    hasMore: query.skip + query.limit < commits.length,
+    total: commits.length,
+  };
 }
 
 export function demoHistorySearch(query: HistorySearchQuery): HistorySearch {
@@ -145,7 +159,12 @@ export function demoHistoryPosition(rev: string): { index: number; oid: string }
 
 export const demoStatus: StatusSummary = {
   files: [
-    { path: 'src/features/graph/CommitGraph.tsx', origPath: null, staged: 'modified', unstaged: null },
+    {
+      path: 'src/features/graph/CommitGraph.tsx',
+      origPath: null,
+      staged: 'modified',
+      unstaged: null,
+    },
     { path: 'src/core/ipc.ts', origPath: null, staged: null, unstaged: 'modified' },
     { path: 'src/data/palette-seed.sql', origPath: null, staged: null, unstaged: 'modified' },
     { path: 'docs/Architecture.md', origPath: null, staged: null, unstaged: 'untracked' },
@@ -163,14 +182,86 @@ export const demoStatus: StatusSummary = {
 };
 
 export const demoBranches: BranchInfo[] = [
-  { name: 'main', isHead: true, isRemote: false, upstream: 'origin/main', ahead: 2, behind: 0, targetOid: ALL_COMMITS[0].oid, targetTime: ALL_COMMITS[0].author.time },
-  { name: 'develop', isHead: false, isRemote: false, upstream: 'origin/develop', ahead: 0, behind: 0, targetOid: ALL_COMMITS[20].oid, targetTime: ALL_COMMITS[20].author.time },
-  { name: 'feature/diff-viewer', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[7].oid, targetTime: ALL_COMMITS[7].author.time },
-  { name: 'fix/stash-race', isHead: false, isRemote: false, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[12].oid, targetTime: ALL_COMMITS[12].author.time },
-  { name: 'old-feature', isHead: false, isRemote: false, upstream: 'origin/old-feature', ahead: 0, behind: 0, targetOid: ALL_COMMITS[30].oid, targetTime: ALL_COMMITS[30].author.time },
-  { name: 'wip-old', isHead: false, isRemote: false, upstream: 'origin/wip-old', ahead: 2, behind: 0, targetOid: ALL_COMMITS[32].oid, targetTime: ALL_COMMITS[32].author.time },
-  { name: 'origin/main', isHead: false, isRemote: true, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[2].oid, targetTime: ALL_COMMITS[2].author.time },
-  { name: 'origin/develop', isHead: false, isRemote: true, upstream: null, ahead: 0, behind: 0, targetOid: ALL_COMMITS[20].oid, targetTime: ALL_COMMITS[20].author.time },
+  {
+    name: 'main',
+    isHead: true,
+    isRemote: false,
+    upstream: 'origin/main',
+    ahead: 2,
+    behind: 0,
+    targetOid: ALL_COMMITS[0].oid,
+    targetTime: ALL_COMMITS[0].author.time,
+  },
+  {
+    name: 'develop',
+    isHead: false,
+    isRemote: false,
+    upstream: 'origin/develop',
+    ahead: 0,
+    behind: 0,
+    targetOid: ALL_COMMITS[20].oid,
+    targetTime: ALL_COMMITS[20].author.time,
+  },
+  {
+    name: 'feature/diff-viewer',
+    isHead: false,
+    isRemote: false,
+    upstream: null,
+    ahead: 0,
+    behind: 0,
+    targetOid: ALL_COMMITS[7].oid,
+    targetTime: ALL_COMMITS[7].author.time,
+  },
+  {
+    name: 'fix/stash-race',
+    isHead: false,
+    isRemote: false,
+    upstream: null,
+    ahead: 0,
+    behind: 0,
+    targetOid: ALL_COMMITS[12].oid,
+    targetTime: ALL_COMMITS[12].author.time,
+  },
+  {
+    name: 'old-feature',
+    isHead: false,
+    isRemote: false,
+    upstream: 'origin/old-feature',
+    ahead: 0,
+    behind: 0,
+    targetOid: ALL_COMMITS[30].oid,
+    targetTime: ALL_COMMITS[30].author.time,
+  },
+  {
+    name: 'wip-old',
+    isHead: false,
+    isRemote: false,
+    upstream: 'origin/wip-old',
+    ahead: 2,
+    behind: 0,
+    targetOid: ALL_COMMITS[32].oid,
+    targetTime: ALL_COMMITS[32].author.time,
+  },
+  {
+    name: 'origin/main',
+    isHead: false,
+    isRemote: true,
+    upstream: null,
+    ahead: 0,
+    behind: 0,
+    targetOid: ALL_COMMITS[2].oid,
+    targetTime: ALL_COMMITS[2].author.time,
+  },
+  {
+    name: 'origin/develop',
+    isHead: false,
+    isRemote: true,
+    upstream: null,
+    ahead: 0,
+    behind: 0,
+    targetOid: ALL_COMMITS[20].oid,
+    targetTime: ALL_COMMITS[20].author.time,
+  },
 ];
 
 export const demoTags: TagInfo[] = [
@@ -240,18 +331,63 @@ export const demoFileDiff: FileDiff = {
       newLines: 12,
       lines: [
         { kind: 'context', oldLineNo: 1, newLineNo: 1, content: "import { memo } from 'react';" },
-        { kind: 'deletion', oldLineNo: 2, newLineNo: null, content: "import { ROW_HEIGHT } from './constants';" },
-        { kind: 'addition', oldLineNo: null, newLineNo: 2, content: "import { useVirtualizer } from '@tanstack/react-virtual';" },
-        { kind: 'addition', oldLineNo: null, newLineNo: 3, content: "import { ROW_HEIGHT, OVERSCAN } from './constants';" },
-        { kind: 'context', oldLineNo: 3, newLineNo: 4, content: "import { useGraphRows } from './store';" },
-        { kind: 'context', oldLineNo: 4, newLineNo: 5, content: "import { GraphRow } from './GraphRow';" },
+        {
+          kind: 'deletion',
+          oldLineNo: 2,
+          newLineNo: null,
+          content: "import { ROW_HEIGHT } from './constants';",
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 2,
+          content: "import { useVirtualizer } from '@tanstack/react-virtual';",
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 3,
+          content: "import { ROW_HEIGHT, OVERSCAN } from './constants';",
+        },
+        {
+          kind: 'context',
+          oldLineNo: 3,
+          newLineNo: 4,
+          content: "import { useGraphRows } from './store';",
+        },
+        {
+          kind: 'context',
+          oldLineNo: 4,
+          newLineNo: 5,
+          content: "import { GraphRow } from './GraphRow';",
+        },
         { kind: 'context', oldLineNo: 5, newLineNo: 6, content: '' },
-        { kind: 'deletion', oldLineNo: 6, newLineNo: null, content: 'const renderRow = (row: Row) => <GraphRow key={row.oid} row={row} />;' },
+        {
+          kind: 'deletion',
+          oldLineNo: 6,
+          newLineNo: null,
+          content: 'const renderRow = (row: Row) => <GraphRow key={row.oid} row={row} />;',
+        },
         { kind: 'addition', oldLineNo: null, newLineNo: 7, content: '/**' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 8, content: ' * Virtualized rows keep large graphs smooth for every export and import.' },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 8,
+          content: ' * Virtualized rows keep large graphs smooth for every export and import.',
+        },
         { kind: 'addition', oldLineNo: null, newLineNo: 9, content: ' */' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 10, content: 'const renderRow = (item: VirtualItem, row: Row) => (' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 11, content: '  <GraphRow key={row.oid} row={row} start={item.start} />' },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 10,
+          content: 'const renderRow = (item: VirtualItem, row: Row) => (',
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 11,
+          content: '  <GraphRow key={row.oid} row={row} start={item.start} />',
+        },
         { kind: 'addition', oldLineNo: null, newLineNo: 12, content: ');' },
       ],
     },
@@ -263,17 +399,43 @@ export const demoFileDiff: FileDiff = {
       newLines: 12,
       lines: [
         { kind: 'context', oldLineNo: 24, newLineNo: 25, content: 'const rows = useGraphRows();' },
-        { kind: 'deletion', oldLineNo: 25, newLineNo: null, content: 'const height = rows.length * ROW_HEIGHT;' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 26, content: 'const virtualizer = useVirtualizer({' },
+        {
+          kind: 'deletion',
+          oldLineNo: 25,
+          newLineNo: null,
+          content: 'const height = rows.length * ROW_HEIGHT;',
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 26,
+          content: 'const virtualizer = useVirtualizer({',
+        },
         { kind: 'addition', oldLineNo: null, newLineNo: 27, content: '  count: rows.length,' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 28, content: '  estimateSize: () => ROW_HEIGHT,' },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 28,
+          content: '  estimateSize: () => ROW_HEIGHT,',
+        },
         { kind: 'addition', oldLineNo: null, newLineNo: 29, content: '  overscan: OVERSCAN,' },
         { kind: 'addition', oldLineNo: null, newLineNo: 30, content: '});' },
         { kind: 'context', oldLineNo: 26, newLineNo: 31, content: 'return (' },
         { kind: 'deletion', oldLineNo: 27, newLineNo: null, content: '  <div style={{ height }}>' },
         { kind: 'deletion', oldLineNo: 28, newLineNo: null, content: '    {rows.map(renderRow)}' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 32, content: '  <div style={{ height: virtualizer.getTotalSize() }}>' },
-        { kind: 'addition', oldLineNo: null, newLineNo: 33, content: '    {virtualizer.getVirtualItems().map((item) => renderRow(item, rows[item.index]))}' },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 32,
+          content: '  <div style={{ height: virtualizer.getTotalSize() }}>',
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 33,
+          content:
+            '    {virtualizer.getVirtualItems().map((item) => renderRow(item, rows[item.index]))}',
+        },
         { kind: 'context', oldLineNo: 29, newLineNo: 34, content: '  </div>' },
       ],
     },
@@ -284,13 +446,48 @@ export const demoFileDiff: FileDiff = {
       newStart: 47,
       newLines: 10,
       lines: [
-        { kind: 'context', oldLineNo: 41, newLineNo: 47, content: 'export function useGraphKeyboardNav(rows: Row[]) {' },
-        { kind: 'context', oldLineNo: 42, newLineNo: 48, content: '  const select = useGraphStore((s) => s.select);' },
-        { kind: 'deletion', oldLineNo: 43, newLineNo: null, content: "  useShortcut('ArrowDown', () => select(next()));" },
-        { kind: 'addition', oldLineNo: null, newLineNo: 49, content: "  useShortcut('ArrowDown', () => select(clamp(next(), rows.length - 1)));" },
-        { kind: 'addition', oldLineNo: null, newLineNo: 50, content: "  useShortcut('ArrowUp', () => select(clamp(prev(), 0)));" },
-        { kind: 'addition', oldLineNo: null, newLineNo: 51, content: "  useShortcut('Home', () => select(0));" },
-        { kind: 'addition', oldLineNo: null, newLineNo: 52, content: "  useShortcut('End', () => select(rows.length - 1));" },
+        {
+          kind: 'context',
+          oldLineNo: 41,
+          newLineNo: 47,
+          content: 'export function useGraphKeyboardNav(rows: Row[]) {',
+        },
+        {
+          kind: 'context',
+          oldLineNo: 42,
+          newLineNo: 48,
+          content: '  const select = useGraphStore((s) => s.select);',
+        },
+        {
+          kind: 'deletion',
+          oldLineNo: 43,
+          newLineNo: null,
+          content: "  useShortcut('ArrowDown', () => select(next()));",
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 49,
+          content: "  useShortcut('ArrowDown', () => select(clamp(next(), rows.length - 1)));",
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 50,
+          content: "  useShortcut('ArrowUp', () => select(clamp(prev(), 0)));",
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 51,
+          content: "  useShortcut('Home', () => select(0));",
+        },
+        {
+          kind: 'addition',
+          oldLineNo: null,
+          newLineNo: 52,
+          content: "  useShortcut('End', () => select(rows.length - 1));",
+        },
         { kind: 'context', oldLineNo: 44, newLineNo: 53, content: '}' },
       ],
     },
@@ -377,10 +574,42 @@ export function demoCommitDiff(): FileDiff[] {
 
 export function demoCommitFiles(): CommitFileInfo[] {
   const extra: CommitFileInfo[] = [
-    { path: 'src/features/graph/GraphRow.tsx', oldPath: null, status: 'modified', isBinary: false, isImage: false, additions: 12, deletions: 4 },
-    { path: 'src/features/graph/store.ts', oldPath: null, status: 'modified', isBinary: false, isImage: false, additions: 3, deletions: 1 },
-    { path: 'docs/Architecture.md', oldPath: null, status: 'modified', isBinary: false, isImage: false, additions: 9, deletions: 0 },
-    { path: 'tests/unit/graphLayout.test.ts', oldPath: null, status: 'new', isBinary: false, isImage: false, additions: 40, deletions: 0 },
+    {
+      path: 'src/features/graph/GraphRow.tsx',
+      oldPath: null,
+      status: 'modified',
+      isBinary: false,
+      isImage: false,
+      additions: 12,
+      deletions: 4,
+    },
+    {
+      path: 'src/features/graph/store.ts',
+      oldPath: null,
+      status: 'modified',
+      isBinary: false,
+      isImage: false,
+      additions: 3,
+      deletions: 1,
+    },
+    {
+      path: 'docs/Architecture.md',
+      oldPath: null,
+      status: 'modified',
+      isBinary: false,
+      isImage: false,
+      additions: 9,
+      deletions: 0,
+    },
+    {
+      path: 'tests/unit/graphLayout.test.ts',
+      oldPath: null,
+      status: 'new',
+      isBinary: false,
+      isImage: false,
+      additions: 40,
+      deletions: 0,
+    },
   ];
   return [
     ...demoCommitDiff().map((diff) => ({
@@ -490,11 +719,22 @@ const demoPull = (
 export function demoForgeResponse(request: HttpRequest): HttpResponse {
   const url = request.url;
   if (request.method === 'POST' && url.includes('/pulls')) {
-    const payload = JSON.parse(request.body ?? '{}') as { title?: string; head?: string; draft?: boolean };
+    const payload = JSON.parse(request.body ?? '{}') as {
+      title?: string;
+      head?: string;
+      draft?: boolean;
+    };
     return {
       status: 201,
       body: JSON.stringify(
-        demoPull(99, payload.title ?? 'New pull request', payload.head ?? 'feature/demo', 'demo-user', payload.draft === true, false),
+        demoPull(
+          99,
+          payload.title ?? 'New pull request',
+          payload.head ?? 'feature/demo',
+          'demo-user',
+          payload.draft === true,
+          false,
+        ),
       ),
     };
   }
@@ -512,7 +752,14 @@ export function demoForgeResponse(request: HttpRequest): HttpResponse {
     return {
       status: 200,
       body: JSON.stringify([
-        demoPull(12, 'feat(diff): side-by-side word diff polish', 'feature/diff-viewer', 'dara', false, false),
+        demoPull(
+          12,
+          'feat(diff): side-by-side word diff polish',
+          'feature/diff-viewer',
+          'dara',
+          false,
+          false,
+        ),
         demoPull(11, 'fix(stash): apply race on fast repos', 'fix/stash-race', 'maly', true, false),
         demoPull(9, 'docs: translate first-launch guide', 'docs/khmer-guide', 'sokha', false, true),
       ]),

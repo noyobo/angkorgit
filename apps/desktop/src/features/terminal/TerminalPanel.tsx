@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
 import { Button, Hint } from '@angkorgit/design-system';
-import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { Terminal } from '@xterm/xterm';
+import { X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import '@xterm/xterm/css/xterm.css';
 import { ipc, isTauri, listen } from '@/core/ipc';
 import { useRepo } from '@/features/repository/store';
@@ -134,10 +134,20 @@ export function TerminalPanel() {
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex h-7 shrink-0 items-center border-b border-border-subtle px-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Terminal</span>
-        <span className="ml-2 min-w-0 flex-1 truncate font-mono text-[10px] text-faint">{repoPath}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+          Terminal
+        </span>
+        <span className="ml-2 min-w-0 flex-1 truncate font-mono text-[10px] text-faint">
+          {repoPath}
+        </span>
         <Hint label="Close terminal">
-          <Button variant="ghost" size="icon-sm" className="ml-auto shrink-0" aria-label="Close terminal" onClick={toggleTerminal}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="ml-auto shrink-0"
+            aria-label="Close terminal"
+            onClick={toggleTerminal}
+          >
             <X className="size-3" />
           </Button>
         </Hint>

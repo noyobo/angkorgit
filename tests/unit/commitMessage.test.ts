@@ -10,7 +10,10 @@ describe('splitCommitMessage', () => {
   });
 
   it('treats a second line without a blank line as body', () => {
-    expect(splitCommitMessage('summary\nbody line')).toEqual({ summary: 'summary', body: 'body line' });
+    expect(splitCommitMessage('summary\nbody line')).toEqual({
+      summary: 'summary',
+      body: 'body line',
+    });
   });
 
   it('keeps a single line as summary only', () => {

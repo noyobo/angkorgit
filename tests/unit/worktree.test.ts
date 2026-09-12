@@ -3,7 +3,9 @@ import { parentDirectory, suggestWorktreePath, worktreeFolderName } from '@angko
 
 describe('worktreeFolderName', () => {
   it('joins the repository name with a slug of the branch', () => {
-    expect(worktreeFolderName('angkorgit', 'feature/diff-viewer')).toBe('angkorgit-feature-diff-viewer');
+    expect(worktreeFolderName('angkorgit', 'feature/diff-viewer')).toBe(
+      'angkorgit-feature-diff-viewer',
+    );
   });
 
   it('strips refs/heads and collapses unsafe characters', () => {

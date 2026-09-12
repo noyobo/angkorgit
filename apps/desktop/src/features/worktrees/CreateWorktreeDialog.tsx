@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { FolderOpen, FolderTree } from 'lucide-react';
+import { parentDirectory, suggestWorktreePath } from '@angkorgit/core';
 import {
   Button,
   Checkbox,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,14 +19,15 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-  cn,
 } from '@angkorgit/design-system';
-import { parentDirectory, suggestWorktreePath } from '@angkorgit/core';
+import { FolderOpen, FolderTree } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { ipc, pickDirectory } from '@/core/ipc';
-import { useRepo } from '@/features/repository/store';
 import { useGraph } from '@/features/graph/store';
+import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
-import { useUi, type CreateWorktreePreset } from '@/features/ui/store';
+import { type CreateWorktreePreset, useUi } from '@/features/ui/store';
 import { basename } from '@/shared/utils';
 
 type Mode = 'existing' | 'new';
@@ -86,7 +86,7 @@ export function CreateWorktreeDialog() {
 
   const baseOid = preset?.oid ?? null;
   const baseSummary = useMemo(
-    () => (baseOid ? graphCommits.find((c) => c.oid === baseOid)?.summary ?? null : null),
+    () => (baseOid ? (graphCommits.find((c) => c.oid === baseOid)?.summary ?? null) : null),
     [baseOid, graphCommits],
   );
 
@@ -107,7 +107,17 @@ export function CreateWorktreeDialog() {
 
   const branch = mode === 'existing' ? existingBranch : newBranch.trim();
   const effectiveBranch =
-    mode === 'existing' ? existingBranch.split('/').slice(existingBranch.includes('/') && branches.find((b) => b.name === existingBranch)?.isRemote ? 1 : 0).join('/') : branch;
+    mode === 'existing'
+      ? existingBranch
+          .split('/')
+          .slice(
+            existingBranch.includes('/') &&
+              branches.find((b) => b.name === existingBranch)?.isRemote
+              ? 1
+              : 0,
+          )
+          .join('/')
+      : branch;
 
   useEffect(() => {
     if (!open || directoryTouched.current) return;
@@ -153,7 +163,7 @@ export function CreateWorktreeDialog() {
 
   const baseLabel = baseOid
     ? `${baseOid.slice(0, 8)}${baseSummary ? ` · ${baseSummary}` : ''}`
-    : repo?.headBranch ?? 'the current HEAD';
+    : (repo?.headBranch ?? 'the current HEAD');
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && closeDialog()}>
@@ -164,8 +174,8 @@ export function CreateWorktreeDialog() {
             New worktree
           </DialogTitle>
           <DialogDescription>
-            A second folder for this repository with its own checked-out branch. Work on two
-            things at once without stashing, and keep every commit in the same history.
+            A second folder for this repository with its own checked-out branch. Work on two things
+            at once without stashing, and keep every commit in the same history.
           </DialogDescription>
         </DialogHeader>
 
@@ -216,7 +226,8 @@ export function CreateWorktreeDialog() {
                 </SelectContent>
               </Select>
               <span className="text-[11px] text-faint">
-                Branches already open in a worktree are not listed; git allows one folder per branch.
+                Branches already open in a worktree are not listed; git allows one folder per
+                branch.
               </span>
             </label>
           )}
@@ -236,7 +247,12 @@ export function CreateWorktreeDialog() {
                 placeholder="/path/to/new-folder"
                 className="font-mono"
               />
-              <Button variant="secondary" size="icon" aria-label="Browse for a parent folder" onClick={() => void browse()}>
+              <Button
+                variant="secondary"
+                size="icon"
+                aria-label="Browse for a parent folder"
+                onClick={() => void browse()}
+              >
                 <FolderOpen />
               </Button>
             </div>
@@ -255,7 +271,11 @@ export function CreateWorktreeDialog() {
           <Button variant="ghost" onClick={closeDialog}>
             Cancel
           </Button>
-          <Button disabled={!canSubmit} onClick={() => void submit()} className={cn(busy && 'gap-2')}>
+          <Button
+            disabled={!canSubmit}
+            onClick={() => void submit()}
+            className={cn(busy && 'gap-2')}
+          >
             {busy ? <Spinner className="text-primary-foreground" /> : null}
             Create worktree
           </Button>

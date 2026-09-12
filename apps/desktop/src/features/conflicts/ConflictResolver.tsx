@@ -1,8 +1,13 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Panel, Group, Separator } from 'react-resizable-panels';
-import { basename, dirname, modKey } from '@/shared/utils';
+import {
+  aiCapabilities,
+  type Block,
+  type ConflictBlock,
+  parseConflicts,
+  type RepoState,
+  serializeResolution,
+} from '@angkorgit/core';
+import { Badge, Button, Checkbox, cn, Hint, Kbd, Logo, Spinner } from '@angkorgit/design-system';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
   Check,
@@ -17,22 +22,17 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import {
-  aiCapabilities,
-  parseConflicts,
-  serializeResolution,
-  type Block,
-  type ConflictBlock,
-  type RepoState,
-} from '@angkorgit/core';
-import { Badge, Button, Checkbox, Hint, Kbd, Logo, Spinner, cn } from '@angkorgit/design-system';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Group, Panel, Separator } from 'react-resizable-panels';
+import { toast } from 'sonner';
+import { confirmDialog } from '@/components/confirm';
 import { ipc } from '@/core/ipc';
+import { AiText } from '@/features/ai/AiText';
+import { aiConfigured, getAiProvider } from '@/features/ai/client';
 import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
 import { useUi } from '@/features/ui/store';
-import { aiConfigured, getAiProvider } from '@/features/ai/client';
-import { AiText } from '@/features/ai/AiText';
-import { confirmDialog } from '@/components/confirm';
+import { basename, dirname, modKey } from '@/shared/utils';
 
 type Side = 'current' | 'incoming';
 
@@ -59,7 +59,15 @@ interface SideStart {
 type OutputRow =
   | { kind: 'text'; text: string; key: string; lineNo: number }
   | { kind: 'unresolved'; block: number; text: string; first: boolean; key: string; lineNo: number }
-  | { kind: 'pick'; side: Side; text: string; block: number; first: boolean; key: string; lineNo: number }
+  | {
+      kind: 'pick';
+      side: Side;
+      text: string;
+      block: number;
+      first: boolean;
+      key: string;
+      lineNo: number;
+    }
   | { kind: 'edited'; text: string; block: number; first: boolean; key: string; lineNo: number }
   | { kind: 'deleted'; block: number; side: Side | null; key: string }
   | { kind: 'editor'; block: number; key: string };
@@ -89,7 +97,9 @@ function editSaveLines(edit: string, crlf: boolean): string[] {
 }
 
 function normalizePicks(picks: Pick[]): Pick[] {
-  return [...picks].sort((x, y) => (x.side === y.side ? x.line - y.line : x.side === 'current' ? -1 : 1));
+  return [...picks].sort((x, y) =>
+    x.side === y.side ? x.line - y.line : x.side === 'current' ? -1 : 1,
+  );
 }
 
 function buildPaneRows(blocks: Block[] | null): {
@@ -182,7 +192,13 @@ function finishHint(state: RepoState | undefined): string {
   }
 }
 
-export function ConflictResolver({ file, onResolved }: { file: string; onResolved: () => Promise<void> }) {
+export function ConflictResolver({
+  file,
+  onResolved,
+}: {
+  file: string;
+  onResolved: () => Promise<void>;
+}) {
   const repo = useRepo((s) => s.repo);
   const conflicts = useRepo((s) => s.conflicts);
   const openConflict = useUi((s) => s.openConflict);
@@ -281,7 +297,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     blocks.forEach((block, index) => {
       const start = outputStarts.get(index) ?? 1;
       if (block.kind === 'text') {
-        block.lines.forEach((text, li) => rows.push({ kind: 'text', text, key: `t${index}:${li}`, lineNo: start + li }));
+        block.lines.forEach((text, li) =>
+          rows.push({ kind: 'text', text, key: `t${index}:${li}`, lineNo: start + li }),
+        );
         return;
       }
       blockRow.set(index, rows.length);
@@ -295,23 +313,40 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           rows.push({ kind: 'deleted', block: index, side: null, key: `d${index}` });
           return;
         }
-        edit
-          .split('\n')
-          .forEach((text, li) =>
-            rows.push({ kind: 'edited', text, block: index, first: li === 0, key: `e${index}:${li}`, lineNo: start + li }),
-          );
+        edit.split('\n').forEach((text, li) =>
+          rows.push({
+            kind: 'edited',
+            text,
+            block: index,
+            first: li === 0,
+            key: `e${index}:${li}`,
+            lineNo: start + li,
+          }),
+        );
         return;
       }
       const blockPicks = picks.get(index) ?? [];
       if (blockPicks.length === 0) {
         unresolvedPreview(block).forEach((text, li) =>
-          rows.push({ kind: 'unresolved', block: index, text, first: li === 0, key: `u${index}:${li}`, lineNo: start + li }),
+          rows.push({
+            kind: 'unresolved',
+            block: index,
+            text,
+            first: li === 0,
+            key: `u${index}:${li}`,
+            lineNo: start + li,
+          }),
         );
         return;
       }
       const kept = blockPicks.filter((p) => p.line !== EMPTY_SIDE);
       if (kept.length === 0) {
-        rows.push({ kind: 'deleted', block: index, side: blockPicks[0]?.side ?? null, key: `d${index}` });
+        rows.push({
+          kind: 'deleted',
+          block: index,
+          side: blockPicks[0]?.side ?? null,
+          key: `d${index}`,
+        });
         return;
       }
       kept.forEach((p, pi) =>
@@ -353,7 +388,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   });
   const total = conflictIndices.length;
   const resolvedCount = useMemo(
-    () => conflictIndices.filter((i) => (picks.get(i)?.length ?? 0) > 0 || blockEdits.has(i)).length,
+    () =>
+      conflictIndices.filter((i) => (picks.get(i)?.length ?? 0) > 0 || blockEdits.has(i)).length,
     [conflictIndices, picks, blockEdits],
   );
   const hasProgress = manualText !== null || blockEdits.size > 0 || resolvedCount > 0;
@@ -377,7 +413,10 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
       const edit = blockEdits.get(i);
       const blockPicks = picks.get(i) ?? [];
       if (edit === undefined && blockPicks.length === 0) return b;
-      manualEdits.set(i, edit !== undefined ? editSaveLines(edit, blockUsesCrlf(b)) : pickedLines(b, blockPicks));
+      manualEdits.set(
+        i,
+        edit !== undefined ? editSaveLines(edit, blockUsesCrlf(b)) : pickedLines(b, blockPicks),
+      );
       return { ...b, resolution: 'manual' as const };
     });
     return serializeResolution(resolved, manualEdits);
@@ -395,7 +434,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
 
   const guardEdits = async (blockIndex?: number): Promise<boolean> => {
     const replaceManual = manualText !== null;
-    const replaceBlocks = blockIndex === undefined ? blockEdits.size > 0 : blockEdits.has(blockIndex);
+    const replaceBlocks =
+      blockIndex === undefined ? blockEdits.size > 0 : blockEdits.has(blockIndex);
     if (!replaceManual && !replaceBlocks) return true;
     const ok = await confirmDialog({
       title: 'Replace hand edits?',
@@ -425,7 +465,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     if (!hasProgress) return true;
     return confirmDialog({
       title: 'Leave this file unresolved?',
-      description: 'Nothing is written until you mark the file resolved. The lines you picked and edited here will be lost.',
+      description:
+        'Nothing is written until you mark the file resolved. The lines you picked and edited here will be lost.',
       path: file,
       confirmLabel: 'Leave',
       destructive: true,
@@ -481,7 +522,11 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     total > 0 && conflictIndices.every((i) => sideFullyPicked(i, side));
 
   const blockState = (index: number): BlockState =>
-    blockEdits.has(index) ? 'edited' : (picks.get(index)?.length ?? 0) > 0 ? 'resolved' : 'unresolved';
+    blockEdits.has(index)
+      ? 'edited'
+      : (picks.get(index)?.length ?? 0) > 0
+        ? 'resolved'
+        : 'unresolved';
 
   const toggleBlockSide = async (index: number, side: Side) => {
     if (!blocks || !(await guardEdits(index))) return;
@@ -603,7 +648,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     else blockRefs.current.delete(index);
   };
 
-  const scrollBehavior = () => (useSettings.getState().reduceMotion ? 'auto' : 'smooth') as ScrollBehavior;
+  const scrollBehavior = () =>
+    (useSettings.getState().reduceMotion ? 'auto' : 'smooth') as ScrollBehavior;
 
   const scrollOutputToBlock = (block: number) => {
     if (manualText !== null) return;
@@ -611,7 +657,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
       const row = outputModel.blockRow.get(block);
       if (row !== undefined) outputVirtualizer.scrollToIndex(row, { align: 'center' });
     } else {
-      outputBlockRefs.current.get(block)?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+      outputBlockRefs.current
+        .get(block)
+        ?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
     }
   };
 
@@ -619,7 +667,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     if (virtualized) {
       topVirtualizer.scrollToIndex(paneModel.blockStart.get(blockIndex) ?? 0, { align: 'center' });
     } else {
-      blockRefs.current.get(blockIndex)?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+      blockRefs.current
+        .get(blockIndex)
+        ?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
     }
   };
 
@@ -662,7 +712,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
       if (stillRunning()) setAiText(text);
     } catch (error) {
       if (stillRunning()) {
-        toast.error(`AI request failed: ${(error as { message?: string } | null)?.message ?? String(error)}`);
+        toast.error(
+          `AI request failed: ${(error as { message?: string } | null)?.message ?? String(error)}`,
+        );
       }
     } finally {
       if (stillRunning()) setAiBusy(false);
@@ -680,7 +732,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     try {
       const list = useRepo.getState().conflicts;
       const at = list.indexOf(file);
-      const remaining = [...list.slice(at + 1), ...list.slice(0, Math.max(at, 0))].filter((f) => f !== file);
+      const remaining = [...list.slice(at + 1), ...list.slice(0, Math.max(at, 0))].filter(
+        (f) => f !== file,
+      );
       await ipc.conflictResolve(path, file, manualText ?? buildResult());
       if (remaining.length > 0) {
         toast.success(`${basename(file)} resolved`, {
@@ -704,7 +758,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const mod = e.metaKey || e.ctrlKey;
     const target = e.target as HTMLElement;
-    const editable = target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.isContentEditable;
+    const editable =
+      target.tagName === 'TEXTAREA' || target.tagName === 'INPUT' || target.isContentEditable;
     if (mod && e.key === 'Enter') {
       e.preventDefault();
       e.stopPropagation();
@@ -778,7 +833,12 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
         </span>
       ) : (
         <span className="flex w-4 shrink-0 justify-center pt-1.5">
-          <span className={cn('h-2.5 w-0.5 rounded-full', side === 'current' ? 'bg-info' : 'bg-success')} />
+          <span
+            className={cn(
+              'h-2.5 w-0.5 rounded-full',
+              side === 'current' ? 'bg-info' : 'bg-success',
+            )}
+          />
         </span>
       )}
       <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words font-mono text-xs italic leading-5 text-faint">
@@ -922,7 +982,12 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           >
             <LineNo n={row.lineNo} />
             <span className="flex w-4 shrink-0 justify-center pt-1.5">
-              <span className={cn('h-2.5 w-0.5 rounded-full', row.side === 'current' ? 'bg-info' : 'bg-success')} />
+              <span
+                className={cn(
+                  'h-2.5 w-0.5 rounded-full',
+                  row.side === 'current' ? 'bg-info' : 'bg-success',
+                )}
+              />
             </span>
             <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words font-mono text-xs leading-5">
               {row.text || ' '}
@@ -983,7 +1048,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
   const renderSideLine = (block: ConflictBlock, index: number, side: Side, li: number) => {
     const lines = side === 'current' ? block.current : block.incoming;
     const paneCls =
-      side === 'current' ? 'border-l-2 border-r border-border-subtle border-l-info/60' : 'border-l-2 border-l-success/60';
+      side === 'current'
+        ? 'border-l-2 border-r border-border-subtle border-l-info/60'
+        : 'border-l-2 border-l-success/60';
     const start = paneModel.lineStart.get(index);
     const first = start ? (side === 'current' ? start.a : start.b) : null;
     if (lines.length === 0) {
@@ -996,7 +1063,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                 onCheckedChange={() => void toggleLine(index, side, EMPTY_SIDE)}
                 aria-label={`Take empty ${side} side (deletes this section)`}
               />
-              <span className="font-mono text-xs italic leading-5 text-faint">(no lines — deletes this section)</span>
+              <span className="font-mono text-xs italic leading-5 text-faint">
+                (no lines — deletes this section)
+              </span>
             </label>
           )}
         </div>
@@ -1059,7 +1128,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
         <div
           className={cn(
             'relative border-x border-t',
-            active ? 'border-x-primary/50 border-t-primary/50' : 'border-x-transparent border-t-border-subtle',
+            active
+              ? 'border-x-primary/50 border-t-primary/50'
+              : 'border-x-transparent border-t-border-subtle',
           )}
         >
           <div className="flex items-center gap-2 bg-surface-raised/40 px-3 py-1 pr-8">
@@ -1073,7 +1144,11 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                   state === 'edited' ? 'text-primary' : 'text-success',
                 )}
               >
-                {state === 'edited' ? <Pencil className="size-2.5" /> : <Check className="size-3" />}
+                {state === 'edited' ? (
+                  <Pencil className="size-2.5" />
+                ) : (
+                  <Check className="size-3" />
+                )}
                 {state === 'edited' ? 'edited by hand' : 'resolved'}
               </span>
             )}
@@ -1113,7 +1188,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
     );
   };
 
-  const paneRowKey = (row: PaneRow) => (row.kind === 'header' ? `h${row.block}` : `${row.kind[0]}${row.block}:${row.li}`);
+  const paneRowKey = (row: PaneRow) =>
+    row.kind === 'header' ? `h${row.block}` : `${row.kind[0]}${row.block}:${row.li}`;
 
   const resultStatus =
     total === 0
@@ -1140,10 +1216,18 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           <GitMerge className="size-4" />
         </span>
         <div className="min-w-0 leading-tight">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">Resolve conflicts</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-faint">
+            Resolve conflicts
+          </p>
           <p className="flex min-w-0 items-baseline gap-1.5 text-sm">
-            <span className="max-w-full shrink-0 truncate font-semibold text-foreground">{basename(file)}</span>
-            {dirname(file) && <span className="min-w-0 truncate font-mono text-[11px] text-faint">{dirname(file)}</span>}
+            <span className="max-w-full shrink-0 truncate font-semibold text-foreground">
+              {basename(file)}
+            </span>
+            {dirname(file) && (
+              <span className="min-w-0 truncate font-mono text-[11px] text-faint">
+                {dirname(file)}
+              </span>
+            )}
           </p>
         </div>
         {conflicts.length > 1 && fileIndex >= 0 && (
@@ -1176,7 +1260,10 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           </span>
         )}
         {total > 0 && (
-          <div className="flex shrink-0 items-center gap-2" aria-label={`${resolvedCount} of ${total} conflicts resolved`}>
+          <div
+            className="flex shrink-0 items-center gap-2"
+            aria-label={`${resolvedCount} of ${total} conflicts resolved`}
+          >
             <span className="h-1.5 w-28 overflow-hidden rounded-full bg-surface-raised">
               <span
                 className={cn(
@@ -1186,7 +1273,12 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                 style={{ width: `${Math.round((resolvedCount / total) * 100)}%` }}
               />
             </span>
-            <span className={cn('text-xs tabular-nums', resolvedCount === total ? 'text-success' : 'text-muted')}>
+            <span
+              className={cn(
+                'text-xs tabular-nums',
+                resolvedCount === total ? 'text-success' : 'text-muted',
+              )}
+            >
               {resolvedCount} of {total} resolved
             </span>
           </div>
@@ -1213,7 +1305,12 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
             </span>
           </Hint>
           <Hint label="Close">
-            <Button variant="ghost" size="icon" aria-label="Close" onClick={() => void requestClose()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Close"
+              onClick={() => void requestClose()}
+            >
               <X />
             </Button>
           </Hint>
@@ -1236,9 +1333,13 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                     aria-label="Take all lines from side A"
                   />
                   <Badge tone="info">A</Badge>
-                  <span className="min-w-0 flex-1 select-none truncate text-xs font-medium text-info">{aLabel}</span>
+                  <span className="min-w-0 flex-1 select-none truncate text-xs font-medium text-info">
+                    {aLabel}
+                  </span>
                   <Hint label={sideHint(repoState, 'current')}>
-                    <span className="shrink-0 cursor-help text-[10px] uppercase tracking-wide text-faint">current</span>
+                    <span className="shrink-0 cursor-help text-[10px] uppercase tracking-wide text-faint">
+                      current
+                    </span>
                   </Hint>
                 </label>
                 <label className="flex cursor-pointer items-center gap-2 border-t-2 border-t-success/60 px-3 py-1.5">
@@ -1248,14 +1349,22 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                     aria-label="Take all lines from side B"
                   />
                   <Badge tone="success">B</Badge>
-                  <span className="min-w-0 flex-1 select-none truncate text-xs font-medium text-success">{bLabel}</span>
+                  <span className="min-w-0 flex-1 select-none truncate text-xs font-medium text-success">
+                    {bLabel}
+                  </span>
                   <Hint label={sideHint(repoState, 'incoming')}>
-                    <span className="shrink-0 cursor-help text-[10px] uppercase tracking-wide text-faint">incoming</span>
+                    <span className="shrink-0 cursor-help text-[10px] uppercase tracking-wide text-faint">
+                      incoming
+                    </span>
                   </Hint>
                 </label>
               </div>
               {virtualized ? (
-                <div ref={topListRef} className="relative" style={{ height: topVirtualizer.getTotalSize() }}>
+                <div
+                  ref={topListRef}
+                  className="relative"
+                  style={{ height: topVirtualizer.getTotalSize() }}
+                >
                   {topVirtualizer.getVirtualItems().map((item) => (
                     <div
                       key={item.key}
@@ -1271,7 +1380,10 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
               ) : (
                 <div ref={topListRef}>
                   {paneModel.rows.map((row) => (
-                    <div key={paneRowKey(row)} ref={row.kind === 'header' ? registerBlock(row.block) : undefined}>
+                    <div
+                      key={paneRowKey(row)}
+                      ref={row.kind === 'header' ? registerBlock(row.block) : undefined}
+                    >
                       {renderPaneRow(row)}
                     </div>
                   ))}
@@ -1282,7 +1394,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
               <div className="absolute bottom-3 right-3 z-20 flex max-h-[60%] w-[min(480px,90%)] flex-col overflow-hidden rounded-md border border-primary/30 bg-surface-overlay shadow-soft">
                 <div className="flex shrink-0 items-center gap-2 border-b border-border-subtle px-3 py-1.5">
                   <Sparkles className="size-3.5 text-primary" />
-                  <span className="text-xs font-semibold">{aiBusy ? 'Explaining conflict…' : 'AI explanation'}</span>
+                  <span className="text-xs font-semibold">
+                    {aiBusy ? 'Explaining conflict…' : 'AI explanation'}
+                  </span>
                   <Hint label={aiBusy ? 'Stop explaining' : 'Dismiss'}>
                     <Button
                       variant="ghost"
@@ -1297,8 +1411,8 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
                 </div>
                 {aiBusy ? (
                   <div className="flex items-center gap-2 px-3 py-3 text-xs text-muted">
-                    <Logo size={16} animated="loop" className="logo-draw-loop shrink-0" /> Reading both sides of the
-                    conflict…
+                    <Logo size={16} animated="loop" className="logo-draw-loop shrink-0" /> Reading
+                    both sides of the conflict…
                   </div>
                 ) : (
                   <div className="overflow-y-auto px-3 py-2 text-xs leading-relaxed">
@@ -1313,7 +1427,9 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
           </Separator>
           <Panel defaultSize="40%" minSize="20%" className="relative flex flex-col">
             <div className="flex items-center gap-2 border-b border-border-subtle bg-surface px-3 py-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Result</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                Result
+              </span>
               {total > 0 && (
                 <span className="flex items-center gap-0.5 rounded-md border border-border-subtle bg-surface-raised/60 px-1">
                   <Hint label="Previous conflict (↑)">
@@ -1408,7 +1524,11 @@ export function ConflictResolver({ file, onResolved }: { file: string; onResolve
             ) : (
               <div ref={outputScrollRef} className="relative min-h-0 flex-1 overflow-y-auto py-1">
                 {virtualized ? (
-                  <div ref={outputListRef} className="relative" style={{ height: outputVirtualizer.getTotalSize() }}>
+                  <div
+                    ref={outputListRef}
+                    className="relative"
+                    style={{ height: outputVirtualizer.getTotalSize() }}
+                  >
                     {outputVirtualizer.getVirtualItems().map((item) => (
                       <div
                         key={item.key}

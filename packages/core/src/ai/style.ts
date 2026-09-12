@@ -37,7 +37,10 @@ export const DEFAULT_AI_STYLE: AiStyleConfig = {
 
 export const PROJECT_REVIEW_FILE = '.angkorgit/review.md';
 
-export const COMMIT_STYLE_PRESETS: Record<CommitStylePreset, { label: string; description: string }> = {
+export const COMMIT_STYLE_PRESETS: Record<
+  CommitStylePreset,
+  { label: string; description: string }
+> = {
   conventional: {
     label: 'Conventional commits',
     description: 'type(scope): summary — feat, fix, refactor…',
@@ -72,7 +75,10 @@ function expandPrefixTokens(prefix: string, branch: string): string | null {
     .replace(/\{ticket\}/g, () => ticket ?? '');
 }
 
-export function resolveCommitPrefix(rules: CommitPrefixRule[], branch: string | null): string | null {
+export function resolveCommitPrefix(
+  rules: CommitPrefixRule[],
+  branch: string | null,
+): string | null {
   if (!branch) return null;
   for (const rule of rules) {
     const pattern = rule.pattern.trim();

@@ -1,4 +1,3 @@
-import { create } from 'zustand';
 import type {
   BranchInfo,
   RecentRepository,
@@ -10,6 +9,7 @@ import type {
   TagInfo,
   WorktreeInfo,
 } from '@angkorgit/core';
+import { create } from 'zustand';
 import { ipc } from '@/core/ipc';
 
 interface RepoState {

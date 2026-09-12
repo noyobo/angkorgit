@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { FolderOpen } from 'lucide-react';
 import {
   Button,
   Dialog,
@@ -12,8 +9,11 @@ import {
   Input,
   Spinner,
 } from '@angkorgit/design-system';
+import { FolderOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { ipc, listen, pickDirectory } from '@/core/ipc';
-import { useUi, type ClonePreset, type DialogContext } from '@/features/ui/store';
+import { type ClonePreset, type DialogContext, useUi } from '@/features/ui/store';
 
 function clonePreset(ctx: DialogContext): ClonePreset | null {
   if (!ctx || typeof ctx === 'string' || !('url' in ctx) || !('into' in ctx)) return null;
@@ -58,7 +58,12 @@ export function CloneDialog({ onCloned }: { onCloned: (path: string) => void }) 
     if (progress !== null || !url.trim() || !into.trim()) return;
     setProgress(0);
     try {
-      const name = url.trim().replace(/\.git$/, '').split('/').pop() ?? 'repository';
+      const name =
+        url
+          .trim()
+          .replace(/\.git$/, '')
+          .split('/')
+          .pop() ?? 'repository';
       const target = `${into.replace(/\/$/, '')}/${name}`;
       const path = await ipc.cloneRepository(url.trim(), target, branch.trim() || null);
       toast.success('Repository cloned');
@@ -137,7 +142,10 @@ export function CloneDialog({ onCloned }: { onCloned: (path: string) => void }) 
           <Button variant="ghost" onClick={closeDialog}>
             Cancel
           </Button>
-          <Button onClick={() => void clone()} disabled={progress !== null || !url.trim() || !into.trim()}>
+          <Button
+            onClick={() => void clone()}
+            disabled={progress !== null || !url.trim() || !into.trim()}
+          >
             {progress !== null ? <Spinner className="text-primary-foreground" /> : null}
             Clone
           </Button>

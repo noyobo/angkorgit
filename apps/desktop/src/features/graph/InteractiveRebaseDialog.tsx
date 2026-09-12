@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { GripVertical } from 'lucide-react';
 import type { CommitInfo, RebaseTodoAction, RebaseTodoEntry } from '@angkorgit/core';
 import {
   Badge,
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,13 +17,15 @@ import {
   SelectValue,
   Spinner,
   Textarea,
-  cn,
 } from '@angkorgit/design-system';
+import { GripVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { ipc } from '@/core/ipc';
-import { useRepo } from '@/features/repository/store';
-import { useGraph } from './store';
-import { useUi, type DialogContext } from '@/features/ui/store';
 import { useUndo } from '@/features/history/undoStore';
+import { useRepo } from '@/features/repository/store';
+import { type DialogContext, useUi } from '@/features/ui/store';
+import { useGraph } from './store';
 
 const ACTIONS: RebaseTodoAction[] = ['pick', 'reword', 'squash', 'fixup', 'drop'];
 
@@ -92,7 +92,8 @@ export function InteractiveRebaseDialog() {
         const commits = await ipc.rebaseCommits(path, baseOid);
         if (!stillOpenFor(baseOid)) return;
         const context = useUi.getState().dialogContext;
-        const preset = typeof context === 'object' && context && 'baseOid' in context ? context : null;
+        const preset =
+          typeof context === 'object' && context && 'baseOid' in context ? context : null;
         const squashOids = new Set(preset?.squashOids ?? []);
         const dropOids = new Set(preset?.dropOids ?? []);
         const seenSquash = { current: false };
@@ -168,9 +169,7 @@ export function InteractiveRebaseDialog() {
       await useRepo.getState().refresh();
       await useGraph.getState().reload(path);
     } catch (error) {
-      toast.error(
-        `Interactive rebase failed: ${(error as { message?: string }).message ?? error}`,
-      );
+      toast.error(`Interactive rebase failed: ${(error as { message?: string }).message ?? error}`);
     } finally {
       setExecuting(false);
     }
@@ -182,8 +181,8 @@ export function InteractiveRebaseDialog() {
         <DialogHeader>
           <DialogTitle>Interactive rebase</DialogTitle>
           <DialogDescription>
-            Rewriting the commits above {baseOid.slice(0, 8)} — they apply top to bottom, so the
-            top row becomes the oldest rebased commit. Drag rows to reorder.
+            Rewriting the commits above {baseOid.slice(0, 8)} — they apply top to bottom, so the top
+            row becomes the oldest rebased commit. Drag rows to reorder.
           </DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -288,8 +287,8 @@ export function InteractiveRebaseDialog() {
         )}
         {invalidCombine && (
           <p className="mt-2 text-xs text-danger">
-            The first kept commit cannot be squash or fixup — there is no earlier commit to
-            combine it into.
+            The first kept commit cannot be squash or fixup — there is no earlier commit to combine
+            it into.
           </p>
         )}
         <DialogFooter>

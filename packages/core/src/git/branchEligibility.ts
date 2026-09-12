@@ -104,7 +104,9 @@ function classifyStaleLocals(input: StaleInput): EligibleBranch[] {
     });
   }
 
-  rows.sort((a, b) => Number(Boolean(a.skip)) - Number(Boolean(b.skip)) || a.name.localeCompare(b.name));
+  rows.sort(
+    (a, b) => Number(Boolean(a.skip)) - Number(Boolean(b.skip)) || a.name.localeCompare(b.name),
+  );
   return rows;
 }
 
@@ -153,7 +155,8 @@ export function remoteDeleteTarget(
 ): { remote: string; remoteName: string } | null {
   if (upstream) {
     const slash = upstream.indexOf('/');
-    if (slash > 0) return { remote: upstream.slice(0, slash), remoteName: upstream.slice(slash + 1) };
+    if (slash > 0)
+      return { remote: upstream.slice(0, slash), remoteName: upstream.slice(slash + 1) };
   }
   return firstRemote ? { remote: firstRemote, remoteName: name } : null;
 }

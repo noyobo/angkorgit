@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { sidebarToggle, workspaceView, type WorkspaceInput } from '../../apps/desktop/src/features/ui/workspace';
+import {
+  sidebarToggle,
+  type WorkspaceInput,
+  workspaceView,
+} from '../../apps/desktop/src/features/ui/workspace';
 
 const base: WorkspaceInput = {
   layout: 'standard',
@@ -29,7 +33,9 @@ describe('workspace view', () => {
   });
 
   it('docks the diff beside the graph in preview', () => {
-    expect(workspaceView({ ...base, layout: 'preview', centerDiff: { path: 'a.ts' } })).toMatchObject({
+    expect(
+      workspaceView({ ...base, layout: 'preview', centerDiff: { path: 'a.ts' } }),
+    ).toMatchObject({
       showSidebar: false,
       graphCovered: false,
       diffInCenter: false,
@@ -46,7 +52,9 @@ describe('workspace view', () => {
   });
 
   it('ignores sidebarOpen in preview', () => {
-    expect(workspaceView({ ...base, layout: 'preview', sidebarOpen: true }).showSidebar).toBe(false);
+    expect(workspaceView({ ...base, layout: 'preview', sidebarOpen: true }).showSidebar).toBe(
+      false,
+    );
   });
 
   it('covers the graph for the editor and file history in both layouts', () => {
@@ -65,7 +73,9 @@ describe('workspace view', () => {
 
 describe('sidebar toggle', () => {
   it('leaves preview and clears the diff so the sidebar can actually show', () => {
-    expect(sidebarToggle({ layout: 'preview', sidebarOpen: false, centerDiff: { path: 'a.ts' } })).toEqual({
+    expect(
+      sidebarToggle({ layout: 'preview', sidebarOpen: false, centerDiff: { path: 'a.ts' } }),
+    ).toEqual({
       layout: 'standard',
       sidebarOpen: true,
       centerDiff: null,
@@ -73,7 +83,9 @@ describe('sidebar toggle', () => {
   });
 
   it('closes an immersive diff and shows the sidebar', () => {
-    expect(sidebarToggle({ layout: 'standard', sidebarOpen: true, centerDiff: { path: 'a.ts' } })).toEqual({
+    expect(
+      sidebarToggle({ layout: 'standard', sidebarOpen: true, centerDiff: { path: 'a.ts' } }),
+    ).toEqual({
       centerDiff: null,
       sidebarOpen: true,
     });

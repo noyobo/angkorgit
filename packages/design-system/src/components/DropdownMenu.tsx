@@ -1,6 +1,6 @@
-import * as React from 'react';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight } from 'lucide-react';
+import * as React from 'react';
 import { cn } from '../lib/cn';
 
 export const DropdownMenu = Menu.Root;
@@ -83,7 +83,11 @@ export const DropdownMenuSeparator = React.forwardRef<
   React.ElementRef<typeof Menu.Separator>,
   React.ComponentPropsWithoutRef<typeof Menu.Separator>
 >(({ className, ...props }, ref) => (
-  <Menu.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-border-subtle', className)} {...props} />
+  <Menu.Separator
+    ref={ref}
+    className={cn('-mx-1 my-1 h-px bg-border-subtle', className)}
+    {...props}
+  />
 ));
 DropdownMenuSeparator.displayName = 'DropdownMenuSeparator';
 
@@ -122,6 +126,11 @@ export const DropdownMenuSubContent = React.forwardRef<
 ));
 DropdownMenuSubContent.displayName = 'DropdownMenuSubContent';
 
-export function DropdownMenuShortcut({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
-  return <span className={cn('ml-auto text-xs tracking-widest text-faint', className)} {...props} />;
+export function DropdownMenuShortcut({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span className={cn('ml-auto text-xs tracking-widest text-faint', className)} {...props} />
+  );
 }

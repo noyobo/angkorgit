@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, cn, Hint } from '@angkorgit/design-system';
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Folder } from 'lucide-react';
-import { Button, Hint, cn } from '@angkorgit/design-system';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface TreeFolder<T> {
   name: string;
@@ -84,7 +84,10 @@ function TreeLevel<T>({
             onClick={() => onToggle(child.path)}
           >
             <ChevronRight
-              className={cn('size-3 shrink-0 transition-transform', !collapsed.has(child.path) && 'rotate-90')}
+              className={cn(
+                'size-3 shrink-0 transition-transform',
+                !collapsed.has(child.path) && 'rotate-90',
+              )}
             />
             <Folder className="size-3 shrink-0" />
             <span className="min-w-0 flex-1 truncate text-left font-medium">{child.name}</span>
@@ -147,7 +150,11 @@ export function FileTreeFoldButton({
         aria-label={label}
         onClick={() => onFold(state.allCollapsed ? 'expand' : 'collapse')}
       >
-        {state.allCollapsed ? <ChevronsUpDown className="size-3.5" /> : <ChevronsDownUp className="size-3.5" />}
+        {state.allCollapsed ? (
+          <ChevronsUpDown className="size-3.5" />
+        ) : (
+          <ChevronsDownUp className="size-3.5" />
+        )}
       </Button>
     </Hint>
   );
@@ -194,6 +201,12 @@ export function FileTree<T>({
       return next;
     });
   return (
-    <TreeLevel folder={root} depth={0} collapsed={collapsed} onToggle={onToggle} renderFile={renderFile} />
+    <TreeLevel
+      folder={root}
+      depth={0}
+      collapsed={collapsed}
+      onToggle={onToggle}
+      renderFile={renderFile}
+    />
   );
 }

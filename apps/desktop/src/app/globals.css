@@ -1,5 +1,5 @@
-@import '../../../../packages/design-system/src/tokens.css';
-@import '../../../../packages/design-system/src/themes.css';
+@import "../../../../packages/design-system/src/tokens.css";
+@import "../../../../packages/design-system/src/themes.css";
 
 @tailwind base;
 @tailwind components;
@@ -44,13 +44,13 @@ body {
   position: relative;
 }
 [data-panel-resize-handle-id]::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: -3px;
 }
-[data-panel-resize-handle-id][data-resize-handle-state='hover']::before,
-[data-panel-resize-handle-id][data-resize-handle-state='drag']::before {
-  content: '';
+[data-panel-resize-handle-id][data-resize-handle-state="hover"]::before,
+[data-panel-resize-handle-id][data-resize-handle-state="drag"]::before {
+  content: "";
   position: absolute;
   inset: 0;
   background: hsl(var(--primary) / 0.5);
@@ -58,13 +58,35 @@ body {
 }
 
 /* Syntax palette flows from theme tokens (see design-system themes.css) */
-.hljs-keyword, .hljs-literal, .hljs-built_in { color: hsl(var(--syntax-keyword)); }
-.hljs-string, .hljs-regexp { color: hsl(var(--syntax-string)); }
-.hljs-number { color: hsl(var(--syntax-number)); }
-.hljs-comment { color: hsl(var(--faint-foreground)); font-style: italic; }
-.hljs-title, .hljs-function { color: hsl(var(--syntax-function)); }
-.hljs-attr, .hljs-property, .hljs-variable { color: hsl(var(--syntax-variable)); }
-.hljs-type, .hljs-class { color: hsl(var(--syntax-type)); }
+.hljs-keyword,
+.hljs-literal,
+.hljs-built_in {
+  color: hsl(var(--syntax-keyword));
+}
+.hljs-string,
+.hljs-regexp {
+  color: hsl(var(--syntax-string));
+}
+.hljs-number {
+  color: hsl(var(--syntax-number));
+}
+.hljs-comment {
+  color: hsl(var(--faint-foreground));
+  font-style: italic;
+}
+.hljs-title,
+.hljs-function {
+  color: hsl(var(--syntax-function));
+}
+.hljs-attr,
+.hljs-property,
+.hljs-variable {
+  color: hsl(var(--syntax-variable));
+}
+.hljs-type,
+.hljs-class {
+  color: hsl(var(--syntax-type));
+}
 
 /* xterm fills its panel */
 .terminal-host .xterm {
@@ -87,7 +109,9 @@ body {
 }
 
 @keyframes caret-blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
 .reduce-motion *,

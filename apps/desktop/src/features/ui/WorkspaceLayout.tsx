@@ -1,14 +1,14 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef } from 'react';
-import { Panel, Group, Separator, type PanelImperativeHandle } from 'react-resizable-panels';
 import { cn } from '@angkorgit/design-system';
-import { CommitGraph } from '@/features/graph/CommitGraph';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
+import { Group, Panel, type PanelImperativeHandle, Separator } from 'react-resizable-panels';
 import { DiffPanel } from '@/features/diff/DiffPanel';
 import { RangeDiffPanel } from '@/features/diff/RangeDiffPanel';
 import { EditorPanel } from '@/features/editor/EditorPanel';
+import { CommitGraph } from '@/features/graph/CommitGraph';
 import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
 import { Inspector } from '@/features/inspector/Inspector';
 import { Sidebar } from '@/features/sidebar/Sidebar';
-import { useUi, type CenterDiffTarget, type RangeDiffTarget } from './store';
+import { type CenterDiffTarget, type RangeDiffTarget, useUi } from './store';
 import { workspaceView } from './workspace';
 
 const TerminalPanel = lazy(() =>
@@ -46,7 +46,12 @@ function GraphPane({
       {centerEditor ? (
         <EditorPanel key={centerEditor} file={centerEditor} />
       ) : rangeDiff ? (
-        <RangeDiffPanel fromOid={rangeDiff.fromOid} toOid={rangeDiff.toOid} fromLabel={rangeDiff.fromLabel} toLabel={rangeDiff.toLabel} />
+        <RangeDiffPanel
+          fromOid={rangeDiff.fromOid}
+          toOid={rangeDiff.toOid}
+          fromLabel={rangeDiff.fromLabel}
+          toLabel={rangeDiff.toLabel}
+        />
       ) : diffInCenter && centerDiff ? (
         <DiffPanel target={centerDiff} />
       ) : (

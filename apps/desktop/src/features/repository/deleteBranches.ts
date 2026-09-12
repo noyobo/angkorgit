@@ -1,8 +1,8 @@
-import { toast } from 'sonner';
-import { eligibleLocals, remoteDeleteTarget } from '@angkorgit/core';
 import type { BranchInfo, EligibleBranch } from '@angkorgit/core';
-import { ipc } from '@/core/ipc';
+import { eligibleLocals, remoteDeleteTarget } from '@angkorgit/core';
+import { toast } from 'sonner';
 import { pickDeleteBranches } from '@/components/deleteBranchesDialog';
+import { ipc } from '@/core/ipc';
 import { useUndo } from '@/features/history/undoStore';
 import { ensureRepoProfile } from '@/features/settings/profiles';
 import { useRepo } from './store';
@@ -26,7 +26,9 @@ async function deleteLocals(
 function summarize(deleted: string[], skipped: { name: string; reason: string }[]) {
   const skipNote = skipped.map((row) => `${row.name}: ${row.reason}`).join('\n');
   if (skipped.length === 0) {
-    toast.success(deleted.length === 1 ? `Deleted ${deleted[0]}` : `Deleted ${deleted.length} local branches`);
+    toast.success(
+      deleted.length === 1 ? `Deleted ${deleted[0]}` : `Deleted ${deleted.length} local branches`,
+    );
     return;
   }
   if (deleted.length === 0) {

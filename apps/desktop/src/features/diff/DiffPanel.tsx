@@ -1,11 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Columns2, Copy, FileText, History, Menu, Minus, Plus, Rows3, TextSelect, Trash2, WholeWord, WrapText, X } from 'lucide-react';
 import type { CommitFileInfo, FileDiff } from '@angkorgit/core';
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -16,22 +13,43 @@ import {
   Kbd,
   Separator,
   Spinner,
-  cn,
 } from '@angkorgit/design-system';
+import { motion } from 'framer-motion';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Columns2,
+  Copy,
+  FileText,
+  History,
+  Menu,
+  Minus,
+  Plus,
+  Rows3,
+  TextSelect,
+  Trash2,
+  WholeWord,
+  WrapText,
+  X,
+} from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { confirmDialog } from '@/components/confirm';
-import type { LineMenuInfo } from './VirtualDiff';
 import { ipc } from '@/core/ipc';
+import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
 import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
-import { useShortcuts } from '@/shared/useShortcuts';
+import { type CenterDiffTarget, useUi } from '@/features/ui/store';
 import { captureSelectionRanges, useKeepSelection } from '@/shared/useKeepSelection';
-import { useUi, type CenterDiffTarget } from '@/features/ui/store';
-import { DiffViewer } from './DiffViewer';
-import { wrapUnavailable } from './diffShared';
-import { useDiffFind } from './diffSearch';
-import { useDiffSelectAll } from './diffCopy';
+import { useShortcuts } from '@/shared/useShortcuts';
 import { changeBlocks, DiffMinimap, scrollToFraction } from './DiffMinimap';
-import { FileActionsMenu } from '@/features/file-actions/FileActionsMenu';
+import { DiffViewer } from './DiffViewer';
+import { useDiffSelectAll } from './diffCopy';
+import { useDiffFind } from './diffSearch';
+import { wrapUnavailable } from './diffShared';
+import type { LineMenuInfo } from './VirtualDiff';
 
 export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const repo = useRepo((s) => s.repo);
@@ -124,9 +142,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const workingSiblings = useMemo(
     () =>
       isWorkingCopy && status
-        ? status.files
-            .filter((f) => (target.staged ? f.staged : f.unstaged))
-            .map((f) => f.path)
+        ? status.files.filter((f) => (target.staged ? f.staged : f.unstaged)).map((f) => f.path)
         : [],
     [isWorkingCopy, status, target.staged],
   );
@@ -215,9 +231,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   };
   jumpChangeRef.current = jumpChange;
 
-  const statusEntry = isWorkingCopy
-    ? status?.files.find((f) => f.path === target.path)
-    : undefined;
+  const statusEntry = isWorkingCopy ? status?.files.find((f) => f.path === target.path) : undefined;
   const statusSignature = isWorkingCopy
     ? `${statusEntry?.staged ?? ''}|${statusEntry?.unstaged ?? ''}|${statusVersion}`
     : '';
@@ -321,7 +335,9 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="bottom">
-            <DropdownMenuLabel className="max-w-64 truncate font-mono">{target.path}</DropdownMenuLabel>
+            <DropdownMenuLabel className="max-w-64 truncate font-mono">
+              {target.path}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <FileActionsMenu
               repoPath={path}
@@ -342,7 +358,9 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             {target.oid.slice(0, 8)}
           </Badge>
         ) : (
-          <Badge tone={target.staged ? 'success' : 'info'}>{target.staged ? 'staged' : 'unstaged'}</Badge>
+          <Badge tone={target.staged ? 'success' : 'info'}>
+            {target.staged ? 'staged' : 'unstaged'}
+          </Badge>
         )}
         {diff && !diff.isBinary && !diff.isImage && (
           <span className="shrink-0 text-xs">
@@ -404,7 +422,9 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             <WrapText className="size-3.5" />
           </Button>
         </Hint>
-        <Hint label={fullFileDiff ? 'Whole file shown — click for changes only' : 'Show whole file'}>
+        <Hint
+          label={fullFileDiff ? 'Whole file shown — click for changes only' : 'Show whole file'}
+        >
           <Button
             variant="ghost"
             size="icon-sm"
@@ -435,7 +455,12 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                 </span>
               }
             >
-              <Button variant="ghost" size="icon-sm" aria-label="Previous change" onClick={() => jumpChange(-1)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Previous change"
+                onClick={() => jumpChange(-1)}
+              >
                 <ChevronUp className="size-4" />
               </Button>
             </Hint>
@@ -446,7 +471,12 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                 </span>
               }
             >
-              <Button variant="ghost" size="icon-sm" aria-label="Next change" onClick={() => jumpChange(1)}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Next change"
+                onClick={() => jumpChange(1)}
+              >
                 <ChevronDown className="size-4" />
               </Button>
             </Hint>
@@ -540,49 +570,49 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             </div>
           ) : diff ? (
             <DiffViewer
-            diff={diff}
-            scrollRef={scrollRef}
-            search={search}
-            onLineContextMenu={(e, info) => {
-              e.preventDefault();
-              setLineMenu({
-                x: e.clientX,
-                y: e.clientY,
-                info,
-                selection: window.getSelection()?.toString() ?? '',
-                ranges: captureSelectionRanges(),
-              });
-            }}
-            hunkActions={
-              isWorkingCopy && !fullFileDiff
-                ? (hunkIndex) => (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-5 px-1.5 text-[10px]"
-                      onClick={() =>
-                        void runStage(
-                          () =>
-                            target.staged
-                              ? ipc.unstageHunk(path, target.path, hunkIndex)
-                              : ipc.stageHunk(path, target.path, hunkIndex),
-                          'Hunk operation',
-                        )
-                      }
-                    >
-                      {target.staged ? (
-                        <>
-                          <Minus className="size-3" /> Unstage hunk
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="size-3" /> Stage hunk
-                        </>
-                      )}
-                    </Button>
-                  )
-                : undefined
-            }
+              diff={diff}
+              scrollRef={scrollRef}
+              search={search}
+              onLineContextMenu={(e, info) => {
+                e.preventDefault();
+                setLineMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  info,
+                  selection: window.getSelection()?.toString() ?? '',
+                  ranges: captureSelectionRanges(),
+                });
+              }}
+              hunkActions={
+                isWorkingCopy && !fullFileDiff
+                  ? (hunkIndex) => (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px]"
+                        onClick={() =>
+                          void runStage(
+                            () =>
+                              target.staged
+                                ? ipc.unstageHunk(path, target.path, hunkIndex)
+                                : ipc.stageHunk(path, target.path, hunkIndex),
+                            'Hunk operation',
+                          )
+                        }
+                      >
+                        {target.staged ? (
+                          <>
+                            <Minus className="size-3" /> Unstage hunk
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="size-3" /> Stage hunk
+                          </>
+                        )}
+                      </Button>
+                    )
+                  : undefined
+              }
             />
           ) : (
             <p className="py-16 text-center text-sm text-faint">
@@ -598,7 +628,11 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
           <DropdownMenuTrigger asChild>
             <span style={{ position: 'fixed', left: lineMenu.x, top: lineMenu.y }} />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="bottom" onCloseAutoFocus={(e) => e.preventDefault()}>
+          <DropdownMenuContent
+            align="start"
+            side="bottom"
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
             {isWorkingCopy && lineMenu.info.line.kind !== 'context' && (
               <>
                 {target.staged ? (
@@ -658,7 +692,9 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                                   path,
                                   target.path,
                                   info.line.kind,
-                                  (info.line.kind === 'addition' ? info.line.newLineNo : info.line.oldLineNo) ?? 0,
+                                  (info.line.kind === 'addition'
+                                    ? info.line.newLineNo
+                                    : info.line.oldLineNo) ?? 0,
                                 ),
                               'Discard line',
                             );
@@ -690,9 +726,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             >
               <Copy /> Copy line
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => selectSide(lineMenu.info.side ?? 'new')}
-            >
+            <DropdownMenuItem onClick={() => selectSide(lineMenu.info.side ?? 'new')}>
               <TextSelect /> Select all
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -38,7 +38,9 @@ export function sidebarToggle(s: {
   layout: WorkspaceLayout;
   sidebarOpen: boolean;
   centerDiff: unknown;
-}): { layout?: WorkspaceLayout; sidebarOpen: boolean; centerDiff: null } | { sidebarOpen: boolean } {
+}):
+  | { layout?: WorkspaceLayout; sidebarOpen: boolean; centerDiff: null }
+  | { sidebarOpen: boolean } {
   if (s.layout === 'preview') {
     return { layout: 'standard', sidebarOpen: true, centerDiff: null };
   }

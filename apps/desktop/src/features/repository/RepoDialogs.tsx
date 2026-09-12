@@ -1,5 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 import {
   Button,
   Checkbox,
@@ -12,14 +10,16 @@ import {
   Input,
   Textarea,
 } from '@angkorgit/design-system';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { ipc, type OpOutcome } from '@/core/ipc';
-import { toastOutcome } from '@/shared/toastOutcome';
-import { useRepo } from './store';
-import { useUi } from '@/features/ui/store';
-import { useUndo } from '@/features/history/undoStore';
 import { useGraph } from '@/features/graph/store';
+import { useUndo } from '@/features/history/undoStore';
 import { useSettings } from '@/features/settings/store';
+import { useUi } from '@/features/ui/store';
+import { toastOutcome } from '@/shared/toastOutcome';
 import { basename, dirname } from '@/shared/utils';
+import { useRepo } from './store';
 
 export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
   const repo = useRepo((s) => s.repo);
@@ -45,7 +45,10 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
   const cherryPickRef = useRef<HTMLButtonElement>(null);
   const stashPaths = useMemo(
     () =>
-      dialog === 'createStash' && rawContext && typeof rawContext !== 'string' && 'paths' in rawContext
+      dialog === 'createStash' &&
+      rawContext &&
+      typeof rawContext !== 'string' &&
+      'paths' in rawContext
         ? rawContext.paths
         : [],
     [dialog, rawContext],
@@ -87,7 +90,7 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
         path,
         kind: 'branchCreate',
         label: `create branch ${name.trim()}`,
-        extra: { branch: name.trim(), oid: dialogContext ?? (repo?.headOid ?? '') },
+        extra: { branch: name.trim(), oid: dialogContext ?? repo?.headOid ?? '' },
         action: () => ipc.createBranch(path, name.trim(), dialogContext, checkout),
       }),
     );
@@ -102,7 +105,12 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
 
   const submitStash = () => {
     void submit('Stash', () =>
-      ipc.stashCreate(path, message.trim() || null, stashPaths.length > 0 || includeUntracked, stashPaths),
+      ipc.stashCreate(
+        path,
+        message.trim() || null,
+        stashPaths.length > 0 || includeUntracked,
+        stashPaths,
+      ),
     );
   };
 
@@ -195,7 +203,8 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
           <DialogHeader>
             <DialogTitle>Create tag</DialogTitle>
             <DialogDescription>
-              {dialogContext ? `At commit ${dialogContext.slice(0, 8)}` : 'At the current HEAD'} — add a message for an annotated tag.
+              {dialogContext ? `At commit ${dialogContext.slice(0, 8)}` : 'At the current HEAD'} —
+              add a message for an annotated tag.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3">
@@ -228,7 +237,9 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
       <Dialog open={dialog === 'createStash'} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{stashPaths.length > 0 ? 'Stash selected changes' : 'Stash changes'}</DialogTitle>
+            <DialogTitle>
+              {stashPaths.length > 0 ? 'Stash selected changes' : 'Stash changes'}
+            </DialogTitle>
             <DialogDescription>
               {stashPaths.length === 1
                 ? 'Only this file is stashed. Everything else stays in your working copy.'
@@ -242,7 +253,9 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
               <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-md border border-border-subtle bg-surface-raised/50 p-2 font-mono text-xs">
                 {stashPaths.map((file) => (
                   <li key={file} className="flex min-w-0 items-baseline gap-1.5">
-                    <span className="max-w-full shrink-0 truncate text-foreground">{basename(file)}</span>
+                    <span className="max-w-full shrink-0 truncate text-foreground">
+                      {basename(file)}
+                    </span>
                     <span className="min-w-0 flex-1 truncate text-muted">{dirname(file)}</span>
                   </li>
                 ))}
@@ -259,7 +272,10 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
             />
             {stashPaths.length === 0 && (
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted">
-                <Checkbox checked={includeUntracked} onCheckedChange={(v) => setIncludeUntracked(v === true)} />
+                <Checkbox
+                  checked={includeUntracked}
+                  onCheckedChange={(v) => setIncludeUntracked(v === true)}
+                />
                 Include untracked files
               </label>
             )}
@@ -312,7 +328,9 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
         >
           <DialogHeader>
             <DialogTitle>
-              {pickOids.length > 1 ? `Cherry-pick ${pickOids.length} commits` : 'Cherry-pick commit'}
+              {pickOids.length > 1
+                ? `Cherry-pick ${pickOids.length} commits`
+                : 'Cherry-pick commit'}
             </DialogTitle>
             <DialogDescription>
               {pickOids.length > 1
@@ -335,7 +353,11 @@ export function RepoDialogs({ onDone }: { onDone: () => Promise<void> }) {
                 onCheckedChange={(v) => setCherryPickRecordOrigin(v === true)}
               />
               <span className="flex flex-col gap-0.5">
-                <span>{pickOids.length > 1 ? 'Reference the source commits' : 'Reference the source commit'}</span>
+                <span>
+                  {pickOids.length > 1
+                    ? 'Reference the source commits'
+                    : 'Reference the source commit'}
+                </span>
                 <span className="opacity-70">
                   Appends “(cherry picked from commit …)” to{' '}
                   {pickOids.length > 1 ? 'each new message' : 'the new message'}, like git

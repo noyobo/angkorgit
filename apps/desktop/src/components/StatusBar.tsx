@@ -1,21 +1,29 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Check, Columns3, GitBranch, GitPullRequest, PanelLeft, Pencil, ZoomIn } from 'lucide-react';
+import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
 import {
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   Hint,
-  cn,
 } from '@angkorgit/design-system';
+import {
+  Check,
+  Columns3,
+  GitBranch,
+  GitPullRequest,
+  PanelLeft,
+  Pencil,
+  ZoomIn,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { appVersion, openExternal } from '@/core/ipc';
 import { useForge } from '@/features/forge/store';
 import { useRepo } from '@/features/repository/store';
 import { useSettings } from '@/features/settings/store';
 import { useUi } from '@/features/ui/store';
 import { currentPullRequestUrl } from '@/shared/utils';
-import { forgeNoun, pickForgeRemote } from '@angkorgit/core';
 
 const ZOOM_LEVELS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200];
 
@@ -33,7 +41,9 @@ export function StatusBar() {
 
   const branches = useRepo((s) => s.branches);
   const changes = status?.files.length ?? 0;
-  const branch = repo?.isDetached ? `detached @ ${repo.headOid?.slice(0, 8) ?? '?'}` : repo?.headBranch;
+  const branch = repo?.isDetached
+    ? `detached @ ${repo.headOid?.slice(0, 8) ?? '?'}`
+    : repo?.headBranch;
   const headUpstream = branches.find((b) => !b.isRemote && b.isHead)?.upstream ?? null;
   const prUrl = currentPullRequestUrl(repo, pickForgeRemote(remotes, headUpstream)?.url);
   const forgeRepoPath = useForge((s) => s.repoPath);

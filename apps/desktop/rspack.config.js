@@ -1,9 +1,9 @@
+import { execSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,9 +39,12 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
       '@angkorgit/core': path.resolve(__dirname, '../../packages/core/src/index.ts'),
-      '@angkorgit/design-system': path.resolve(__dirname, '../../packages/design-system/src/index.ts'),
+      '@angkorgit/design-system': path.resolve(
+        __dirname,
+        '../../packages/design-system/src/index.ts',
+      ),
       // Ensure all modules use the same React instance (fixes "Invalid hook call")
-      'react': path.resolve(__dirname, 'node_modules/react'),
+      react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
   },

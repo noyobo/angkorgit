@@ -1,28 +1,29 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
-import { AnimatePresence, MotionConfig } from 'framer-motion';
-import { Toaster, toast } from 'sonner';
 import { Spinner, TooltipProvider } from '@angkorgit/design-system';
-import { SplashScreen } from './SplashScreen';
+import { AnimatePresence, MotionConfig } from 'framer-motion';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { Toaster, toast } from 'sonner';
 import { ConfirmHost } from '@/components/confirm';
-import { ProfilePromptHost } from '@/components/profilePrompt';
-import { StaleLocalsHost } from '@/components/staleLocalsDialog';
 import { DeleteBranchesHost } from '@/components/deleteBranchesDialog';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PanelsDialog } from '@/components/PanelsDialog';
+import { ProfilePromptHost } from '@/components/profilePrompt';
 import { RecentReposDialog } from '@/components/RecentReposDialog';
 import { SwitchBranchPanel } from '@/components/SwitchBranchPanel';
-import { PanelsDialog } from '@/components/PanelsDialog';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { StaleLocalsHost } from '@/components/staleLocalsDialog';
 import { WelcomePage } from '@/features/repository/WelcomePage';
+import { SplashScreen } from './SplashScreen';
 
 const RepositoryPage = lazy(() =>
   import('@/features/repository/RepositoryPage').then((m) => ({ default: m.RepositoryPage })),
 );
+
+import { type CliRequest, ipc, listen } from '@/core/ipc';
+import { handleMenuEvent } from '@/features/menu/menuHandler';
 import { useRepo } from '@/features/repository/store';
 import { applyTheme, themeBase, useSettings } from '@/features/settings/store';
-import { useUi, type ClonePreset } from '@/features/ui/store';
+import { type ClonePreset, useUi } from '@/features/ui/store';
 import { useShortcuts } from '@/shared/useShortcuts';
-import { ipc, listen, type CliRequest } from '@/core/ipc';
-import { handleMenuEvent } from '@/features/menu/menuHandler';
 
 function Shell() {
   const [splash, setSplash] = useState(true);
@@ -177,7 +178,8 @@ export function App() {
   useEffect(() => {
     const onContextMenu = (e: MouseEvent) => {
       const el = e.target as HTMLElement | null;
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable))
+        return;
       e.preventDefault();
     };
     document.addEventListener('contextmenu', onContextMenu);
@@ -187,41 +189,41 @@ export function App() {
   return (
     <MotionConfig reducedMotion={reduceMotion ? 'always' : 'never'}>
       <TooltipProvider>
-      <MemoryRouter initialEntries={['/']}>
-        <div className="h-full">
-          <ErrorBoundary>
-            <Shell />
-          </ErrorBoundary>
-        </div>
-        <ConfirmHost />
-        <ProfilePromptHost />
-        <StaleLocalsHost />
-        <DeleteBranchesHost />
-        <RecentReposDialog />
-        <SwitchBranchPanel />
-        <PanelsDialog />
-      </MemoryRouter>
-      <Toaster
-        position="bottom-left"
-        theme={themeBase(theme)}
-        closeButton
-        gap={8}
-        toastOptions={{
-          style: {
-            background: 'hsl(var(--surface-overlay))',
-            border: '1px solid hsl(var(--border))',
-            color: 'hsl(var(--foreground))',
-            boxShadow: 'var(--shadow-soft)',
-            borderRadius: 'var(--radius)',
-          },
-          classNames: {
-            success: '!border-l-[3px] !border-l-success',
-            error: '!border-l-[3px] !border-l-danger',
-            warning: '!border-l-[3px] !border-l-primary',
-            info: '!border-l-[3px] !border-l-info',
-          },
-        }}
-      />
+        <MemoryRouter initialEntries={['/']}>
+          <div className="h-full">
+            <ErrorBoundary>
+              <Shell />
+            </ErrorBoundary>
+          </div>
+          <ConfirmHost />
+          <ProfilePromptHost />
+          <StaleLocalsHost />
+          <DeleteBranchesHost />
+          <RecentReposDialog />
+          <SwitchBranchPanel />
+          <PanelsDialog />
+        </MemoryRouter>
+        <Toaster
+          position="bottom-left"
+          theme={themeBase(theme)}
+          closeButton
+          gap={8}
+          toastOptions={{
+            style: {
+              background: 'hsl(var(--surface-overlay))',
+              border: '1px solid hsl(var(--border))',
+              color: 'hsl(var(--foreground))',
+              boxShadow: 'var(--shadow-soft)',
+              borderRadius: 'var(--radius)',
+            },
+            classNames: {
+              success: '!border-l-[3px] !border-l-success',
+              error: '!border-l-[3px] !border-l-danger',
+              warning: '!border-l-[3px] !border-l-primary',
+              info: '!border-l-[3px] !border-l-info',
+            },
+          }}
+        />
       </TooltipProvider>
     </MotionConfig>
   );

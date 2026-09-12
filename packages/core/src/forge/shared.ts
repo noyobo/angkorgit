@@ -56,11 +56,19 @@ export function pullRequestCheckoutSpec(
   pr: PullRequestInfo,
 ): PullRequestCheckoutSpec | null {
   if (!pr.isFromFork && pr.sourceBranch) {
-    return { sourceRef: `refs/heads/${pr.sourceBranch}`, localBranch: pr.sourceBranch, track: true };
+    return {
+      sourceRef: `refs/heads/${pr.sourceBranch}`,
+      localBranch: pr.sourceBranch,
+      track: true,
+    };
   }
   switch (kind) {
     case 'github':
-      return { sourceRef: `refs/pull/${pr.number}/head`, localBranch: `pr/${pr.number}`, track: false };
+      return {
+        sourceRef: `refs/pull/${pr.number}/head`,
+        localBranch: `pr/${pr.number}`,
+        track: false,
+      };
     case 'gitlab':
       return {
         sourceRef: `refs/merge-requests/${pr.number}/head`,

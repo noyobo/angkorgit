@@ -1,8 +1,8 @@
 import {
-  AiError,
   type AiCompletionRequest,
   type AiCompletionResult,
   type AiConfig,
+  AiError,
   type AiMessage,
   type AiProvider,
   type CliAgentId,

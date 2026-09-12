@@ -1,7 +1,7 @@
-import { toast } from 'sonner';
 import { eligibleLocals } from '@angkorgit/core';
-import { ipc } from '@/core/ipc';
+import { toast } from 'sonner';
 import { pickStaleLocals } from '@/components/staleLocalsDialog';
+import { ipc } from '@/core/ipc';
 import { useUndo } from '@/features/history/undoStore';
 import { useRepo } from './store';
 
@@ -51,7 +51,9 @@ export async function fetchAndClearLocalBranches(
         action: () => ipc.deleteBranch(path, name, false),
       });
     }
-    toast.success(picked.length === 1 ? `Deleted ${picked[0]}` : `Deleted ${picked.length} local branches`);
+    toast.success(
+      picked.length === 1 ? `Deleted ${picked[0]}` : `Deleted ${picked.length} local branches`,
+    );
   } catch (error) {
     toast.error(`Delete failed: ${(error as { message?: string }).message ?? error}`);
   }

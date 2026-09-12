@@ -1,11 +1,11 @@
-import type { AiProvider } from './types';
 import {
-  DEFAULT_COMMIT_STYLE,
+  type CommitStyle,
   commitStyleInstructions,
+  DEFAULT_COMMIT_STYLE,
   ensureCommitPrefix,
   resolveCommitPrefix,
-  type CommitStyle,
 } from './style';
+import type { AiProvider } from './types';
 
 const SYSTEM =
   'You are the AI assistant inside AngKorGit, a Git client. Be precise and concise. Never invent file names or changes that are not in the provided context. Answer in plain text rendered as-is: use "-" for bullets and never use markdown headings, bold markers, tables, or links.';
@@ -36,7 +36,10 @@ export async function generateCommitMessage(
     ],
     temperature: 0.3,
   });
-  const text = result.text.trim().replace(/^```[a-z]*\n?|```$/g, '').trim();
+  const text = result.text
+    .trim()
+    .replace(/^```[a-z]*\n?|```$/g, '')
+    .trim();
   return prefix ? ensureCommitPrefix(text, prefix) : text;
 }
 
@@ -44,7 +47,10 @@ export async function explainDiff(ai: AiProvider, diff: string): Promise<string>
   const result = await ai.complete({
     messages: [
       { role: 'system', content: SYSTEM },
-      { role: 'user', content: `Explain what this diff changes and why it might matter. Use short bullet points.\n\n${clip(diff)}` },
+      {
+        role: 'user',
+        content: `Explain what this diff changes and why it might matter. Use short bullet points.\n\n${clip(diff)}`,
+      },
     ],
   });
   return result.text.trim();
@@ -68,7 +74,11 @@ export async function explainConflict(
   return result.text.trim();
 }
 
-export async function generatePrDescription(ai: AiProvider, commits: string, diffStat: string): Promise<string> {
+export async function generatePrDescription(
+  ai: AiProvider,
+  commits: string,
+  diffStat: string,
+): Promise<string> {
   const result = await ai.complete({
     messages: [
       { role: 'system', content: SYSTEM },
@@ -85,7 +95,10 @@ export async function summarizeCommits(ai: AiProvider, commits: string): Promise
   const result = await ai.complete({
     messages: [
       { role: 'system', content: SYSTEM },
-      { role: 'user', content: `Summarize this commit history into key themes, as short bullets.\n\n${clip(commits)}` },
+      {
+        role: 'user',
+        content: `Summarize this commit history into key themes, as short bullets.\n\n${clip(commits)}`,
+      },
     ],
   });
   return result.text.trim();
