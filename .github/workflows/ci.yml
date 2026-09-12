@@ -85,7 +85,7 @@ jobs:
   typecheck-packages:
     name: Typecheck (Packages)
     needs: changes
-    if: false  # Temporarily disabled to focus on E2E
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +105,7 @@ jobs:
   typecheck-desktop:
     name: Typecheck (Desktop)
     needs: changes
-    if: false  # Temporarily disabled to focus on E2E
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -124,7 +124,10 @@ jobs:
   test-core:
     name: Unit Tests (Core Logic)
     needs: [changes, typecheck-packages]
-    if: false  # Temporarily disabled to focus on E2E
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-packages.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -143,7 +146,10 @@ jobs:
   test-ai:
     name: Unit Tests (AI & Integrations)
     needs: [changes, typecheck-packages]
-    if: false  # Temporarily disabled to focus on E2E
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-packages.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -162,7 +168,10 @@ jobs:
   test-utils:
     name: Unit Tests (Utilities)
     needs: [changes, typecheck-packages]
-    if: false  # Temporarily disabled to focus on E2E
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-packages.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -180,8 +189,14 @@ jobs:
 
   build:
     name: Build
-    needs: [changes]
-    if: needs.changes.outputs.frontend == 'true'
+    needs: [changes, typecheck-desktop, test-core, test-ai, test-utils]
+    if: |
+      always() &&
+      needs.changes.outputs.frontend == 'true' &&
+      needs.typecheck-desktop.result == 'success' &&
+      needs.test-core.result == 'success' &&
+      needs.test-ai.result == 'success' &&
+      needs.test-utils.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -270,7 +285,7 @@ jobs:
   rust-lint:
     name: Rust Lint
     needs: [changes]
-    if: false  # Temporarily disabled to focus on E2E
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -294,7 +309,10 @@ jobs:
   rust-test:
     name: Rust Tests (${{ matrix.os }})
     needs: [changes, rust-lint]
-    if: false  # Temporarily disabled to focus on E2E
+    if: |
+      always() &&
+      needs.changes.outputs.rust == 'true' &&
+      needs.rust-lint.result == 'success'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -323,15 +341,23 @@ jobs:
       always() &&
       needs.changes.result != 'skipped' &&
       needs.changes.result != 'cancelled'
-    needs: [changes, build, e2e]
+    needs: [changes, typecheck-packages, typecheck-desktop, test-core, test-ai, test-utils, build, e2e, rust-lint, rust-test]
     runs-on: ubuntu-latest
     steps:
-      - name: Require active jobs only
+      - name: Require selected jobs
         env:
           WANT_FRONTEND: ${{ needs.changes.outputs.frontend }}
           WANT_E2E: ${{ needs.changes.outputs.e2e }}
+          WANT_RUST: ${{ needs.changes.outputs.rust }}
+          TYPECHECK_PKG: ${{ needs.typecheck-packages.result }}
+          TYPECHECK_DESKTOP: ${{ needs.typecheck-desktop.result }}
+          TEST_CORE: ${{ needs.test-core.result }}
+          TEST_AI: ${{ needs.test-ai.result }}
+          TEST_UTILS: ${{ needs.test-utils.result }}
           BUILD: ${{ needs.build.result }}
           E2E: ${{ needs.e2e.result }}
+          RUST_LINT: ${{ needs.rust-lint.result }}
+          RUST_TEST: ${{ needs.rust-test.result }}
         run: |
           fail=0
           require() {
@@ -347,7 +373,13 @@ jobs:
               echo "$label skipped (not selected)"
             fi
           }
-          echo "NOTE: Other tests temporarily disabled while debugging E2E"
+          require "$WANT_FRONTEND" "$TYPECHECK_PKG" "typecheck-packages"
+          require "$WANT_FRONTEND" "$TYPECHECK_DESKTOP" "typecheck-desktop"
+          require "$WANT_FRONTEND" "$TEST_CORE" "test-core"
+          require "$WANT_FRONTEND" "$TEST_AI" "test-ai"
+          require "$WANT_FRONTEND" "$TEST_UTILS" "test-utils"
           require "$WANT_FRONTEND" "$BUILD" "build"
           require "$WANT_E2E" "$E2E" "e2e"
+          require "$WANT_RUST" "$RUST_LINT" "rust-lint"
+          require "$WANT_RUST" "$RUST_TEST" "rust-test"
           exit "$fail"
