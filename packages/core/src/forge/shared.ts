@@ -69,6 +69,7 @@ export function pullRequestCheckoutSpec(
       };
     case 'bitbucket':
     case 'bitbucket-server':
+    case 'unknown':
       return null;
   }
 }

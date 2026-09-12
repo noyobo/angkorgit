@@ -79,8 +79,14 @@ describe('parseForgeRemote', () => {
     expect(server?.repo).toBe('repo');
   });
 
-  it('returns null for unknown forges and non-remote strings', () => {
-    expect(parseForgeRemote('git@git.sr.ht:~user/repo')).toBeNull();
+  it('returns unknown kind for unrecognized forges with valid structure', () => {
+    const result = parseForgeRemote('git@git.sr.ht:~user/repo');
+    expect(result?.kind).toBe('unknown');
+    expect(result?.owner).toBe('~user');
+    expect(result?.repo).toBe('repo');
+  });
+
+  it('returns null for non-remote strings', () => {
     expect(parseForgeRemote('not a url')).toBeNull();
   });
 });

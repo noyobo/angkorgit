@@ -74,9 +74,10 @@ describe('buildBrowseUrl', () => {
     );
   });
 
-  test('unknown forge returns repo root as fallback when branch provided', () => {
+  test('unknown forge returns GitHub-style tree URL when branch provided', () => {
+    // Unknown forges now get GitHub-style /tree/<branch> URLs (covers Gitea, Gogs, etc.)
     expect(buildBrowseUrl('https://unknown.example.com/owner/repo.git', 'main')).toBe(
-      'https://unknown.example.com/owner/repo',
+      'https://unknown.example.com/owner/repo/tree/main',
     );
   });
 });
