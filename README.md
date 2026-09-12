@@ -155,33 +155,33 @@ Linux: `chmod +x` the AppImage and run it, or install the `.deb` or `.rpm`. Need
 
 ## Building from source
 
-You need [Node 20+](https://nodejs.org), [pnpm 10+](https://pnpm.io), [Rust stable](https://rustup.rs) and the [Tauri v2 system dependencies](https://v2.tauri.app/start/prerequisites/).
+You need [Bun 1.4.2+](https://bun.sh), [Rust stable](https://rustup.rs) and the [Tauri v2 system dependencies](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
-pnpm install
-pnpm icons          # generate placeholder app icons
-pnpm tauri:dev      # run the desktop app
+bun install
+bun icons          # generate placeholder app icons
+bun tauri:dev      # run the desktop app
 ```
 
 The UI runs in a plain browser on a demo dataset, no Rust toolchain needed:
 
 ```bash
-pnpm dev            # http://localhost:1420
+bun dev            # http://localhost:1420
 ```
 
 The website lives in `apps/website` (Astro, static, GitHub Pages):
 
 ```bash
-pnpm website            # http://localhost:4321/
-pnpm website:images     # regenerate WebP screenshots and og.png
-pnpm website:build      # static build in apps/website/dist
+bun website            # http://localhost:4321/
+bun website:images     # regenerate WebP screenshots and og.png
+bun website:build      # static build in apps/website/dist
 ```
 
 Tests:
 
 ```bash
-pnpm test           # unit tests
-pnpm test:e2e       # Playwright, against demo mode
+bun test           # unit tests (bun:test)
+bun test:e2e       # Playwright, against demo mode
 cd apps/desktop/src-tauri && cargo test   # git engine integration tests on real temp repos
 ```
 

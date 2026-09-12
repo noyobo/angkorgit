@@ -36,17 +36,18 @@ craftsmanship from Cambodia 🇰🇭.
 | Key libs | @tanstack/react-virtual, react-resizable-panels, cmdk, sonner, @xterm/xterm, highlight.js (lib/core + 20 langs) | |
 | Rust deps | tauri-plugin-dialog/opener, portable-pty, keyring 3, notify-debouncer-mini, reqwest (rustls), which 7, base64, thiserror | |
 
-## 3. Monorepo layout (pnpm workspaces)
+## 3. Monorepo layout (bun workspaces)
 
 ```
 angkorgit/
 ├── CLAUDE.md                  ← this file
-├── package.json               ← root scripts (see §4), pnpm workspace root
-├── pnpm-workspace.yaml        ← apps/*, packages/*
-├── tsconfig.base.json         ← strict TS + path aliases for both packages
-├── vitest.config.ts           ← unit tests live at repo root (tests/unit)
+├── package.json               ← root scripts (see §4), bun workspace root
+├── .tool-versions             ← pins bun 1.4.2
+├── bunfig.toml                ← bun configuration (trusted dependencies)
+├── tsconfig.base.json         ← strict TS + path aliases for both packages (TS7: no baseUrl)
+├── tsconfig.json              ← root config for tests + scripts
 ├── apps/desktop/              ← THE app (@angkorgit/desktop)
-│   ├── index.html · vite.config.ts · tailwind.config.ts · postcss.config.js
+│   ├── index.html · rspack.config.js · tailwind.config.ts · postcss.config.js
 │   ├── src/                   ← React frontend (see §6)
 │   └── src-tauri/             ← Rust engine (see §5)
 ├── apps/website/              ← MARKETING SITE (@angkorgit/website) — Astro 5, static
@@ -135,42 +136,42 @@ angkorgit/
 ├── docs/                      ← Architecture, UI-Guidelines, Development, Contributing,
 │                                Roadmap, Coding-Standards
 ├── tests/
-│   ├── unit/                  ← vitest: graphLayout, wordDiff, conflicts (pure core logic)
+│   ├── unit/                  ← bun:test: graphLayout, wordDiff, conflicts (pure core logic)
 │   └── e2e/                   ← Playwright vs browser DEMO MODE (no native build needed)
 ├── scripts/generate-icons.mjs ← zero-dependency PNG icon generator (mark at 80% of the canvas so the Dock matches system icons)
 └── .github/workflows/         ← ci.yml (typecheck/test/e2e + rust matrix), release.yml (tauri-action on v* tags)
 ```
 
 **Import aliases**: `@/` = `apps/desktop/src`; `@angkorgit/core` and
-`@angkorgit/design-system` resolve to package **sources** (vite alias + tsconfig paths —
+`@angkorgit/design-system` resolve to package **sources** (rspack alias + tsconfig paths —
 no build step for packages).
 
 ## 4. Commands (run from repo root unless stated)
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm install` | install workspace deps |
-| `pnpm tauri:dev` | full desktop app, hot reload both sides |
-| `pnpm dev` | frontend only in a browser — runs on **demo mode** (see §6.1) |
-| `pnpm typecheck` / `pnpm test` | TS across packages / vitest unit tests |
-| `pnpm test:e2e` | Playwright against demo mode |
+| `bun install` | install workspace deps |
+| `bun tauri:dev` | full desktop app, hot reload both sides |
+| `bun dev` | frontend only in a browser — runs on **demo mode** (see §6.1) |
+| `bun typecheck` / `bun test` | TS across packages / bun:test unit tests |
+| `bun test:e2e` | Playwright against demo mode |
 | `cd apps/desktop/src-tauri && cargo test` | **git engine integration tests** (real temp repos) |
-| `pnpm tauri:build` | release bundles (.app + .dmg in `src-tauri/target/release/bundle/`) |
-| `pnpm install:mac` | copy built .app → /Applications and launch |
-| `pnpm release:mac` | build then open the dmg folder |
-| `pnpm website` | dev-server the marketing site (http://localhost:4321/) |
-| `pnpm website:build` / `pnpm website:preview` | build / preview the static site |
-| `pnpm website:images` | regenerate WebP screenshots + og.png from `docs/assets` (sharp) |
-| `pnpm icons` | regenerate placeholder icons (then `tauri icon` for .icns/.ico) |
+| `bun tauri:build` | release bundles (.app + .dmg in `src-tauri/target/release/bundle/`) |
+| `bun install:mac` | copy built .app → /Applications and launch |
+| `bun release:mac` | build then open the dmg folder |
+| `bun website` | dev-server the marketing site (http://localhost:4321/) |
+| `bun website:build` / `bun website:preview` | build / preview the static site |
+| `bun website:images` | regenerate WebP screenshots + og.png from `docs/assets` (sharp) |
+| `bun icons` | regenerate placeholder icons (then `tauri icon` for .icns/.ico) |
 
 **Build gotchas (important):**
 - **Quit the running app before `tauri:build`** — the `.dmg` bundler script is flaky while the app runs (the `.app` itself still builds).
 - `source ~/.cargo/env` before cargo commands (rustup-installed toolchain).
 - With updater `createUpdaterArtifacts` on, `tauri build` exits 1 AFTER producing the
-  .app unless `TAURI_SIGNING_PRIVATE_KEY=$(cat ~/.tauri/angkorgit.key)` (+ empty
-  `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) is exported — for local installs the .app is
-  still usable via `pnpm install:mac`.
-- Root pnpm scripts must run **from repo root**; background shells don't persist `cd`.
+ .app unless `TAURI_SIGNING_PRIVATE_KEY=$(cat ~/.tauri/angkorgit.key)` (+ empty
+ `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) is exported — for local installs the .app is
+ still usable via `bun install:mac`.
+- Root bun scripts must run **from repo root**; background shells don't persist `cd`.
 - Rust fmt/clippy are CI gates: `cargo fmt --check && cargo clippy --all-targets -- -D warnings`.
 
 ## 5. Rust engine — `apps/desktop/src-tauri/src/`
