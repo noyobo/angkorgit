@@ -1,0 +1,284 @@
+# Cursor Rules for AngKorGit
+
+## Project Context
+
+AngKorGit is a modern, fast, beautiful cross-platform Git client (macOS/Windows/Linux) built with:
+- **Frontend**: React 18 + TypeScript (strict) + Vite + TailwindCSS
+- **Backend**: Tauri v2 + Rust + libgit2
+- **Testing**: Vitest (unit) + Playwright (e2e) + Rust integration tests
+
+**Core Philosophy**: "If GitKraken has 100 features, ship the best 25 executed exceptionally well."
+
+## Documentation Priority (Read First)
+
+1. **[CLAUDE.md](./CLAUDE.md)** — **START HERE** (comprehensive project knowledge base)
+   - § 1-3: What/Stack/Layout
+   - § 4: Commands and workflow
+   - § 5: Rust engine (`apps/desktop/src-tauri/src/`)
+   - § 6: Frontend (`apps/desktop/src/`)
+   - § 8: Hard-won gotchas (MUST READ before similar work)
+
+2. **[docs/Quality-Checklist.md](./docs/Quality-Checklist.md)** — Quality gates for every PR
+   - Design → Implementation → Testing → PR → CI
+
+3. **[docs/Testing-Guide.md](./docs/Testing-Guide.md)** — Test pyramid and strategies
+   - When to write unit vs e2e tests
+   - Demo mode usage
+
+4. **[docs/README.md](./docs/README.md)** — Documentation hub (quick navigation)
+
+## Code Style Rules
+
+### TypeScript/React
+
+```typescript
+// ✅ GOOD
+import type { FileBlame } from '@angkorgit/core';  // Type imports first
+import { useUi } from '@/features/ui/store';
+
+// Interactive elements need full accessibility
+<div
+  role="button"
+  tabIndex={0}
+  aria-label="Clear filters"
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  }}
+>
+
+// Colors via tokens only
+className="bg-surface text-foreground"  // ✅
+style={{ color: '#d97706' }}            // ❌ Never hex in components
+```
+
+### Rust
+
+```rust
+// Commands stay thin
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn file_blame(file: String, rev: Option<String>) -> Result<FileBlame, AppError> {
+    blocking(move || core::blame::blame_file(&file, rev.as_deref())).await
+}
+
+// Everything blocking goes through spawn_blocking
+// Operations that can pause return OpOutcome, not errors for conflicts
+```
+
+## Testing Requirements
+
+### Test Pyramid (from Testing-Guide.md)
+
+```
+         /\
+        /  \      E2E: 13 tests (~43s)
+       /____\     Use for: Critical user flows only
+      /      \    
+     / Unit   \   Unit: 158 tests (<1s)
+    /  Tests   \  Use for: Logic, structure, accessibility
+   /____________\ 
+```
+
+**Rule**: 能下沉的下沉 (Push tests down the pyramid)
+
+### What to Test Where
+
+**Unit Tests** (`tests/unit/*.test.ts`):
+- Pure functions and data transformations
+- Accessibility attributes (role, tabIndex, aria-*)
+- Component structure (no duplicate menu items)
+- Edge cases (empty, single, max, missing data)
+
+**E2E Tests** (`tests/e2e/smoke.test.ts`):
+- Critical user journeys only
+- Use semantic selectors: `getByRole('button')` not `.css-class`
+- Helper functions for common actions
+- Screenshots on failure
+
+**Rust Tests** (`apps/desktop/src-tauri/tests/git_engine.rs`):
+- Every new engine function
+- Real git repos in temp dirs
+- Integration with libgit2
+
+### Demo Mode
+
+All IPC commands support demo mode:
+```typescript
+// ipc.ts
+export async function fileBlame(file: string, rev: string | null): Promise<FileBlame> {
+  if (isDemoMode()) {
+    return demoFileBlame(file, rev);  // Synthetic data
+  }
+  return invoke('file_blame', { file, rev });
+}
+```
+
+## Quality Checklist (from Quality-Checklist.md)
+
+### Before Starting (Design Phase)
+
+- [ ] Interactive elements need `role`, `tabIndex`, `aria-label`, `onKeyDown`
+- [ ] Grep codebase to avoid duplicating existing logic
+- [ ] Plan unit tests first (TDD approach)
+
+### Before Committing
+
+- [ ] Run `bun run format:check && bun run typecheck && bun test`
+- [ ] Run `cargo fmt --check && cargo clippy && cargo test` (if Rust changed)
+- [ ] Pre-commit hook auto-formats and organizes imports
+- [ ] Unit tests cover new logic, E2E tests cover critical flows
+
+### Before PR
+
+- [ ] All local CI checks pass (see Quality-Checklist.md § 4)
+- [ ] Documentation updated (CHANGELOG, CLAUDE.md if architecture changed)
+- [ ] Test counts in PR match actual test files
+- [ ] Screenshots attached (for UI changes, both themes)
+
+## Common Patterns
+
+### Adding a New Feature
+
+1. **Check CLAUDE.md § 8 (Gotchas)** — Has this been tried before?
+2. **Design with accessibility** — role/aria/keyboard from day 1
+3. **Write unit tests first** — Fast feedback, precise errors
+4. **Implement in small commits** — One logical change per commit
+5. **Add E2E test if critical path** — User flow, not implementation
+6. **Update docs** — CHANGELOG + CLAUDE.md if architectural
+
+### Fixing a Bug
+
+1. **Check CLAUDE.md § 8** — Is this a known gotcha?
+2. **Write failing test** — Unit test preferred over E2E
+3. **Fix the bug** — Minimal change
+4. **Verify test passes** — Run full test suite
+5. **Add to Quality-Checklist.md** — If it's a recurring pattern
+
+### Debugging E2E Failures
+
+**Wrong approach** ❌:
+- Increase timeout
+- Add random waits
+- Retry logic
+
+**Right approach** ✅:
+1. Take screenshot: `await page.screenshot({ path: 'debug.png' })`
+2. Check element exists: `await page.pause()` (opens inspector)
+3. Verify attributes: Missing `role="button"`? Add it
+4. Root cause > symptom: Fix missing attribute, not timeout
+
+## File Organization
+
+```
+apps/desktop/
+├── src/                       # React frontend (see CLAUDE.md § 6)
+│   ├── core/
+│   │   ├── ipc.ts            # THE typed IPC boundary
+│   │   └── demo.ts           # Demo mode synthetic data
+│   ├── features/             # Feature-based organization
+│   └── components/           # Shared components
+└── src-tauri/                # Rust backend (see CLAUDE.md § 5)
+    ├── src/
+    │   ├── commands.rs       # Thin Tauri command layer
+    │   └── core/             # Git engine (one module per domain)
+    └── tests/
+        └── git_engine.rs     # Integration tests (73 tests)
+
+packages/
+├── core/                     # Pure TypeScript domain logic
+└── design-system/            # UI primitives
+
+tests/
+├── unit/                     # Vitest (158 tests, <1s)
+└── e2e/                      # Playwright (13 tests, ~43s)
+
+docs/
+├── README.md                 # Documentation hub (START HERE)
+├── Quality-Checklist.md      # Quality gates
+├── Testing-Guide.md          # Test strategies
+└── ...
+```
+
+## Import Aliases
+
+```typescript
+@/                           → apps/desktop/src
+@angkorgit/core              → packages/core/src
+@angkorgit/design-system     → packages/design-system/src
+```
+
+## Pre-commit Hook
+
+Located at `.git/hooks/pre-commit`:
+- Runs `biome check --write --organize-imports-enabled=true`
+- Auto-formats code and organizes imports
+- Must match CI checks exactly
+
+If pre-commit passes but CI fails → hook is broken, needs update.
+
+## CI Workflow
+
+Triggered by:
+- Push to `main`
+- PR with `ci` label
+- Manual dispatch
+
+Stages:
+1. Format check (`biome ci .`)
+2. Typecheck (all packages)
+3. Unit tests
+4. Build
+5. E2E tests (if changed)
+6. Rust lint + tests (3 platforms)
+
+**Optimization**: Uses path filters, fail-fast, parallel matrix builds
+
+## Forbidden Patterns
+
+❌ **Never do**:
+- Hex colors in components (use tokens only)
+- `console.log` in production code
+- `any` type without justification
+- Interactive `<div>` without `role`/`aria`/`onKeyDown`
+- E2E tests for non-critical paths (use unit tests)
+- Pre-commit hook out of sync with CI
+- Duplicate menu items (consolidate into shared components)
+
+## When in Doubt
+
+1. Search [CLAUDE.md](./CLAUDE.md) for similar patterns
+2. Check [docs/Quality-Checklist.md](./docs/Quality-Checklist.md) for process
+3. Grep codebase for existing implementations
+4. Ask in team chat with context
+
+## Useful Commands
+
+```bash
+# Development
+bun run dev                  # Browser demo mode
+bun tauri:dev                # Full app with hot reload
+
+# Testing
+bun test                     # Unit tests
+bun test --watch             # Watch mode
+bun run test:e2e             # E2E tests
+cd apps/desktop/src-tauri && cargo test  # Rust tests
+
+# Quality Checks
+bun run format:check         # Biome format + imports
+bun run typecheck            # All packages
+bun run build                # Production build
+
+# Pre-PR (run all)
+bun run format:check && bun run typecheck && bun test && bun run test:e2e
+```
+
+## Version
+
+Last Updated: 2026-09-13  
+Based on: CLAUDE.md, Quality-Checklist.md, Testing-Guide.md  
+Maintainer: Team

@@ -1,5 +1,16 @@
 # Quality Checklist
 
+---
+**Document Metadata**
+- **Purpose**: Systematic quality gates learned from production issues
+- **Audience**: All developers (required reading for PRs)
+- **Type**: Process checklist
+- **Priority**: ⭐⭐ High (AI: read for all code changes)
+- **Related Docs**: [Testing Guide](./Testing-Guide.md), [Development](./Development.md), [CLAUDE.md](../CLAUDE.md)
+- **Last Updated**: 2026-09-13
+- **Lessons From**: Blame feature E2E test failures, CI import order issues
+---
+
 > **Purpose**: Systematic quality gates learned from production issues. Follow these to ship reliable features faster.
 
 ## 📋 Quick Reference
