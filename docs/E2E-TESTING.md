@@ -1,5 +1,7 @@
 # E2E Testing Guide
 
+[中文](./E2E-TESTING-zh.md)
+
 ## Critical: Use Production Builds
 
 **⚠️ E2E tests MUST run against production builds, not dev servers.**

@@ -11,12 +11,10 @@ AngKorGit is a modern, fast, beautiful cross-platform Git client (macOS/Windows/
 
 ## Documentation Priority (Read First)
 
-1. **[CLAUDE.md](./CLAUDE.md)** — **START HERE** (comprehensive project knowledge base)
-   - § 1-3: What/Stack/Layout
-   - § 4: Commands and workflow
-   - § 5: Rust engine (`apps/desktop/src-tauri/src/`)
-   - § 6: Frontend (`apps/desktop/src/`)
-   - § 8: Hard-won gotchas (MUST READ before similar work)
+1. **[`.cursor/skills/`](./.cursor/skills/)** — **START HERE** (agent playbooks)
+   - `angkorgit-workflow` — feature/bug/PR, bun toolchain, quality gates
+   - `angkorgit-frontend` — React, ipc.ts / demo.ts, tokens, a11y
+   - `angkorgit-engine` — Rust git engine, thin commands, git_engine.rs
 
 2. **[docs/Quality-Checklist.md](./docs/Quality-Checklist.md)** — Quality gates for every PR
    - Design → Implementation → Testing → PR → CI
@@ -135,7 +133,7 @@ export async function fileBlame(file: string, rev: string | null): Promise<FileB
 ### Before PR
 
 - [ ] All local CI checks pass (see Quality-Checklist.md § 4)
-- [ ] Documentation updated (CHANGELOG, CLAUDE.md if architecture changed)
+- [ ] Documentation updated (CHANGELOG, skills if architecture changed)
 - [ ] Test counts in PR match actual test files
 - [ ] Screenshots attached (for UI changes, both themes)
 
@@ -143,16 +141,16 @@ export async function fileBlame(file: string, rev: string | null): Promise<FileB
 
 ### Adding a New Feature
 
-1. **Check CLAUDE.md § 8 (Gotchas)** — Has this been tried before?
+1. **Check Quality-Checklist.md lessons + matching skill** — Has this been tried before?
 2. **Design with accessibility** — role/aria/keyboard from day 1
 3. **Write unit tests first** — Fast feedback, precise errors
 4. **Implement in small commits** — One logical change per commit
 5. **Add E2E test if critical path** — User flow, not implementation
-6. **Update docs** — CHANGELOG + CLAUDE.md if architectural
+6. **Update docs** — CHANGELOG + matching skill if architectural
 
 ### Fixing a Bug
 
-1. **Check CLAUDE.md § 8** — Is this a known gotcha?
+1. **Check Quality-Checklist.md lessons** — Is this a known gotcha?
 2. **Write failing test** — Unit test preferred over E2E
 3. **Fix the bug** — Minimal change
 4. **Verify test passes** — Run full test suite
@@ -175,13 +173,13 @@ export async function fileBlame(file: string, rev: string | null): Promise<FileB
 
 ```
 apps/desktop/
-├── src/                       # React frontend (see CLAUDE.md § 6)
+├── src/                       # React frontend (see angkorgit-frontend skill)
 │   ├── core/
 │   │   ├── ipc.ts            # THE typed IPC boundary
 │   │   └── demo.ts           # Demo mode synthetic data
 │   ├── features/             # Feature-based organization
 │   └── components/           # Shared components
-└── src-tauri/                # Rust backend (see CLAUDE.md § 5)
+└── src-tauri/                # Rust backend (see angkorgit-engine skill)
     ├── src/
     │   ├── commands.rs       # Thin Tauri command layer
     │   └── core/             # Git engine (one module per domain)
@@ -250,7 +248,7 @@ Stages:
 
 ## When in Doubt
 
-1. Search [CLAUDE.md](./CLAUDE.md) for similar patterns
+1. Search `.cursor/skills/` and [docs/README.md](./docs/README.md) for similar patterns
 2. Check [docs/Quality-Checklist.md](./docs/Quality-Checklist.md) for process
 3. Grep codebase for existing implementations
 4. Ask in team chat with context
@@ -280,5 +278,5 @@ bun run format:check && bun run typecheck && bun test && bun run test:e2e
 ## Version
 
 Last Updated: 2026-09-13  
-Based on: CLAUDE.md, Quality-Checklist.md, Testing-Guide.md  
+Based on: .cursor/skills/, Quality-Checklist.md, Testing-Guide.md  
 Maintainer: Team

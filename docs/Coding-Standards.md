@@ -1,5 +1,7 @@
 # AngKorGit Coding Standards
 
+[中文](./Coding-Standards-zh.md)
+
 This document outlines coding standards and best practices for the AngKorGit project.
 
 ## Setup

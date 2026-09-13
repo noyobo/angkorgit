@@ -1,12 +1,14 @@
 # Quality Checklist
 
+[中文](./Quality-Checklist-zh.md)
+
 ---
 **Document Metadata**
 - **Purpose**: Systematic quality gates learned from production issues
 - **Audience**: All developers (required reading for PRs)
 - **Type**: Process checklist
 - **Priority**: ⭐⭐ High (AI: read for all code changes)
-- **Related Docs**: [Testing Guide](./Testing-Guide.md), [Development](./Development.md), [CLAUDE.md](../CLAUDE.md)
+- **Related Docs**: [Testing Guide](./Testing-Guide.md), [Development](./Development.md), [Skills](./README.md#skills)
 - **Last Updated**: 2026-09-13
 - **Lessons From**: Blame feature E2E test failures, CI import order issues
 ---
@@ -196,7 +198,7 @@ cargo test
 - [ ] All local CI checks pass
 - [ ] New features have unit tests
 - [ ] E2E tests updated (if user flows changed)
-- [ ] Documentation updated (README, CHANGELOG, CLAUDE.md)
+- [ ] Documentation updated (README, CHANGELOG, skills if workflow changed)
 - [ ] No debug code left (`console.log`, `debugger`)
 - [ ] Screenshots prepared (for UI changes)
 
@@ -215,7 +217,7 @@ cargo test
 
 2. **Update documentation**
    - [ ] CHANGELOG.md (user-facing changes)
-   - [ ] CLAUDE.md (architecture/conventions)
+   - [ ] `.cursor/skills/` (architecture/conventions)
    - [ ] README.md (if setup changed)
    - [ ] Test counts in PR description match reality
 
@@ -244,7 +246,7 @@ The PR template checklist should include:
 
 ## Pre-merge
 - [ ] Ran full local CI checks (see Quality-Checklist.md)
-- [ ] Documentation updated (CHANGELOG, README, CLAUDE.md)
+- [ ] Documentation updated (CHANGELOG, README, skills if workflow changed)
 - [ ] Test counts in PR description match actual test files
 - [ ] Screenshots attached (for UI changes, both themes)
 ```
@@ -326,7 +328,7 @@ After a feature ships, review:
 ### Documentation
 - [ ] Test counts updated in docs
 - [ ] Lessons learned added to this file
-- [ ] CLAUDE.md gotchas section updated (if applicable)
+- [ ] Matching skill updated (if applicable)
 
 ---
 
@@ -335,7 +337,7 @@ After a feature ships, review:
 - [Testing Guide](./Testing-Guide.md) — Detailed testing strategies
 - [Development](./Development.md) — Setup and workflow
 - [Coding Standards](./Coding-Standards.md) — Code style and patterns
-- [Contributing](./Contributing.md) — How to contribute
+- [Skills](./README.md#skills) — Agent playbooks
 
 ---
 

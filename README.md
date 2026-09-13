@@ -2,6 +2,8 @@
 
 A modern, fast Git client built with Tauri and React.
 
+[中文](./README-zh.md)
+
 ## Install
 
 ```bash
@@ -37,9 +39,17 @@ bun test:e2e
 cd apps/desktop/src-tauri && cargo test
 ```
 
-**📚 Testing Documentation:**
-- [Testing Strategy](./TESTING_STRATEGY.md) - Overview of test structure
-- [E2E Testing Guide](./docs/E2E-TESTING.md) - Critical setup and troubleshooting
+**📚 Docs:** [docs/README.md](./docs/README.md) ([中文](./docs/README-zh.md)) · [Testing Strategy](./TESTING_STRATEGY.md) · [E2E Testing](./docs/E2E-TESTING.md)
+
+## Skills
+
+Agent playbooks in [`.cursor/skills/`](./.cursor/skills/). Loaded when the task matches.
+
+| Skill | When |
+| --- | --- |
+| [angkorgit-workflow](./.cursor/skills/angkorgit-workflow/SKILL.md) | Feature, bug, PR, quality gates |
+| [angkorgit-frontend](./.cursor/skills/angkorgit-frontend/SKILL.md) | React, IPC / demo mode, tokens, a11y |
+| [angkorgit-engine](./.cursor/skills/angkorgit-engine/SKILL.md) | Rust git engine, Tauri commands, `git_engine.rs` |
 
 ## Tech Stack
 

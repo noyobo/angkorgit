@@ -1,12 +1,14 @@
 # Testing Guide
 
+[中文](./Testing-Guide-zh.md)
+
 ---
 **Document Metadata**
 - **Purpose**: Comprehensive testing reference for unit, E2E, and integration tests
 - **Audience**: All developers
 - **Type**: Technical reference
 - **Priority**: ⭐⭐ High (AI: read for testing questions)
-- **Related Docs**: [Quality Checklist](./Quality-Checklist.md), [CLAUDE.md](../CLAUDE.md) § 8
+- **Related Docs**: [Quality Checklist](./Quality-Checklist.md), [Skills](./README.md#skills)
 - **Last Updated**: 2026-09-13
 - **Philosophy**: 能下沉的下沉 (Push tests down the pyramid)
 ---
