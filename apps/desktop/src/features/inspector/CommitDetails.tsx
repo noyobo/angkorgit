@@ -22,12 +22,22 @@ import {
   ChevronUp,
   Cloud,
   Copy,
+  History,
   Maximize2,
   Monitor,
   Sparkles,
   Tag as TagIcon,
+  UserRoundSearch,
 } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/Avatar';
 import { FileFilterInput } from '@/components/FileFilterInput';
@@ -73,7 +83,7 @@ const statusMeta: Record<
 };
 
 function ChangeSummary({ diffs }: { diffs: CommitFileInfo[] }) {
-  if (diffs.length === 0) return <>No changes</>;
+  if (diffs.length === 0) return <Fragment>No changes</Fragment>;
   const order: CommitFileInfo['status'][] = ['modified', 'new', 'deleted', 'renamed'];
   const parts = order
     .map((status) => ({ status, count: diffs.filter((d) => d.status === status).length }))
@@ -544,15 +554,15 @@ export function CommitDetails({
             disabled={loading}
           >
             {aiBusy ? (
-              <>
+              <Fragment>
                 <Logo size={14} animated="loop" className="logo-draw-loop" />
                 Stop explaining
-              </>
+              </Fragment>
             ) : (
-              <>
+              <Fragment>
                 <Sparkles className="text-primary" />
                 Explain with AI
-              </>
+              </Fragment>
             )}
           </Button>
         </div>
@@ -600,12 +610,12 @@ export function CommitDetails({
             {!loading && !error && (
               <span className="ml-1 text-faint">
                 {filtering ? (
-                  <>
+                  <Fragment>
                     {shownDiffs.length}{' '}
                     <span className="font-normal normal-case tracking-normal">
                       of {diffs.length}
                     </span>
-                  </>
+                  </Fragment>
                 ) : (
                   diffs.length
                 )}
@@ -625,7 +635,7 @@ export function CommitDetails({
         {stash && !loading && !error && diffs.length > 0 && (
           <div className="mb-1.5 flex min-h-7 items-center gap-2 rounded-md border border-border-subtle bg-surface-raised/50 px-2 py-1 text-[11px]">
             {picked.size === 0 ? (
-              <>
+              <Fragment>
                 <span className="min-w-0 flex-1 text-faint">
                   This is a stash. Tick files to apply only those to the working copy.
                 </span>
@@ -637,9 +647,9 @@ export function CommitDetails({
                 >
                   Select all
                 </Button>
-              </>
+              </Fragment>
             ) : (
-              <>
+              <Fragment>
                 <span className="min-w-0 flex-1 text-muted">
                   {picked.size} of {diffs.length} selected
                 </span>
@@ -659,7 +669,7 @@ export function CommitDetails({
                   <ArchiveRestore className="size-3" /> Apply {picked.size}{' '}
                   {picked.size === 1 ? 'file' : 'files'}
                 </Button>
-              </>
+              </Fragment>
             )}
           </div>
         )}
@@ -750,7 +760,17 @@ export function CommitDetails({
               externalEditor={externalEditor}
               remotes={remotes}
               headBranch={repo?.headBranch ?? null}
-            />
+            >
+              <DropdownMenuItem onClick={() => useUi.getState().openFileHistory(fileMenu.path)}>
+                <History /> File history
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => useUi.getState().openBlame(fileMenu.path, commit.oid)}
+              >
+                <UserRoundSearch /> Blame at this commit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </FileActionsMenu>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

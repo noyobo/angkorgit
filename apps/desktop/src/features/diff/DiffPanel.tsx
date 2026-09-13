@@ -30,11 +30,12 @@ import {
   Rows3,
   TextSelect,
   Trash2,
+  UserRoundSearch,
   WholeWord,
   WrapText,
   X,
 } from 'lucide-react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { confirmDialog } from '@/components/confirm';
 import { ipc } from '@/core/ipc';
@@ -60,6 +61,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
   const closeCenterDiff = useUi((s) => s.closeCenterDiff);
   const openCenterDiff = useUi((s) => s.openCenterDiff);
   const openFileHistory = useUi((s) => s.openFileHistory);
+  const openBlame = useUi((s) => s.openBlame);
   const externalEditor = useSettings((s) => s.externalEditor);
   const diffView = useUi((s) => s.diffView);
   const setDiffView = useUi((s) => s.setDiffView);
@@ -445,8 +447,18 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             <History className="size-3.5" />
           </Button>
         </Hint>
+        <Hint label={target.oid ? 'Blame at this commit' : 'Blame'}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Blame"
+            onClick={() => openBlame(target.path, target.oid ?? null)}
+          >
+            <UserRoundSearch className="size-3.5" />
+          </Button>
+        </Hint>
         {blocks.length > 0 && (
-          <>
+          <Fragment>
             <Separator orientation="vertical" className="mx-1 h-4" />
             <Hint
               label={
@@ -483,10 +495,10 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             <span className="text-[10px] text-faint">
               {blocks.length} change{blocks.length === 1 ? '' : 's'}
             </span>
-          </>
+          </Fragment>
         )}
         {siblings.length > 1 && fileIndex >= 0 && (
-          <>
+          <Fragment>
             <Separator orientation="vertical" className="mx-1 h-4" />
             <Hint
               label={
@@ -525,10 +537,10 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                 <ChevronRight className="size-4" />
               </Button>
             </Hint>
-          </>
+          </Fragment>
         )}
         {isWorkingCopy && (
-          <>
+          <Fragment>
             <Separator orientation="vertical" className="mx-1 h-4" />
             {target.staged ? (
               <Button
@@ -547,7 +559,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                 <Plus className="size-3" /> Stage file
               </Button>
             )}
-          </>
+          </Fragment>
         )}
       </div>
 
@@ -601,13 +613,13 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                         }
                       >
                         {target.staged ? (
-                          <>
+                          <Fragment>
                             <Minus className="size-3" /> Unstage hunk
-                          </>
+                          </Fragment>
                         ) : (
-                          <>
+                          <Fragment>
                             <Plus className="size-3" /> Stage hunk
-                          </>
+                          </Fragment>
                         )}
                       </Button>
                     )
@@ -634,7 +646,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
             onCloseAutoFocus={(e) => e.preventDefault()}
           >
             {isWorkingCopy && lineMenu.info.line.kind !== 'context' && (
-              <>
+              <Fragment>
                 {target.staged ? (
                   <DropdownMenuItem
                     onClick={() =>
@@ -655,7 +667,7 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                     <Minus /> Unstage this line
                   </DropdownMenuItem>
                 ) : (
-                  <>
+                  <Fragment>
                     <DropdownMenuItem
                       onClick={() =>
                         void runStage(
@@ -703,10 +715,10 @@ export function DiffPanel({ target }: { target: CenterDiffTarget }) {
                     >
                       <Trash2 /> Discard this line…
                     </DropdownMenuItem>
-                  </>
+                  </Fragment>
                 )}
                 <DropdownMenuSeparator />
-              </>
+              </Fragment>
             )}
             {lineMenu.selection && (
               <DropdownMenuItem

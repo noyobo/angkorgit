@@ -361,6 +361,7 @@ export function RepositoryPage() {
           if (ui.centerEditor) editorCloseShortcut.current?.();
           else if (ui.rangeDiff) closeRangeDiff();
           else if (ui.centerDiff) closeCenterDiff();
+          else if (ui.centerBlame) ui.closeBlame();
           else if (ui.centerFileHistory) ui.closeFileHistory();
         },
       },

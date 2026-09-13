@@ -16,6 +16,7 @@ mod terminal;
 mod watcher;
 
 pub mod test_api {
+    pub use crate::core::blame::blame_file;
     pub use crate::core::branch::{
         can_fast_forward, checkout_branch, cherry_pick, cherry_pick_many, create as branch_create,
         delete as branch_delete, delete_local_and_remote as branch_delete_local_and_remote,
@@ -174,6 +175,7 @@ pub fn run() {
             commands::diff_commit_file,
             commands::diff_range,
             commands::staged_patch,
+            commands::file_blame,
             commands::conflict_list,
             commands::conflict_read,
             commands::conflict_resolve,

@@ -7,6 +7,12 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Blame view shows who changed each line.** Right-click any file in the working
+  copy or a commit's file list and choose Blame (or "Blame at this commit") to
+  see every line annotated with its author, commit time, and message. Click a
+  hunk to jump to that commit in the graph. The diff panel's toolbar also has a
+  Blame button. Uncommitted changes are marked separately. Binary files and files
+  over 5 MB are refused. Escape closes the blame panel. Based on upstream v0.13.0.
 - **Console errors land in the daily log.** `console.error`, uncaught exceptions,
   and unhandled promise rejections are written to the same `*.log` file as the
   rest of the app log (Help → Open Today's Log), so a WebView crash is still

@@ -70,6 +70,11 @@ export interface StashPreset {
   paths: string[];
 }
 
+export interface BlameTarget {
+  file: string;
+  rev: string | null;
+}
+
 export interface ClonePreset {
   url: string;
   into: string;
@@ -104,6 +109,7 @@ interface UiState {
   rangeDiff: RangeDiffTarget | null;
   centerEditor: string | null;
   centerFileHistory: string | null;
+  centerBlame: BlameTarget | null;
   conflictFile: string | null;
   repoTabs: string[];
   worktreeTabs: string[];
@@ -142,6 +148,8 @@ interface UiState {
   closeEditor: () => void;
   openFileHistory: (file: string) => void;
   closeFileHistory: () => void;
+  openBlame: (file: string, rev?: string | null) => void;
+  closeBlame: () => void;
   openConflict: (file: string | null) => void;
   addRepoTab: (path: string) => void;
   closeRepoTab: (path: string) => void;
@@ -200,6 +208,7 @@ export const useUi = create<UiState>()(
       rangeDiff: null,
       centerEditor: null,
       centerFileHistory: null,
+      centerBlame: null,
       conflictFile: null,
       repoTabs: [],
       worktreeTabs: [],
@@ -242,8 +251,12 @@ export const useUi = create<UiState>()(
       closeRangeDiff: () => set({ rangeDiff: null }),
       openEditor: (centerEditor) => set({ centerEditor }),
       closeEditor: () => set({ centerEditor: null }),
-      openFileHistory: (centerFileHistory) => set({ centerFileHistory, centerDiff: null }),
+      openFileHistory: (centerFileHistory) =>
+        set({ centerFileHistory, centerBlame: null, centerDiff: null }),
       closeFileHistory: () => set({ centerFileHistory: null }),
+      openBlame: (file, rev = null) =>
+        set({ centerBlame: { file, rev }, centerFileHistory: null, centerDiff: null }),
+      closeBlame: () => set({ centerBlame: null }),
       openConflict: (conflictFile) => set({ conflictFile }),
       addRepoTab: (path) =>
         set((s) => (s.repoTabs.includes(path) ? s : { repoTabs: [...s.repoTabs, path] })),

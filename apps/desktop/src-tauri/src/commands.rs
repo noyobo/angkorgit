@@ -1,7 +1,9 @@
 use tauri::{AppHandle, Emitter, State};
 
 use crate::core::types::*;
-use crate::core::{branch, commit, conflict, diff, history, misc, remote, repo, stage, worktree};
+use crate::core::{
+    blame, branch, commit, conflict, diff, history, misc, remote, repo, stage, worktree,
+};
 use crate::error::AppResult;
 use crate::terminal::TerminalState;
 
@@ -777,6 +779,15 @@ pub async fn diff_range(
 #[tauri::command]
 pub async fn staged_patch(path: String) -> AppResult<String> {
     blocking(move || diff::staged_patch_text(&path)).await
+}
+
+#[tauri::command]
+pub async fn file_blame(
+    path: String,
+    file: String,
+    rev: Option<String>,
+) -> AppResult<blame::FileBlame> {
+    blocking(move || blame::blame_file(&path, &file, rev.as_deref())).await
 }
 
 #[tauri::command]

@@ -1,6 +1,7 @@
 import { cn } from '@angkorgit/design-system';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { Group, Panel, type PanelImperativeHandle, Separator } from 'react-resizable-panels';
+import { BlamePanel } from '@/features/blame/BlamePanel';
 import { DiffPanel } from '@/features/diff/DiffPanel';
 import { RangeDiffPanel } from '@/features/diff/RangeDiffPanel';
 import { EditorPanel } from '@/features/editor/EditorPanel';
@@ -8,7 +9,7 @@ import { CommitGraph } from '@/features/graph/CommitGraph';
 import { FileHistoryPanel } from '@/features/history/FileHistoryPanel';
 import { Inspector } from '@/features/inspector/Inspector';
 import { Sidebar } from '@/features/sidebar/Sidebar';
-import { type CenterDiffTarget, type RangeDiffTarget, useUi } from './store';
+import { type BlameTarget, type CenterDiffTarget, type RangeDiffTarget, useUi } from './store';
 import { workspaceView } from './workspace';
 
 const TerminalPanel = lazy(() =>
@@ -29,6 +30,7 @@ function GraphPane({
   rangeDiff,
   centerEditor,
   centerFileHistory,
+  centerBlame,
 }: {
   repoPath: string;
   covered: boolean;
@@ -37,6 +39,7 @@ function GraphPane({
   rangeDiff: RangeDiffTarget | null;
   centerEditor: string | null;
   centerFileHistory: string | null;
+  centerBlame: BlameTarget | null;
 }) {
   return (
     <>
@@ -54,8 +57,12 @@ function GraphPane({
         />
       ) : diffInCenter && centerDiff ? (
         <DiffPanel target={centerDiff} />
+      ) : centerFileHistory ? (
+        <FileHistoryPanel key={centerFileHistory} file={centerFileHistory} />
       ) : (
-        centerFileHistory && <FileHistoryPanel key={centerFileHistory} file={centerFileHistory} />
+        centerBlame && (
+          <BlamePanel key={`${centerBlame.file}@${centerBlame.rev ?? ''}`} target={centerBlame} />
+        )
       )}
     </>
   );
@@ -88,12 +95,14 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
   const rangeDiff = useUi((s) => s.rangeDiff);
   const centerEditor = useUi((s) => s.centerEditor);
   const centerFileHistory = useUi((s) => s.centerFileHistory);
+  const centerBlame = useUi((s) => s.centerBlame);
   const view = workspaceView({
     layout,
     sidebarOpen: sidebarOpenPref,
     centerDiff,
     centerEditor,
     centerFileHistory,
+    centerBlame,
   });
 
   const showSidebarRef = useRef(view.showSidebar);
@@ -136,6 +145,7 @@ export function WorkspaceLayout({ repoPath }: { repoPath: string }) {
       rangeDiff={rangeDiff}
       centerEditor={centerEditor}
       centerFileHistory={centerFileHistory}
+      centerBlame={centerBlame}
     />
   );
 
