@@ -66,6 +66,7 @@ function VirtualCommitList({
           key={item.key}
           ref={virtualizer.measureElement}
           data-index={item.index}
+          role="row"
           className="absolute left-0 top-0 w-full"
           style={{ transform: `translateY(${item.start}px)` }}
         >
