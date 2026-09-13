@@ -7,6 +7,16 @@ All notable changes to AngKorGit are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+
+- **Quality Checklist and Testing Guide.** New comprehensive documentation at
+  `docs/Quality-Checklist.md` and `docs/Testing-Guide.md` capturing lessons from
+  production issues: accessibility-first design, test pyramid principles, pre-commit
+  hook best practices, and debugging strategies. The PR template now includes
+  accessibility and testing checklists. Pre-commit hook upgraded to match CI checks
+  (includes import organization).
+
+### Added (from v0.13.0)
+
 - **Blame view shows who changed each line.** Right-click any file in the working
   copy or a commit's file list and choose Blame (or "Blame at this commit") to
   see every line annotated with its author, commit time, and message. Click a
