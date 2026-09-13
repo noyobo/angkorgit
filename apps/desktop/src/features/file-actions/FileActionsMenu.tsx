@@ -1,8 +1,8 @@
 import type { RemoteInfo } from '@angkorgit/core';
 import { DropdownMenuItem, DropdownMenuSeparator } from '@angkorgit/design-system';
 import { Clock, Copy, ExternalLink, Folder, Globe, Pencil, UserRoundSearch } from 'lucide-react';
-import { useUi } from '@/features/ui/store';
 import type { ExternalEditor } from '@/features/settings/store';
+import { useUi } from '@/features/ui/store';
 import {
   buildFileRemoteUrl,
   copyAbsolutePathAction,

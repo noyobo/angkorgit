@@ -1,5 +1,5 @@
-import { expect, test } from '@rstest/playwright';
 import type { Page } from '@rstest/playwright';
+import { expect, test } from '@rstest/playwright';
 
 // Smoke tests for critical user paths
 // Other functionality migrated to unit tests for speed and stability
