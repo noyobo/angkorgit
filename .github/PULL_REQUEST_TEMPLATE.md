@@ -32,6 +32,6 @@
 
 ### Documentation
 - [ ] `CHANGELOG.md` updated (user-facing changes)
-- [ ] `CLAUDE.md` updated (if conventions/architecture changed)
+- [ ] Matching `.cursor/skills/*/SKILL.md` updated (if conventions/architecture changed)
 - [ ] Test counts in PR description match actual test files
 - [ ] Screenshots attached (for UI changes, both dark and light themes)

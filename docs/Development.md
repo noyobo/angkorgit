@@ -1,11 +1,13 @@
 # Development Guide
 
+[中文](./Development-zh.md)
+
 ## Quick Links
 
 - 📋 **[Quality Checklist](./Quality-Checklist.md)** — Systematic quality gates for every PR
 - 🧪 **[Testing Guide](./Testing-Guide.md)** — Test pyramid, strategies, and best practices
 - 📖 **[Coding Standards](./Coding-Standards.md)** — Code style and patterns
-- 🤝 **[Contributing](./Contributing.md)** — How to contribute
+- 🧰 **[Skills](./README.md#skills)** — Agent playbooks (workflow / frontend / engine)
 
 ---
 

@@ -1,270 +1,127 @@
 # AngKorGit Documentation Hub
 
-> **For AI assistants**: This is the central documentation index. Use section categories to find relevant docs quickly.
+[中文](./README-zh.md)
+
+> **For AI assistants**: Start with [Skills](#skills), then the docs in this folder. Do not look for `CLAUDE.md` — agent playbooks live in `.cursor/skills/`. Human readers who prefer Chinese: use `*-zh.md` (index: [README-zh.md](./README-zh.md)).
 
 ## 📚 Document Categories
 
-### 🚀 Getting Started (New Contributors)
+### 🚀 Getting Started
 
-Start here if you're new to the project:
-
-1. **[Getting Started](./Getting-Started.md)** — First-time setup and overview
-2. **[Development](./Development.md)** — Daily workflow and commands
-3. **[Contributing](./Contributing.md)** — How to contribute code
-
-### 🏗️ Architecture & Design
-
-Understand how AngKorGit is built:
-
-1. **[Architecture](./Architecture.md)** — System design and component structure
-2. **[UI Guidelines](./UI-Guidelines.md)** — Design system and UI patterns
-3. **[Coding Standards](./Coding-Standards.md)** — Code style and conventions
+1. **[../README.md](../README.md)** — Install, commands, repo layout
+2. **[Development](./Development.md)** — Daily workflow, demo mode, Rust engine, AI providers
 
 ### ✅ Quality Assurance
 
-Maintain code quality and prevent issues:
+1. **[Quality Checklist](./Quality-Checklist.md)** ⭐ — Design → test → pre-PR → CI
+2. **[Testing Guide](./Testing-Guide.md)** ⭐ — Test pyramid, unit vs E2E
+3. **[E2E Testing](./E2E-TESTING.md)** — E2E must hit a production build, not `dev`
 
-1. **[Quality Checklist](./Quality-Checklist.md)** ⭐ — Systematic quality gates (design → deployment)
-2. **[Testing Guide](./Testing-Guide.md)** ⭐ — Test pyramid, strategies, best practices
-3. **[Launch Checklist](./Launch-Checklist.md)** — Pre-release verification
+### 📖 Standards
 
-### 📦 Distribution & Release
+1. **[Coding Standards](./Coding-Standards.md)** — Fragment, a11y, commit messages
 
-Ship the product:
+---
 
-1. **[Distribution](./Distribution.md)** — Building, signing, and releasing
-2. **[Roadmap](./Roadmap.md)** — Feature planning and priorities
+## Skills
 
-### 🔄 Migration & Compatibility
+Agent playbooks in [`.cursor/skills/`](../.cursor/skills/). Cursor loads them when the task matches.
 
-Handle transitions:
+| Skill | When | Path |
+| --- | --- | --- |
+| **angkorgit-workflow** | Feature, bug, PR, quality gates, toolchain | [SKILL.md](../.cursor/skills/angkorgit-workflow/SKILL.md) |
+| **angkorgit-frontend** | React, `ipc.ts` / `demo.ts`, tokens, a11y | [SKILL.md](../.cursor/skills/angkorgit-frontend/SKILL.md) |
+| **angkorgit-engine** | `src-tauri`, libgit2, `commands.rs`, `git_engine.rs` | [SKILL.md](../.cursor/skills/angkorgit-engine/SKILL.md) |
 
-1. **[From GitHub Desktop](./From-GitHub-Desktop.md)** — Migration guide
-2. **[PARITY](./PARITY.md)** — Feature parity tracking with upstream
-
-### 🤖 For AI Assistants
-
-Special documents optimized for AI understanding:
-
-1. **[CLAUDE.md](../CLAUDE.md)** ⭐⭐⭐ — **Primary knowledge base** (comprehensive project context)
-2. **[Quality Checklist](./Quality-Checklist.md)** — Lessons from production issues
-3. **[Testing Guide](./Testing-Guide.md)** — When to write what tests
+New git operation: follow **frontend** + **engine** (Rust `core/` → thin command → `generate_handler` → `ipc.ts` + `demo.ts` → `git_engine.rs` test).
 
 ---
 
 ## 🎯 Quick Navigation by Task
 
-### "I want to..."
+### Add a feature
 
-#### Add a New Feature
-1. Read [Architecture](./Architecture.md) → understand subsystems
-2. Follow [Quality Checklist](./Quality-Checklist.md) → design → test → implement
-3. Check [Testing Guide](./Testing-Guide.md) → write unit tests first
-4. Update [Roadmap](./Roadmap.md) → mark as shipped
-5. Follow PR template checklist
+1. [angkorgit-workflow](../.cursor/skills/angkorgit-workflow/SKILL.md) + [Quality Checklist](./Quality-Checklist.md)
+2. UI? [angkorgit-frontend](../.cursor/skills/angkorgit-frontend/SKILL.md). Git op? also [angkorgit-engine](../.cursor/skills/angkorgit-engine/SKILL.md)
+3. Unit test first ([Testing Guide](./Testing-Guide.md)); E2E only for a critical user journey
+4. User-facing? `CHANGELOG.md`
 
-#### Fix a Bug
-1. Check [Testing Guide](./Testing-Guide.md) → debugging strategies
-2. Write failing test first (unit > e2e)
-3. Fix the bug
-4. Verify test passes
-5. Add to [Quality Checklist](./Quality-Checklist.md) if it's a recurring pattern
+### Fix a bug
 
-#### Review Code
-1. Use [Quality Checklist](./Quality-Checklist.md) → PR checklist section
-2. Verify [Coding Standards](./Coding-Standards.md) compliance
-3. Check [Testing Guide](./Testing-Guide.md) → test coverage appropriate?
-4. Ensure [UI Guidelines](./UI-Guidelines.md) followed (for UI changes)
+1. [Quality Checklist](./Quality-Checklist.md) § 6 — screenshot, then root cause (usually missing `role`, not timeout)
+2. Failing unit test first
+3. Recurring pattern → add a line to Quality Checklist
 
-#### Understand the Codebase
-1. Start with [Architecture](./Architecture.md) → system overview
-2. Check [CLAUDE.md](../CLAUDE.md) → detailed subsystem docs
-3. Look at [Development](./Development.md) → commands and workflow
-4. Review [Coding Standards](./Coding-Standards.md) → conventions
+### Review / PR
 
-#### Prepare for Release
-1. Follow [Launch Checklist](./Launch-Checklist.md)
-2. Update [Roadmap](./Roadmap.md) → move shipped features
-3. Verify [Distribution](./Distribution.md) → build process
-4. Update CHANGELOG.md
+1. [Quality Checklist](./Quality-Checklist.md) PR section
+2. [Coding Standards](./Coding-Standards.md)
+3. Local CI: `bun run format:check && bun run typecheck && bun test`
+
+### Understand the codebase
+
+1. [Development](./Development.md) + [../README.md](../README.md)
+2. Skills above for the layer you are in
+3. Grep — layout is `apps/desktop/src/` (React), `apps/desktop/src-tauri/` (engine), `packages/core/` (pure TS)
 
 ---
 
 ## 📋 Document Metadata
 
-| Document | Type | Audience | Last Major Update | AI Priority |
-|----------|------|----------|-------------------|-------------|
-| [CLAUDE.md](../CLAUDE.md) | Reference | AI, All | 2026-09 | ⭐⭐⭐ Primary |
-| [Quality-Checklist.md](./Quality-Checklist.md) | Process | Developers | 2026-09-13 | ⭐⭐ High |
-| [Testing-Guide.md](./Testing-Guide.md) | Reference | Developers | 2026-09-13 | ⭐⭐ High |
-| [Architecture.md](./Architecture.md) | Reference | All | 2026-09 | ⭐⭐ High |
-| [Development.md](./Development.md) | Guide | Developers | 2026-09-13 | ⭐ Medium |
-| [Getting-Started.md](./Getting-Started.md) | Tutorial | New Contributors | 2026-09 | ⭐ Medium |
-| [Contributing.md](./Contributing.md) | Guide | Contributors | 2026-09 | ⭐ Medium |
-| [Coding-Standards.md](./Coding-Standards.md) | Reference | Developers | 2026-09 | ⭐ Medium |
-| [UI-Guidelines.md](./UI-Guidelines.md) | Reference | UI Developers | 2026-09 | ⭐ Medium |
-| [Launch-Checklist.md](./Launch-Checklist.md) | Checklist | Maintainers | 2026-09 | Medium |
-| [Distribution.md](./Distribution.md) | Guide | Maintainers | 2026-09 | Medium |
-| [Roadmap.md](./Roadmap.md) | Planning | All | 2026-09 | Medium |
-| [From-GitHub-Desktop.md](./From-GitHub-Desktop.md) | Guide | Users | 2026-09 | Low |
-| [PARITY.md](./PARITY.md) | Tracking | Maintainers | 2026-09 | Low |
+| Document | Type | Audience | AI Priority |
+|----------|------|----------|-------------|
+| [.cursor/skills/](../.cursor/skills/) | Playbook | AI | ⭐⭐⭐ Primary |
+| [Quality-Checklist.md](./Quality-Checklist.md) | Process | Developers | ⭐⭐ High |
+| [Testing-Guide.md](./Testing-Guide.md) | Reference | Developers | ⭐⭐ High |
+| [E2E-TESTING.md](./E2E-TESTING.md) | Guide | Developers | ⭐⭐ High |
+| [Development.md](./Development.md) | Guide | Developers | ⭐ Medium |
+| [Coding-Standards.md](./Coding-Standards.md) | Reference | Developers | ⭐ Medium |
+| [../README.md](../README.md) | Overview | All | ⭐ Medium |
+| [../TESTING_STRATEGY.md](../TESTING_STRATEGY.md) | Overview | Developers | Medium |
+| [README-zh.md](./README-zh.md) | 中文索引 | 人 | — |
 
 ---
 
 ## 🤖 AI Assistant Guidelines
 
-### When to Read What
+**Code change**: matching skill → Quality Checklist design phase → tests per Testing Guide → Coding Standards.
 
-**For Code Changes**:
-1. Always check [CLAUDE.md](../CLAUDE.md) first (§6 for frontend, §5 for Rust)
-2. Follow [Quality Checklist](./Quality-Checklist.md) → design phase
-3. Write tests per [Testing Guide](./Testing-Guide.md)
-4. Verify [Coding Standards](./Coding-Standards.md) compliance
+**Bug**: Quality Checklist § 6 + Testing Guide debugging. Do not bump E2E timeouts.
 
-**For Bug Fixes**:
-1. [CLAUDE.md](../CLAUDE.md) § 8 (Gotchas) → known issues
-2. [Testing Guide](./Testing-Guide.md) § 6 (Debugging) → strategies
-3. [Quality Checklist](./Quality-Checklist.md) § 6 (Debugging) → visual techniques
-
-**For Architecture Questions**:
-1. [CLAUDE.md](../CLAUDE.md) § 1-3 (What/Stack/Layout)
-2. [Architecture.md](./Architecture.md) → high-level overview
-3. Grep codebase for actual implementation
-
-**For Testing Questions**:
-1. [Testing Guide](./Testing-Guide.md) → comprehensive reference
-2. [Quality Checklist](./Quality-Checklist.md) § 2 (Test Pyramid)
-3. Check `tests/unit/` and `tests/e2e/` for examples
-
-### Document Relationships
+**Git engine**: [angkorgit-engine](../.cursor/skills/angkorgit-engine/SKILL.md). **UI / IPC**: [angkorgit-frontend](../.cursor/skills/angkorgit-frontend/SKILL.md). **Commands**: Development.md (package manager is **bun**, not pnpm).
 
 ```
-CLAUDE.md (Primary: all subsystems)
+.cursor/skills/          (agent playbooks)
     ↓
-    ├─→ Architecture.md (High-level design)
-    ├─→ Quality-Checklist.md (Quality processes)
-    │   └─→ Testing-Guide.md (Test details)
-    ├─→ Coding-Standards.md (Style rules)
-    ├─→ UI-Guidelines.md (Design patterns)
-    └─→ Development.md (Daily workflow)
-        ├─→ Getting-Started.md (First-time setup)
-        └─→ Contributing.md (Contribution process)
-            └─→ Launch-Checklist.md (Release)
-                └─→ Distribution.md (Build & ship)
+docs/Quality-Checklist.md
+    └─→ Testing-Guide.md + E2E-TESTING.md
+docs/Development.md
+docs/Coding-Standards.md
 ```
 
-### Search Strategies
-
-**By Topic**:
-- **Git operations**: CLAUDE.md § 5 (Rust engine)
-- **React components**: CLAUDE.md § 6 (Frontend), UI-Guidelines.md
-- **Testing**: Testing-Guide.md (comprehensive), Quality-Checklist.md (process)
-- **Accessibility**: Quality-Checklist.md § 1, Testing-Guide.md § 1
-- **CI/CD**: Quality-Checklist.md § 7, Distribution.md
-- **Commands**: Development.md § 2 (table)
-
-**By File Path**:
-- `apps/desktop/src/` → CLAUDE.md § 6 (Frontend)
-- `apps/desktop/src-tauri/` → CLAUDE.md § 5 (Rust)
-- `packages/core/` → CLAUDE.md § 3 (Core logic)
+**By path**:
+- `apps/desktop/src/` → angkorgit-frontend
+- `apps/desktop/src-tauri/` → angkorgit-engine
+- `packages/core/` → unit-test in `tests/unit/`; types stay in sync with Rust serde camelCase
 - `tests/` → Testing-Guide.md
 
 ---
 
 ## 📝 Contributing to Docs
 
-### Adding a New Document
-
-1. Create the document with clear frontmatter:
-   ```markdown
-   # Document Title
-   
-   > **Purpose**: One-sentence summary for AI assistants
-   > **Audience**: Who should read this
-   > **Related**: Links to related docs
-   ```
-
-2. Add entry to this README.md:
-   - Categorize appropriately
-   - Add to metadata table
-   - Update relationship diagram if needed
-
-3. Update cross-references in related docs
-
-4. Add to [Development.md](./Development.md) Quick Links if relevant
-
-### Document Quality Standards
-
-✅ **Good Documentation**:
-- Clear purpose statement at top
-- Hierarchical structure (## → ### → ####)
-- Code examples with context
-- Cross-references to related docs
-- Updated date in metadata
-
-❌ **Avoid**:
-- Duplicate information (link instead)
-- Outdated examples
-- Vague titles ("Misc", "Other")
-- Missing context
+1. Add a purpose line at the top of a new doc.
+2. Link it from this README (category + metadata table).
+3. Add a `*-zh.md` sibling for humans (Chinese). Keep both in sync. Link `[中文]` / `[English]` at the top.
+4. Cross-link related docs. Do not invent files that are not in the repo.
 
 ---
 
 ## 🔄 Maintenance
 
-### When to Update
-
-- **After major features**: Update relevant docs + CLAUDE.md
-- **After bug fixes**: Add to Quality-Checklist.md if pattern emerges
-- **Quarterly reviews**: Check for outdated info
-- **Before releases**: Verify all checklists
-
-### Review Schedule
-
-| Document | Review Frequency | Owner |
-|----------|------------------|-------|
-| CLAUDE.md | After each major feature | Maintainers |
-| Quality-Checklist.md | After production issues | All developers |
-| Testing-Guide.md | Quarterly | QA/Testing team |
-| Roadmap.md | Monthly | Product owner |
-| Others | As needed | Relevant contributors |
+- After a production issue: Quality-Checklist.md
+- After a workflow change: the matching `.cursor/skills/*/SKILL.md`
+- Before a PR: `bun run format:check` (husky format-only does not match CI import order)
 
 ---
 
-## 🆘 Getting Help
-
-**Can't find what you need?**
-
-1. Search this document for keywords
-2. Check [CLAUDE.md](../CLAUDE.md) (most comprehensive)
-3. Grep the `docs/` directory
-4. Ask in team chat with context
-
-**Found outdated info?**
-
-1. Create an issue or PR to fix it
-2. Tag with `documentation` label
-3. Update this index if structure changed
-
----
-
-## 📊 Documentation Stats
-
-- **Total Documents**: 14 markdown files
-- **Lines of Documentation**: ~15,000+ lines
-- **Primary Reference**: CLAUDE.md (~1,500 lines)
-- **Latest Addition**: Quality-Checklist.md + Testing-Guide.md (2026-09-13)
-
-**Coverage**:
-- ✅ Architecture: Comprehensive
-- ✅ Development: Complete
-- ✅ Testing: Detailed (new!)
-- ✅ Quality Process: Documented (new!)
-- ⚠️ User Guides: Basic
-- ⚠️ API Docs: In code comments
-
----
-
-*Last Updated: 2026-09-13*  
-*Maintainer: Team*  
-*Questions? Check [Contributing.md](./Contributing.md)*
+*Last Updated: 2026-09-13*

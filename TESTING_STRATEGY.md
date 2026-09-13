@@ -1,5 +1,7 @@
 # Testing Strategy
 
+[中文](./TESTING_STRATEGY-zh.md)
+
 ## Final Implementation
 
 We've consolidated our test suite into an efficient two-tier approach:
