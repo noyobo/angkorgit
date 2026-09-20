@@ -26,6 +26,7 @@ import type {
   WorktreeInfo,
 } from '@angkorgit/core';
 import type { FileBlame } from '@angkorgit/core';
+import { registerForgeAccountHosts } from '@angkorgit/core';
 let demo = null as unknown as typeof import('./demo');
 
 export interface OpOutcome {
@@ -81,6 +82,11 @@ export interface AccountCheckResult {
   status: AccountCheckStatus;
   expiresAt: string | null;
   accounts: HostingAccount[];
+}
+
+function withForgeHosts(accounts: HostingAccount[]): HostingAccount[] {
+  registerForgeAccountHosts(accounts);
+  return accounts;
 }
 
 export const isTauri = (): boolean =>
@@ -636,7 +642,7 @@ export const ipc = {
   },
   async accountList(): Promise<HostingAccount[]> {
     if (!isTauri())
-      return [
+      return withForgeHosts([
         {
           host: 'github.com',
           username: 'demo-user',
@@ -644,8 +650,8 @@ export const ipc = {
           verified: true,
           isDefault: true,
         },
-      ];
-    return invoke('account_list');
+      ]);
+    return withForgeHosts(await invoke('account_list'));
   },
   async accountAdd(
     host: string,
@@ -655,26 +661,29 @@ export const ipc = {
     verified: boolean,
     email?: string | null,
   ): Promise<HostingAccount[]> {
-    if (!isTauri()) return [{ host, username, provider, verified, email, isDefault: true }];
-    return invoke('account_add', { host, username, provider, token, verified, email: email ?? null });
+    if (!isTauri()) return withForgeHosts([{ host, username, provider, verified, email, isDefault: true }]);
+    return withForgeHosts(
+      await invoke('account_add', { host, username, provider, token, verified, email: email ?? null }),
+    );
   },
   async accountRemove(host: string, username: string): Promise<HostingAccount[]> {
-    if (!isTauri()) return [];
-    return invoke('account_remove', { host, username });
+    if (!isTauri()) return withForgeHosts([]);
+    return withForgeHosts(await invoke('account_remove', { host, username }));
   },
   async accountSetDefault(host: string, username: string): Promise<HostingAccount[]> {
-    if (!isTauri()) return [];
-    return invoke('account_set_default', { host, username });
+    if (!isTauri()) return withForgeHosts([]);
+    return withForgeHosts(await invoke('account_set_default', { host, username }));
   },
   async accountCheck(host: string, username: string): Promise<AccountCheckResult> {
-    if (!isTauri()) {
-      return {
-        status: 'ok',
-        expiresAt: null,
-        accounts: [{ host, username, provider: 'github', verified: true, isDefault: true }],
-      };
-    }
-    return invoke('account_check', { host, username });
+    const result: AccountCheckResult = !isTauri()
+      ? {
+          status: 'ok',
+          expiresAt: null,
+          accounts: [{ host, username, provider: 'github', verified: true, isDefault: true }],
+        }
+      : await invoke('account_check', { host, username });
+    withForgeHosts(result.accounts);
+    return result;
   },
 
   async aiKeyGet(provider: string): Promise<string | null> {

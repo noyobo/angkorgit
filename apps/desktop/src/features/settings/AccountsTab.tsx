@@ -32,6 +32,7 @@ import {
   cn,
 } from '@angkorgit/design-system';
 import { ipc, openExternal, type AccountCheckStatus, type HostingAccount } from '@/core/ipc';
+import { useForge } from '@/features/forge/store';
 import { timeAgo } from '@/shared/utils';
 import { confirmDialog } from '@/components/confirm';
 import { Field, SettingCard } from './SettingCard';
@@ -360,6 +361,7 @@ export function AccountsTab() {
         email,
       );
       setAccounts(updated);
+      void useForge.getState().load(true);
       setToken('');
       setUsername('');
       setAdding(false);
@@ -377,6 +379,7 @@ export function AccountsTab() {
   const remove = async (account: HostingAccount) => {
     try {
       setAccounts(await ipc.accountRemove(account.host, account.username));
+      void useForge.getState().load(true);
       toast.success(`Removed ${account.username} on ${account.host}`);
     } catch (error) {
       toast.error(`Remove failed: ${(error as { message?: string }).message ?? error}`);
@@ -386,6 +389,7 @@ export function AccountsTab() {
   const makeDefault = async (account: HostingAccount) => {
     try {
       setAccounts(await ipc.accountSetDefault(account.host, account.username));
+      void useForge.getState().load(true);
       toast.success(`${account.username} is now the default for ${account.host}`);
     } catch (error) {
       toast.error(`Could not set default: ${(error as { message?: string }).message ?? error}`);

@@ -106,7 +106,11 @@ export const useForge = create<ForgeState>((set, get) => ({
     }
     const path = repo.path;
     const key = `${path}|${origin.url}`;
-    const remote = parseForgeRemote(origin.url);
+    let remote = parseForgeRemote(origin.url);
+    if (!remote) {
+      await ipc.accountList().catch(() => []);
+      remote = parseForgeRemote(origin.url);
+    }
     const provider = remote ? forgeProviderFor(path, remote) : null;
 
     if (!remote || !provider) {

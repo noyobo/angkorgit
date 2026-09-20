@@ -6,6 +6,14 @@ All notable changes to AngKorGit are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- **Self-hosted GitLab on a custom domain gets forge actions again.** Hostname
+  matching never saw `code.example.com`, so the status bar Create merge request
+  action and the in-app create dialog disappeared even with a connected GitLab
+  (self-hosted) account for that host. The account's provider now seeds a host →
+  kind map that `parseForgeRemote` reads; unrecognized hosts with no account
+  still return null. (#32)
+
 ## [0.16.0] — 2026-09-20
 
 The quiet release. macOS stops asking for folder access every time you come back to

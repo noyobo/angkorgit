@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   ForgeError,
   bitbucketForgeProvider,
@@ -10,6 +10,7 @@ import {
   gitlabForgeProvider,
   parseForgeRemote,
   pickForgeRemote,
+  registerForgeAccountHosts,
   type HttpRequest,
   type HttpResponse,
 } from '@angkorgit/core';
@@ -84,6 +85,50 @@ describe('parseForgeRemote', () => {
   it('returns null for unknown forges and non-remote strings', () => {
     expect(parseForgeRemote('git@git.sr.ht:~user/repo')).toBeNull();
     expect(parseForgeRemote('not a url')).toBeNull();
+  });
+});
+
+describe('registerForgeAccountHosts', () => {
+  afterEach(() => registerForgeAccountHosts([]));
+
+  it('maps a custom host from the connected account provider', () => {
+    registerForgeAccountHosts([{ host: 'CODE.example.com:2222', provider: 'gitlab-self' }]);
+    const remote = parseForgeRemote('ssh://git@code.example.com:2222/group/project.git');
+    expect(remote?.kind).toBe('gitlab');
+    expect(remote?.host).toBe('code.example.com');
+    expect(remote?.owner).toBe('group');
+    expect(remote?.repo).toBe('project');
+    expect(remote?.webUrl).toBe('https://code.example.com/group/project');
+  });
+
+  it('keeps nested GitLab groups when the account is gitlab-self', () => {
+    registerForgeAccountHosts([{ host: 'code.example.com', provider: 'gitlab-self' }]);
+    const remote = parseForgeRemote('https://code.example.com/group/sub/repo.git');
+    expect(remote?.kind).toBe('gitlab');
+    expect(remote?.owner).toBe('group/sub');
+    expect(remote?.repo).toBe('repo');
+  });
+
+  it('uses GitHub path rules for a GitHub account on a custom domain', () => {
+    registerForgeAccountHosts([{ host: 'git.corp.dev', provider: 'github' }]);
+    expect(parseForgeRemote('https://git.corp.dev/acme/app.git')?.kind).toBe('github');
+    expect(parseForgeRemote('https://git.corp.dev/group/sub/app.git')).toBeNull();
+  });
+
+  it('does not guess a kind for Other accounts', () => {
+    registerForgeAccountHosts([{ host: 'git.example.com', provider: 'other' }]);
+    expect(parseForgeRemote('https://git.example.com/owner/repo.git')).toBeNull();
+  });
+
+  it('lets the hostname heuristic win over a connected account', () => {
+    registerForgeAccountHosts([{ host: 'github.com', provider: 'gitlab-self' }]);
+    expect(parseForgeRemote('git@github.com:owner/repo.git')?.kind).toBe('github');
+  });
+
+  it('returns null again once the account list is empty', () => {
+    registerForgeAccountHosts([{ host: 'code.example.com', provider: 'gitlab-self' }]);
+    registerForgeAccountHosts([]);
+    expect(parseForgeRemote('https://code.example.com/group/project.git')).toBeNull();
   });
 });
 

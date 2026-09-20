@@ -87,8 +87,10 @@ function Shell() {
     const splashFallback = window.setTimeout(() => {
       if (!useRepo.getState().opening) finishSplash();
     }, 1600);
-    void loadRecents()
-      .catch(() => undefined)
+    void Promise.all([
+      loadRecents().catch(() => undefined),
+      ipc.accountList().catch(() => undefined),
+    ])
       .then(() => ipc.cliPendingOpen())
       .then((request) => (request ? runCli(request) : undefined))
       .catch(() => undefined)

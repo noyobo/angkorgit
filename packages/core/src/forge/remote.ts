@@ -41,41 +41,80 @@ export interface ForgeRemote {
   webUrl: string;
 }
 
+const PROVIDER_KIND: Record<string, ForgeKind> = {
+  github: 'github',
+  gitlab: 'gitlab',
+  'gitlab-self': 'gitlab',
+  bitbucket: 'bitbucket',
+};
+
+// ponytail: one process-wide map, seeded from the accounts list. Per-window
+// hosts would have to pass the map into parseForgeRemote instead.
+const accountHostKinds = new Map<string, ForgeKind>();
+
+/** Seed host → kind from connected accounts. Replaces the previous snapshot. */
+export function registerForgeAccountHosts(
+  accounts: Array<{ host: string; provider: string }>,
+): void {
+  accountHostKinds.clear();
+  for (const account of accounts) {
+    const kind = PROVIDER_KIND[account.provider];
+    if (!kind) continue;
+    const host = account.host.trim().toLowerCase().split(':')[0];
+    if (host && !accountHostKinds.has(host)) accountHostKinds.set(host, kind);
+  }
+}
+
+function detectForgeKind(hostname: string): ForgeKind | null {
+  if (hostname.includes('github')) return 'github';
+  if (hostname === 'bitbucket.org') return 'bitbucket';
+  if (hostname.includes('bitbucket')) return 'bitbucket-server';
+  if (hostname.includes('gitlab')) return 'gitlab';
+  return null;
+}
+
+function forgeRemoteForKind(
+  kind: ForgeKind,
+  segments: string[],
+  base: { scheme: string; host: string; webUrl: string },
+): ForgeRemote | null {
+  switch (kind) {
+    case 'github':
+    case 'bitbucket':
+      if (segments.length !== 2) return null;
+      return { kind, owner: segments[0], repo: segments[1], ...base };
+    case 'bitbucket-server':
+      if (segments[0] !== 'scm' || segments.length < 3) return null;
+      return {
+        kind,
+        owner: segments[1],
+        repo: segments.slice(2).join('/'),
+        ...base,
+      };
+    case 'gitlab':
+      if (segments.length < 2) return null;
+      return {
+        kind,
+        owner: segments.slice(0, -1).join('/'),
+        repo: segments[segments.length - 1],
+        ...base,
+      };
+  }
+}
+
 export function parseForgeRemote(url: string): ForgeRemote | null {
   const remote = parseRemote(url);
   if (!remote) return null;
   const hostname = remote.host.split(':')[0];
+  const kind = detectForgeKind(hostname) ?? accountHostKinds.get(hostname.toLowerCase()) ?? null;
+  if (!kind) return null;
   const segments = remote.path.split('/').filter(Boolean);
   const webUrl = `${remote.scheme}://${remote.host}/${remote.path}`;
-  const base = { scheme: remote.scheme, host: remote.host, webUrl };
-
-  if (hostname.includes('github')) {
-    if (segments.length !== 2) return null;
-    return { kind: 'github', owner: segments[0], repo: segments[1], ...base };
-  }
-  if (hostname === 'bitbucket.org') {
-    if (segments.length !== 2) return null;
-    return { kind: 'bitbucket', owner: segments[0], repo: segments[1], ...base };
-  }
-  if (hostname.includes('bitbucket')) {
-    if (segments[0] !== 'scm' || segments.length < 3) return null;
-    return {
-      kind: 'bitbucket-server',
-      owner: segments[1],
-      repo: segments.slice(2).join('/'),
-      ...base,
-    };
-  }
-  if (hostname.includes('gitlab')) {
-    if (segments.length < 2) return null;
-    return {
-      kind: 'gitlab',
-      owner: segments.slice(0, -1).join('/'),
-      repo: segments[segments.length - 1],
-      ...base,
-    };
-  }
-  return null;
+  return forgeRemoteForKind(kind, segments, {
+    scheme: remote.scheme,
+    host: remote.host,
+    webUrl,
+  });
 }
 
 export interface ForgeTarget {

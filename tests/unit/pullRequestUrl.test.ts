@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { pullRequestUrl } from '@angkorgit/core';
+import { afterEach, describe, expect, it } from 'vitest';
+import { pullRequestUrl, registerForgeAccountHosts } from '@angkorgit/core';
 
 describe('pullRequestUrl', () => {
+  afterEach(() => registerForgeAccountHosts([]));
+
   it('builds a GitHub compare URL from an https remote', () => {
     expect(pullRequestUrl('https://github.com/cheat2001/angkorgit.git', 'feature/test1')).toBe(
       'https://github.com/cheat2001/angkorgit/compare/feature%2Ftest1?expand=1',
@@ -67,5 +69,12 @@ describe('pullRequestUrl', () => {
     expect(pullRequestUrl('/local/path/repo', 'main')).toBeNull();
     expect(pullRequestUrl('https://github.com/o/r.git', '')).toBeNull();
     expect(pullRequestUrl('https://bitbucket.company.com/other/path.git', 'main')).toBeNull();
+  });
+
+  it('builds a merge request URL once a GitLab account owns the host', () => {
+    registerForgeAccountHosts([{ host: 'code.example.com', provider: 'gitlab-self' }]);
+    expect(pullRequestUrl('ssh://git@code.example.com:2222/group/project.git', 'feature/mr')).toBe(
+      'https://code.example.com/group/project/-/merge_requests/new?merge_request%5Bsource_branch%5D=feature%2Fmr',
+    );
   });
 });
